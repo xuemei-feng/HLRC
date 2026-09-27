@@ -297,6 +297,49 @@ namespace ECProject
     stripe->num_groups = stripe->group_to_blocks.size();
   }
 
+  void CoordinatorImpl::initialize_hlrc_stripe_placement(Stripe *stripe)
+  {
+    int k = stripe->k, r = stripe->r, z = stripe->z;
+    std::unordered_map<int, int> block_id_to_group_id =
+        ECProject::get_hlrc_block_id_to_group_id(k, r, z);
+  
+    Block *blocks_info = new Block[stripe->n];
+    assert(stripe->object_keys.size() == 1);
+    int t_cluster_id = stripe->stripe_id % m_sys_config->ClusterNum;
+  
+    for (int i = 0; i < stripe->n; i++)
+    {
+      blocks_info[i].block_size = m_sys_config->BlockSize;
+      blocks_info[i].map2stripe = stripe->stripe_id;
+      blocks_info[i].map2key = stripe->object_keys[0];
+      blocks_info[i].block_id = i;
+      blocks_info[i].map2group = block_id_to_group_id.at(i);  // 使用 encoder_layout 的映射
+  
+      if (i < stripe->k) {
+        blocks_info[i].block_type = 'D';
+        blocks_info[i].block_key = std::to_string(stripe->stripe_id) + "_D" + std::to_string(i);
+      } else if (i < stripe->k + stripe->r) {
+        blocks_info[i].block_type = 'G';
+        blocks_info[i].block_key = std::to_string(stripe->stripe_id) + "_G" + std::to_string(i - stripe->k);
+      } else {
+        blocks_info[i].block_type = 'L';
+        blocks_info[i].block_key = std::to_string(stripe->stripe_id) + "_L" + std::to_string(i - stripe->k - stripe->r);
+      }
+  
+      blocks_info[i].map2cluster = (t_cluster_id + blocks_info[i].map2group) % m_sys_config->ClusterNum;
+      int t_node_id = randomly_select_a_node(blocks_info[i].map2cluster, stripe->stripe_id);
+      blocks_info[i].map2node = t_node_id;
+      update_stripe_info_in_node(t_node_id, stripe->stripe_id, i);
+      m_cluster_table[blocks_info[i].map2cluster].blocks.push_back(&blocks_info[i]);
+      m_cluster_table[blocks_info[i].map2cluster].stripes.insert(stripe->stripe_id);
+      stripe->blocks.push_back(&blocks_info[i]);
+      stripe->place2clusters.insert(blocks_info[i].map2cluster);
+      add_to_map(stripe->group_to_blocks, blocks_info[i].map2group, i);
+    }
+  
+    stripe->num_groups = stripe->group_to_blocks.size();
+  }
+
   void CoordinatorImpl::initialize_azurelrc_stripe_placement(Stripe *stripe)
   {
     int k = stripe->k, r = stripe->r, z = stripe->z;
@@ -633,6 +676,8 @@ namespace ECProject
         initialize_uniform_lrc_stripe_placement(&t_stripe);
       else if (code_type_append == "LotusLRC")
         initialize_lotuslrc_stripe_placement(&t_stripe);
+      else if (code_type_append == "HLRC")
+        initialize_hlrc_stripe_placement(&t_stripe);
       m_stripe_table[t_stripe.stripe_id] = t_stripe;
       stripe = &m_stripe_table[t_stripe.stripe_id];
     }
@@ -783,7 +828,7 @@ namespace ECProject
     size_t setSizeBytes = keyValueSize->valuesizebytes();
     std::string code_type = m_sys_config->CodeType;
     assert(setSizeBytes == static_cast<size_t>(m_sys_config->BlockSize) * static_cast<size_t>(m_sys_config->k) && "set size is not equal to the block stripe size!");
-    assert((code_type == "UniLRC" || code_type == "AzureLRC" || code_type == "OptimalLRC" || code_type == "UniformLRC" || code_type == "LotusLRC") && "Error: code type must be UniLRC, AzureLRC, OptimalLRC, UniformLRC, or LotusLRC!");
+    assert((code_type == "UniLRC" || code_type == "AzureLRC" || code_type == "OptimalLRC" || code_type == "UniformLRC" || code_type == "LotusLRC" || code_type == "HLRC") && "Error: code type must be UniLRC, AzureLRC, OptimalLRC, UniformLRC, LotusLRC, or HLRC!");
 
     Stripe t_stripe;
     t_stripe.stripe_id = m_cur_stripe_id++;
@@ -802,6 +847,8 @@ namespace ECProject
       initialize_uniform_lrc_stripe_placement(&t_stripe);
     else if (code_type == "LotusLRC")
       initialize_lotuslrc_stripe_placement(&t_stripe);
+    else if (code_type == "HLRC")
+      initialize_hlrc_stripe_placement(&t_stripe);
 
     print_stripe_data_placement(t_stripe);
 

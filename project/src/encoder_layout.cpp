@@ -1,5 +1,5 @@
 /**
- * Data layout / placement: per-group block counts by code type (AzureLRC, OptimalLRC, UniformLRC, UniLRC, LotusLRC).
+ * Data layout / placement: per-group block counts by code type (AzureLRC, OptimalLRC, UniformLRC, UniLRC, LotusLRC, HLRC).
  * Used by client and coordinator; no dependency on proto or RPC.
  */
 #include "encoder.h"
@@ -24,6 +24,8 @@ namespace ECProject
       return get_data_block_num_per_group_unilrc(k, r, z);
     if (code_type == "LotusLRC")
       return get_data_block_num_per_group_lotuslrc(k, r, z);
+    if (code_type == "HLRC")
+      return get_data_block_num_per_group_hlrc(k, r, z);
     return {};
   }
 
@@ -39,6 +41,8 @@ namespace ECProject
       return get_global_parity_block_num_per_group_unilrc(k, r, z);
     if (code_type == "LotusLRC")
       return get_global_parity_block_num_per_group_lotuslrc(k, r, z);
+    if (code_type == "HLRC")
+      return get_global_parity_block_num_per_group_hlrc(k, r, z);
     return {};
   }
 
@@ -54,6 +58,8 @@ namespace ECProject
       return get_local_parity_block_num_per_group_unilrc(k, r, z);
     if (code_type == "LotusLRC")
       return get_local_parity_block_num_per_group_lotuslrc(k, r, z);
+    if (code_type == "HLRC")
+      return get_local_parity_block_num_per_group_hlrc(k, r, z);
     return {};
   }
 
@@ -369,6 +375,62 @@ namespace ECProject
     for (int i = 0; i < z; i++)
       local_parity_block_num_per_group.push_back(1);
     return local_parity_block_num_per_group;
+  }
+
+  /* ----- HLRC ----- */
+  namespace
+  {
+    int validate_hlrc_layout(int k, int r, int z)
+    {
+      if (k <= 0 || r <= 0)
+        throw std::invalid_argument("HLRC requires positive k and r");
+      const int local_group_num = (k == 24) ? 2 : 4;
+      if (z != local_group_num * 2)
+        throw std::invalid_argument(
+            k == 24 ? "HLRC with k=24 requires z=4" : "HLRC with k!=24 requires z=8");
+      if (k + r + z > 120)
+        throw std::invalid_argument("HLRC requires k+r+z <= 120");
+      return local_group_num;
+    }
+  }
+
+  std::vector<int> get_data_block_num_per_group_hlrc(int k, int r, int z)
+  {
+    validate_hlrc_layout(k, r, z);
+    // Rackless single-proxy deployment uses one transport group. Logical HLRC
+    // local groups are represented by generator-matrix support, not RPC routing.
+    return {k};
+  }
+
+  std::vector<int> get_global_parity_block_num_per_group_hlrc(int k, int r, int z)
+  {
+    validate_hlrc_layout(k, r, z);
+    return {r};
+  }
+
+  std::vector<int> get_local_parity_block_num_per_group_hlrc(int k, int r, int z)
+  {
+    validate_hlrc_layout(k, r, z);
+    return {z};
+  }
+
+  std::unordered_map<int, std::vector<int>> get_hlrc_group_id_to_block_ids(int k, int r, int z)
+  {
+    validate_hlrc_layout(k, r, z);
+    std::vector<int> blocks;
+    blocks.reserve(static_cast<size_t>(k + r + z));
+    for (int block_id = 0; block_id < k + r + z; ++block_id)
+      blocks.push_back(block_id);
+    return {{0, std::move(blocks)}};
+  }
+
+  std::unordered_map<int, int> get_hlrc_block_id_to_group_id(int k, int r, int z)
+  {
+    std::unordered_map<int, int> result;
+    for (const auto &entry : get_hlrc_group_id_to_block_ids(k, r, z))
+      for (int block_id : entry.second)
+        result[block_id] = entry.first;
+    return result;
   }
 
   /* ----- LotusLRC ----- */

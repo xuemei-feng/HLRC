@@ -251,6 +251,23 @@ target_link_libraries(encode_benchmark
 )
 
 
+# HLRC fixed-profile matrix and encoding verification (no gRPC / cluster)
+add_executable(hlrc_verify
+    ${CMAKE_CURRENT_SOURCE_DIR}/tests/hlrc_verify.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/encoder.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/encoder_layout.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/recovery_strategy.cpp
+    ${ASM_SOURCES}
+)
+target_include_directories(hlrc_verify PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
+target_link_libraries(hlrc_verify
+    -lpthread
+    -lJerasure
+    -lgf_complete
+)
+
 # Two-node ASIO TCP write bandwidth microbenchmark (no gRPC / cluster)
 add_executable(asio_write_bench
     ${CMAKE_CURRENT_SOURCE_DIR}/tests/asio_write_benchmark.cpp

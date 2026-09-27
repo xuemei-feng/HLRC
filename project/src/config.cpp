@@ -97,6 +97,20 @@ namespace ECProject
     }
     n = k + r + z;
 
+    if (CodeType == "HLRC")
+    {
+      const int expected_z = (k == 24) ? 4 : 8;
+      if (k <= 0 || r <= 0)
+        throw std::invalid_argument("HLRC requires positive k and r");
+      if (z != expected_z)
+        throw std::invalid_argument(k == 24 ? "HLRC with k=24 requires z=4"
+                                            : "HLRC with k!=24 requires z=8");
+      if (BlockSize == 0)
+        throw std::invalid_argument("HLRC requires a positive BlockSize");
+      if (n > 120)
+        throw std::invalid_argument("HLRC requires k+r+z <= 120");
+    }
+
     if (auto elem = root->FirstChildElement("DatanodeNumPerCluster"))
       DatanodeNumPerCluster = std::stoi(elem->GetText());
     if (auto elem = root->FirstChildElement("ClusterNum"))

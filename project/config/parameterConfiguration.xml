@@ -2,22 +2,22 @@
 <Configuration>
     <AlignedSize>4096</AlignedSize>
     <UnitSize>8192</UnitSize>
-    <BlockSize>67108864</BlockSize>
+    <BlockSize>1048576</BlockSize>
     <!--1048576-->
     <!--8388608-->
     <!--67108864-->
-    <DatanodeNumPerCluster>6</DatanodeNumPerCluster>
-    <ClusterNum>21</ClusterNum>
-    <CoordinatorIP>172.16.0.3</CoordinatorIP>
+    <DatanodeNumPerCluster>120</DatanodeNumPerCluster>
+    <ClusterNum>1</ClusterNum>
+    <CoordinatorIP>127.0.0.1</CoordinatorIP>
     <CoordinatorPort>55555</CoordinatorPort>
     <!-- AppendMode: REP_MODE; UNILRC_MODE; CACHED_MODE -->
     <AppendMode>UNILRC_MODE</AppendMode>
     <alpha>2</alpha>
-    <!-- LRC: UniLRC; LotusLRC; AzureLRC; OptimalLRC; UniformLRC -->
-    <CodeType>LotusLRC</CodeType>
-    <k>96</k>
-    <r>4</r>
-    <z>8</z>
+    <!-- LRC: UniLRC; LotusLRC; AzureLRC; OptimalLRC; UniformLRC; HLRC -->
+    <CodeType>HLRC</CodeType>
+    <k>24</k>
+    <r>1</r>
+    <z>4</z>
     <!-- <CodeType>UniformLRC</CodeType>
     <k>30</k>
     <r>6</r>

@@ -53,6 +53,10 @@ namespace ECProject
 
     void gen_lotuslrc_matrix(unsigned char *encode_matrix, int k, int r, int z);
 
+    // HLRC: k=24 requires z=4 (2 local groups); all other k require z=8 (4 local groups).
+    void encode_hlrc(int k, int r, int z, unsigned char **data_ptrs, unsigned char **parity_ptrs, int block_size);
+    void gen_hlrc_matrix(unsigned char *encode_matrix, int k, int r, int z);
+
     void encode_unilrc(int k, int r, int z, unsigned char **data_ptrs, unsigned char **parity_ptrs, int block_size);
 
     void encode_azure_lrc(int k, int r, int z, unsigned char **data_ptrs, unsigned char **parity_ptrs, int block_size);
@@ -228,6 +232,13 @@ namespace ECProject
     std::vector<int> get_global_parity_block_num_per_group_unilrc(int k, int r, int z);
     std::vector<int> get_local_parity_block_num_per_group_unilrc(int k, int r, int z);
     int get_unilrc_block_id_to_local_group_id(int k, int r, int z, int block_id);
+
+    /* HLRC rackless transport layout; local groups are represented by matrix support. */
+    std::vector<int> get_data_block_num_per_group_hlrc(int k, int r, int z);
+    std::vector<int> get_global_parity_block_num_per_group_hlrc(int k, int r, int z);
+    std::vector<int> get_local_parity_block_num_per_group_hlrc(int k, int r, int z);
+    std::unordered_map<int, int> get_hlrc_block_id_to_group_id(int k, int r, int z);
+    std::unordered_map<int, std::vector<int>> get_hlrc_group_id_to_block_ids(int k, int r, int z);
 
     /* LotusLRC layout */
     std::vector<int> get_data_block_num_per_group_lotuslrc(int k, int r, int z);

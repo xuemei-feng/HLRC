@@ -253,7 +253,7 @@ int main(int argc, char **argv)
     std::cout << "Current working directory: " << sys_config_path << std::endl;
 
     const ECProject::Config *config = ECProject::Config::getInstance(sys_config_path);
-    std::string client_ip = "172.16.0.1";
+    std::string client_ip = "127.0.0.1";
     int client_port = 44444;
     ECProject::Client client(client_ip, client_port, config->CoordinatorIP + ":" + std::to_string(config->CoordinatorPort), sys_config_path);
     std::cout << client.sayHelloToCoordinatorByGrpc("Client ID: " + client_ip + ":" + std::to_string(client_port)) << std::endl;
@@ -278,6 +278,9 @@ int main(int argc, char **argv)
     else if(parameters[4] == 4){
         code_type = "LotusLRC";
     }
+    else if(parameters[4] == 5){
+        code_type = "HLRC";
+    }
     else{
         std::cout << "Code type error" << std::endl;
         return -1;
@@ -285,7 +288,7 @@ int main(int argc, char **argv)
     double block_size = static_cast<double> (parameters[3]) / 1024 / 1024; //MB
     int n = k + r + z;
     
-    int stripe_num = 5;
+    constexpr int stripe_num = 1;
 
     size_t total_write_size = static_cast<size_t>(stripe_num * block_size * k); // MB
     std::cout << "Starting set stripe operation" << std::endl;
@@ -298,11 +301,7 @@ int main(int argc, char **argv)
     std::cout << "Conducting experiments, please wait..." << std::endl;
     std::chrono::duration<double> set_time = std::chrono::duration_cast<std::chrono::duration<double>>(set_end - set_start);
     std::cout << "write throughput: " << (static_cast<double>(total_write_size) / set_time.count()) << " MB/s" << std::endl;
-    std::mt19937 rng(std::random_device{}());
     sleep(5);
-
-    std::uniform_int_distribution<int> dist_500(0, k*stripe_num - 500);
-    std::uniform_real_distribution<double> dist_double(0.0, 1.0);
 
  
     // 读性能测试：Normal read -> Degraded read -> Maintenance-robust read（共用上方预写的 stripe）
@@ -310,8 +309,7 @@ int main(int argc, char **argv)
     std::vector<std::chrono::duration<double>> read_time_spans;
     for(int i = 0; i < 5; i++){
         size_t data_size;
-        int id = i;
-        std::string key = std::to_string(id);
+        const std::string key = "0";
         std::chrono::high_resolution_clock::time_point t1 = std::chrono::high_resolution_clock::now();
         std::shared_ptr<char[]> data = client.get(key, data_size);
         if(!data){
@@ -337,13 +335,17 @@ int main(int argc, char **argv)
 
 
 
+    if (code_type == "HLRC")
+    {
+        std::cout << "Degraded read test skipped: HLRC recovery is not implemented yet" << std::endl;
+        std::cout << std::endl;
+    }
+    else
+    {
     //for degraded read test 
     std::vector<std::chrono::duration<double>> degraded_read_time_spans;
     std::cout << "Degraded read test start" << std::endl;
     for(int i = 0; i < k; i++){
-        size_t data_size;
-        int id = i;
-        std::string key = std::to_string(id);
         std::chrono::high_resolution_clock::time_point t1 = std::chrono::high_resolution_clock::now();
         std::shared_ptr<char[]> data = client.get_degraded_read_block(0, i);
         if(!data){
@@ -368,6 +370,8 @@ int main(int argc, char **argv)
     std::cout << "Degraded read test end" << std::endl;
     std::cout << std::endl;
 
+
+    }
 
 /*
     // Maintenance-robust normal read（与 Normal/Degraded read 共用预写后的 stripe 0）

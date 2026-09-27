@@ -139,14 +139,14 @@ def main() -> None:
         repo_root / "hosts",
         layout.all_hosts,
         header=(
-            f"{len(layout.all_hosts)} nodes: client, coordinator, proxy, datanode "
-            "(auto-generated from all_ips)"
+            f"{len(layout.all_hosts)} unique hosts for client, coordinator, proxy, and datanodes "
+            "(auto-generated from cluster.ini)"
         ),
     )
     write_lines(
         repo_root / "proxy_hosts",
         layout.proxy_hosts,
-        header=f"{len(layout.proxy_hosts)} proxy nodes (auto-generated from all_ips)",
+        header=f"{len(set(layout.proxy_hosts))} unique proxy hosts (auto-generated from cluster.ini)",
     )
     print(f"Written {repo_root / 'hosts'}")
     print(f"Written {repo_root / 'proxy_hosts'}")

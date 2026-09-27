@@ -163,6 +163,19 @@ void ECProject::encode_lotuslrc(int k, int r, int z, unsigned char **data_ptrs, 
     delete[] g_tbls;
 }
 
+void ECProject::encode_hlrc(int k, int r, int z, unsigned char **data_ptrs, unsigned char **parity_ptrs, int block_size)
+{
+    for (int i = 0; i < r + z; ++i)
+        memset(parity_ptrs[i], 0, block_size);
+
+    std::vector<unsigned char> encode_matrix(static_cast<size_t>(k + r + z) * k);
+    gen_hlrc_matrix(encode_matrix.data(), k, r, z);
+
+    std::vector<unsigned char> g_tbls(static_cast<size_t>(k) * (r + z) * 32);
+    ec_init_tables(k, r + z, encode_matrix.data() + static_cast<size_t>(k) * k, g_tbls.data());
+    ec_encode_data_avx2(block_size, k, r + z, g_tbls.data(), data_ptrs, parity_ptrs);
+}
+
 void ECProject::encode_unilrc(int k, int r, int z, unsigned char **data_ptrs, unsigned char **parity_ptrs, int block_size)
 {
     for(int i = 0; i < r + z; i++){
@@ -440,6 +453,77 @@ void ECProject::gen_uniform_lrc_matrix(unsigned char *encode_matrix, int k, int 
         }
     }
     delete[] local_vector;
+}
+
+void ECProject::gen_hlrc_matrix(unsigned char *encode_matrix, int k, int r, int z)
+{
+    if (k <= 0 || r <= 0)
+        throw std::invalid_argument("HLRC requires positive k and r");
+
+    const int local_group_num = (k == 24) ? 2 : 4;
+    const int expected_z = local_group_num * 2;
+    if (z != expected_z)
+        throw std::invalid_argument(
+            k == 24 ? "HLRC with k=24 requires z=4" : "HLRC with k!=24 requires z=8");
+    if (k + r + z > 120)
+        throw std::invalid_argument("HLRC requires k+r+z <= 120");
+
+    const int non_coupled_group_num = local_group_num / 2;
+    const int coupled_group_num = local_group_num - non_coupled_group_num;
+    const int base_rows = k + r + 2;
+
+    // The source construction uses an (r+2) x k Cauchy parity matrix after
+    // the k systematic rows: r global rows followed by two local seed rows.
+    std::vector<unsigned char> base_matrix(static_cast<size_t>(base_rows) * k, 0);
+    gf_gen_cauchy_matrix1(base_matrix.data(), base_rows, k);
+    memset(encode_matrix, 0, static_cast<size_t>(k + r + z) * k);
+    memcpy(encode_matrix, base_matrix.data(), static_cast<size_t>(k + r) * k);
+
+    const unsigned char *local_seed0 = base_matrix.data() + static_cast<size_t>(k + r) * k;
+    const unsigned char *local_seed1 = local_seed0 + k;
+
+    int data_begin = 0;
+    for (int group = 0; group < local_group_num; ++group)
+    {
+        // Front-balanced partition: group sizes differ by at most one.
+        const int data_count = k / local_group_num + (group < k % local_group_num ? 1 : 0);
+        unsigned char *local0 = encode_matrix + static_cast<size_t>(k + r + 2 * group) * k;
+        unsigned char *local1 = local0 + k;
+
+        if (group < non_coupled_group_num)
+        {
+            // Front-balanced split within a non-coupled group. The two local rows
+            // use the element-wise GF sum of the Cauchy seed rows on disjoint halves.
+            const int first_half = data_count / 2 + data_count % 2;
+            for (int j = data_begin; j < data_begin + first_half; ++j)
+                local0[j] = local_seed0[j] ^ local_seed1[j];
+            for (int j = data_begin + first_half; j < data_begin + data_count; ++j)
+                local1[j] = local_seed0[j] ^ local_seed1[j];
+        }
+        else
+        {
+            for (int j = data_begin; j < data_begin + data_count; ++j)
+            {
+                local0[j] = local_seed0[j];
+                local1[j] = local_seed1[j];
+            }
+
+            // Front-balanced round-robin assignment of all global parities to
+            // coupled groups. Counts differ by at most one, and every assigned
+            // global generator row is folded into both local rows.
+            const int coupled_index = group - non_coupled_group_num;
+            for (int gp = coupled_index; gp < r; gp += coupled_group_num)
+            {
+                const unsigned char *global_row = encode_matrix + static_cast<size_t>(k + gp) * k;
+                for (int j = 0; j < k; ++j)
+                {
+                    local0[j] ^= global_row[j];
+                    local1[j] ^= global_row[j];
+                }
+            }
+        }
+        data_begin += data_count;
+    }
 }
 
 void ECProject::gen_lotuslrc_matrix(unsigned char *encode_matrix, int k, int r, int z)

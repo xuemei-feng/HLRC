@@ -159,7 +159,7 @@ def compute_distributed_layout(cfg: configparser.ConfigParser) -> ClusterLayout:
             datanodes.append(f"{dn_ip}:{dn_start + c * dn_per + d}")
         clusters.append({"proxy": f"{proxy_ip}:{first_port + c}", "datanodes": datanodes})
 
-    all_hosts = sort_ips([client_ip, coordinator_ip] + list(dict.fromkeys(node_ips)))
+    all_hosts = sort_ips(list(dict.fromkeys([client_ip, coordinator_ip] + node_ips)))
     return ClusterLayout(
         client_ip=client_ip,
         coordinator_ip=coordinator_ip,
