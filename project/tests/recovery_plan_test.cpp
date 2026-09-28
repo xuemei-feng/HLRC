@@ -59,6 +59,20 @@ int main()
 
   std::cout << "=== recovery_group_and_block_ids 单元测试 (k=" << k << " r=" << r << " z=" << z << " n=" << n << ") ===" << std::endl;
 
+  const auto require_hlrc_plan = [](int failed, const std::vector<int> &expected) {
+    const auto plan = ECProject::get_recovery_group_and_block_ids("HLRC", 24, 1, 4, failed);
+    if (plan.size() != 1 || plan[0].first != 0 || plan[0].second != expected)
+    {
+      std::cerr << "FAIL: unexpected HLRC plan for block " << failed << std::endl;
+      std::exit(1);
+    }
+  };
+  require_hlrc_plan(0, {1, 2, 3, 4, 5, 25});
+  require_hlrc_plan(25, {0, 1, 2, 3, 4, 5});
+  require_hlrc_plan(12, {13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 27});
+  require_hlrc_plan(24, {12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 27});
+  require_hlrc_plan(27, {12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24});
+
   const std::vector<std::string> code_types = {"AzureLRC",  "OptimalLRC", "UniformLRC", "LotusLRC"};
 
   for (const auto &code_type : code_types)

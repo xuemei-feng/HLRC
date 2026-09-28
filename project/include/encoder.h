@@ -98,6 +98,9 @@ namespace ECProject
     void decode_lotus_lrc(const int k, const int r, const int z, const int block_num,
                           const std::vector<int> *block_indexes, unsigned char **block_ptrs, unsigned char *res_ptr, int block_size,
                           int failed_block_id);
+    void decode_hlrc(const int k, const int r, const int z, const int block_num,
+                     const std::vector<int> *block_indexes, unsigned char **block_ptrs, unsigned char *res_ptr, int block_size,
+                     int failed_block_id);
 
     int xor_avx(int vects, int len, void **array);
 
@@ -267,6 +270,7 @@ namespace ECProject
     std::vector<std::pair<int, std::vector<int>>> get_recovery_group_and_block_ids_unilrc(int k, int r, int z, int failed_block_id);
     std::vector<std::pair<int, std::vector<int>>> get_recovery_group_and_block_ids_azurelrc(int k, int r, int z, int failed_block_id);
     std::vector<std::pair<int, std::vector<int>>> get_recovery_group_and_block_ids_lotuslrc(int k, int r, int z, int failed_block_id);
+    std::vector<std::pair<int, std::vector<int>>> get_recovery_group_and_block_ids_hlrc(int k, int r, int z, int failed_block_id);
 
     std::vector<std::pair<int, std::vector<int>>> get_recovery_group_and_block_ids_lotuslrc_2block_recovery(int k, int r, int z, int failed_block_id0, int failed_block_id1);
 }

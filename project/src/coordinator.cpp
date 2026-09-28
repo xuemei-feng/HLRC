@@ -1715,6 +1715,9 @@ namespace ECProject
     else if(code_type == "UniformLRC"){
       decode_uniform_lrc(k, r, z, block_num, &recovery_block_ids, recovery_data_ptrs.data(), res, block_size, failed_block_id);
     }
+    else if(code_type == "HLRC"){
+      decode_hlrc(k, r, z, block_num, &recovery_block_ids, recovery_data_ptrs.data(), res, block_size, failed_block_id);
+    }
     else{
       std::cout << "[Coordinator] decodeTest: unknown code type!" << std::endl;
       return grpc::Status(grpc::INVALID_ARGUMENT, "unknown code type");

@@ -335,13 +335,6 @@ int main(int argc, char **argv)
 
 
 
-    if (code_type == "HLRC")
-    {
-        std::cout << "Degraded read test skipped: HLRC recovery is not implemented yet" << std::endl;
-        std::cout << std::endl;
-    }
-    else
-    {
     //for degraded read test 
     std::vector<std::chrono::duration<double>> degraded_read_time_spans;
     std::cout << "Degraded read test start" << std::endl;
@@ -370,8 +363,6 @@ int main(int argc, char **argv)
     std::cout << "Degraded read test end" << std::endl;
     std::cout << std::endl;
 
-
-    }
 
 /*
     // Maintenance-robust normal read（与 Normal/Degraded read 共用预写后的 stripe 0）

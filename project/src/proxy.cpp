@@ -1368,6 +1368,12 @@ namespace ECProject
           decode_lotus_lrc(m_sys_config->k, m_sys_config->r, m_sys_config->z, request_copy->datanodeip_size(), &block_idxs, block_ptrs.data(), reinterpret_cast<unsigned char *>(res_buf), m_sys_config->BlockSize, request_copy->failed_block_id());
           std::cout << "[Proxy" << m_self_cluster_id << "][Degrade read] decode_lotus_lrc success!" << std::endl;
         }
+        else if (code_type == "HLRC")
+        {
+          std::cout << "[Proxy" << m_self_cluster_id << "][Degrade read] decode_hlrc" << std::endl;
+          decode_hlrc(m_sys_config->k, m_sys_config->r, m_sys_config->z, request_copy->datanodeip_size(), &block_idxs, block_ptrs.data(), reinterpret_cast<unsigned char *>(res_buf), m_sys_config->BlockSize, request_copy->failed_block_id());
+          std::cout << "[Proxy" << m_self_cluster_id << "][Degrade read] decode_hlrc success!" << std::endl;
+        }
         else
         {
           std::cout << "[Proxy" << m_self_cluster_id << "][Degrade read] code type error!" << std::endl;
@@ -1605,6 +1611,12 @@ namespace ECProject
           decode_uniform_lrc(m_sys_config->k, m_sys_config->r, m_sys_config->z, request_copy->datanodeip_size(), &block_idxs, block_ptrs.data(), reinterpret_cast<unsigned char *>(res_buf), m_sys_config->BlockSize, request_copy->failed_block_id());
           std::cout << "[Proxy" << m_self_cluster_id << "][Degrade read] decode_uniform_lrc success!" << std::endl;
         }
+        else if (code_type == "HLRC")
+        {
+          std::cout << "[Proxy" << m_self_cluster_id << "][Degrade read] decode_hlrc" << std::endl;
+          decode_hlrc(m_sys_config->k, m_sys_config->r, m_sys_config->z, request_copy->datanodeip_size(), &block_idxs, block_ptrs.data(), reinterpret_cast<unsigned char *>(res_buf), m_sys_config->BlockSize, request_copy->failed_block_id());
+          std::cout << "[Proxy" << m_self_cluster_id << "][Degrade read] decode_hlrc success!" << std::endl;
+        }
         else
         {
           std::cout << "[Proxy" << m_self_cluster_id << "][Degrade read] code type error!" << std::endl;
@@ -1746,6 +1758,12 @@ namespace ECProject
         decode_uniform_lrc(m_sys_config->k, m_sys_config->r, m_sys_config->z, request_copy->datanodeip_size(), &block_idxs, block_ptrs.data(), reinterpret_cast<unsigned char *>(res_buf), m_sys_config->BlockSize, request_copy->failed_block_id());
         std::cout << "[Proxy" << m_self_cluster_id << "][Degrade read] decode_uniform_lrc success!" << std::endl;
       }
+      else if (code_type == "HLRC")
+      {
+        std::cout << "[Proxy" << m_self_cluster_id << "][Degrade read] decode_hlrc" << std::endl;
+        decode_hlrc(m_sys_config->k, m_sys_config->r, m_sys_config->z, request_copy->datanodeip_size(), &block_idxs, block_ptrs.data(), reinterpret_cast<unsigned char *>(res_buf), m_sys_config->BlockSize, request_copy->failed_block_id());
+        std::cout << "[Proxy" << m_self_cluster_id << "][Degrade read] decode_hlrc success!" << std::endl;
+      }
       else
       {
         std::cout << "[Proxy" << m_self_cluster_id << "][Degrade read] code type error!" << std::endl;
@@ -1883,6 +1901,10 @@ namespace ECProject
       else if (code_type == "LotusLRC")
       {
         decode_lotus_lrc(m_sys_config->k, m_sys_config->r, m_sys_config->z, recovery_request->datanodeip_size(), &block_idxs, block_ptrs.data(), reinterpret_cast<unsigned char *>(res_buf), m_sys_config->BlockSize, failed_block_id);
+      }
+      else if (code_type == "HLRC")
+      {
+        decode_hlrc(m_sys_config->k, m_sys_config->r, m_sys_config->z, recovery_request->datanodeip_size(), &block_idxs, block_ptrs.data(), reinterpret_cast<unsigned char *>(res_buf), m_sys_config->BlockSize, failed_block_id);
       }
       else
       {
@@ -2078,6 +2100,10 @@ namespace ECProject
       else if (code_type == "UniformLRC")
       {
         decode_uniform_lrc(m_sys_config->k, m_sys_config->r, m_sys_config->z, recovery_request->datanodeip_size(), &block_idxs, block_ptrs.data(), reinterpret_cast<unsigned char *>(res_buf), m_sys_config->BlockSize, failed_block_id);
+      }
+      else if (code_type == "HLRC")
+      {
+        decode_hlrc(m_sys_config->k, m_sys_config->r, m_sys_config->z, recovery_request->datanodeip_size(), &block_idxs, block_ptrs.data(), reinterpret_cast<unsigned char *>(res_buf), m_sys_config->BlockSize, failed_block_id);
       }
       else
       {
@@ -2662,6 +2688,10 @@ namespace ECProject
         {
           decode_lotus_lrc(m_sys_config->k, m_sys_config->r, m_sys_config->z, recovery_request->datanodeip_size(), &block_idxs, block_ptrs.data(), reinterpret_cast<unsigned char *>(res_buf), m_sys_config->BlockSize, failed_block_id);
         }
+        else if (code_type == "HLRC")
+        {
+          decode_hlrc(m_sys_config->k, m_sys_config->r, m_sys_config->z, recovery_request->datanodeip_size(), &block_idxs, block_ptrs.data(), reinterpret_cast<unsigned char *>(res_buf), m_sys_config->BlockSize, failed_block_id);
+        }
         else
         {
           std::cout << "[Proxy" << m_self_cluster_id << "][Degrade read] code type error!" << std::endl;
@@ -3005,6 +3035,10 @@ namespace ECProject
         else if (code_type == "LotusLRC")
         {
           decode_lotus_lrc(m_sys_config->k, m_sys_config->r, m_sys_config->z, recovery_request->datanodeip_size(), &block_idxs, block_ptrs.data(), reinterpret_cast<unsigned char *>(res_buf), m_sys_config->BlockSize, failed_block_id);
+        }
+        else if (code_type == "HLRC")
+        {
+          decode_hlrc(m_sys_config->k, m_sys_config->r, m_sys_config->z, recovery_request->datanodeip_size(), &block_idxs, block_ptrs.data(), reinterpret_cast<unsigned char *>(res_buf), m_sys_config->BlockSize, failed_block_id);
         }
         else
         {

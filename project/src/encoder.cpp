@@ -726,6 +726,14 @@ void ECProject::decode_lotus_lrc(const int k, const int r, const int z, const in
                                res_ptr, block_size, failed_block_id);
 }
 
+void ECProject::decode_hlrc(const int k, const int r, const int z, const int block_num,
+                            const std::vector<int> *block_indexes, unsigned char **block_ptrs, unsigned char *res_ptr, int block_size,
+                            int failed_block_id)
+{
+    decode_block_via_generator("HLRC", k, r, z, block_num, block_indexes, block_ptrs,
+                               res_ptr, block_size, failed_block_id);
+}
+
 void
 ECProject::ec_encode_data_avx2(int len, int k, int rows, unsigned char *g_tbls, unsigned char **data,
                     unsigned char **coding)

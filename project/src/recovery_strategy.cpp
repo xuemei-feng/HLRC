@@ -196,6 +196,8 @@ bool build_generator_matrix(const std::string &code_type, int k, int r, int z,
         gen_uniform_lrc_matrix(gen.data(), k, r, z);
     else if (code_type == "LotusLRC")
         gen_lotuslrc_matrix(gen.data(), k, r, z);
+    else if (code_type == "HLRC")
+        gen_hlrc_matrix(gen.data(), k, r, z);
     else
         return false;
     return true;
@@ -330,6 +332,9 @@ bool get_global_decode_plan(int k, int r, int z, const std::string &code_type,
     }
     else if(code_type == "LotusLRC"){
         gen_lotuslrc_matrix(gen_matrix, k, r, z);
+    }
+    else if(code_type == "HLRC"){
+        gen_hlrc_matrix(gen_matrix, k, r, z);
     }
     else{
         std::cerr << "Error: Unsupported code type " << code_type << std::endl;
@@ -521,6 +526,8 @@ std::vector<std::pair<int, std::vector<int>>> get_recovery_group_and_block_ids(c
     return get_recovery_group_and_block_ids_unilrc(k, r, z, failed_block_id);
   else if (code_type == "LotusLRC")
     return get_recovery_group_and_block_ids_lotuslrc(k, r, z, failed_block_id);
+  else if (code_type == "HLRC")
+    return get_recovery_group_and_block_ids_hlrc(k, r, z, failed_block_id);
   else
     throw std::runtime_error("unknown code type");
 }
@@ -732,6 +739,92 @@ std::vector<std::pair<int, std::vector<int>>> get_recovery_group_and_block_ids_u
     }
   }
   return recovery_group_and_block_ids;
+}
+
+std::vector<std::pair<int, std::vector<int>>> get_recovery_group_and_block_ids_hlrc(
+    int k, int r, int z, int failed_block_id)
+{
+  if (k <= 0 || r <= 0)
+    throw std::invalid_argument("HLRC requires positive k and r");
+  const int local_group_num = (k == 24) ? 2 : 4;
+  if (z != local_group_num * 2)
+    throw std::invalid_argument(k == 24 ? "HLRC with k=24 requires z=4"
+                                        : "HLRC with k!=24 requires z=8");
+  if (k + r + z > 120)
+    throw std::invalid_argument("HLRC requires k+r+z <= 120");
+  if (failed_block_id < 0 || failed_block_id >= k + r + z)
+    throw std::out_of_range("HLRC failed block id is out of range");
+
+  const int non_coupled_group_num = local_group_num / 2;
+  const int coupled_group_num = local_group_num - non_coupled_group_num;
+  std::vector<int> data_begin(local_group_num);
+  std::vector<int> data_count(local_group_num);
+  int next_data = 0;
+  for (int group = 0; group < local_group_num; ++group)
+  {
+    data_begin[group] = next_data;
+    data_count[group] = k / local_group_num + (group < k % local_group_num ? 1 : 0);
+    next_data += data_count[group];
+  }
+
+  int local_group = -1;
+  if (failed_block_id < k)
+  {
+    for (int group = 0; group < local_group_num; ++group)
+      if (failed_block_id >= data_begin[group] &&
+          failed_block_id < data_begin[group] + data_count[group])
+      {
+        local_group = group;
+        break;
+      }
+  }
+  else if (failed_block_id < k + r)
+  {
+    local_group = non_coupled_group_num +
+                  (failed_block_id - k) % coupled_group_num;
+  }
+  else
+  {
+    local_group = (failed_block_id - k - r) / 2;
+  }
+
+  std::vector<int> sources;
+  const int local0 = k + r + 2 * local_group;
+  const int local1 = local0 + 1;
+  if (local_group < non_coupled_group_num)
+  {
+    const int first_half = data_count[local_group] / 2 + data_count[local_group] % 2;
+    const bool first_small_group = failed_block_id == local0 ||
+        (failed_block_id < k && failed_block_id < data_begin[local_group] + first_half);
+    const int small_begin = data_begin[local_group] + (first_small_group ? 0 : first_half);
+    const int small_count = first_small_group ? first_half : data_count[local_group] - first_half;
+    for (int bid = small_begin; bid < small_begin + small_count; ++bid)
+      if (bid != failed_block_id)
+        sources.push_back(bid);
+    const int local_parity = first_small_group ? local0 : local1;
+    if (local_parity != failed_block_id)
+      sources.push_back(local_parity);
+  }
+  else
+  {
+    for (int bid = data_begin[local_group];
+         bid < data_begin[local_group] + data_count[local_group]; ++bid)
+      if (bid != failed_block_id)
+        sources.push_back(bid);
+    const int coupled_index = local_group - non_coupled_group_num;
+    for (int gp = coupled_index; gp < r; gp += coupled_group_num)
+    {
+      const int global_id = k + gp;
+      if (global_id != failed_block_id)
+        sources.push_back(global_id);
+    }
+    if (failed_block_id != local0 && failed_block_id != local1)
+      sources.push_back(local0);
+  }
+
+  // HLRC is rackless and uses one transport group; logical local groups only
+  // determine the source set above.
+  return {{0, std::move(sources)}};
 }
 
 std::vector<std::pair<int, std::vector<int>>> get_recovery_group_and_block_ids_unilrc(int k, int r, int z, int failed_block_id)

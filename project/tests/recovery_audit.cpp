@@ -30,6 +30,7 @@ void build_matrix(const std::string &code, int k, int r, int z, std::vector<unsi
     else if (code == "OptimalLRC") ECProject::gen_optimal_lrc_matrix(G.data(), k, r, z);
     else if (code == "UniformLRC") ECProject::gen_uniform_lrc_matrix(G.data(), k, r, z);
     else if (code == "LotusLRC") ECProject::gen_lotuslrc_matrix(G.data(), k, r, z);
+    else if (code == "HLRC") ECProject::gen_hlrc_matrix(G.data(), k, r, z);
     else throw std::runtime_error("unknown code");
 }
 
@@ -47,6 +48,8 @@ void call_decode(const std::string &code, int k, int r, int z, int block_num,
         ECProject::decode_uniform_lrc(k, r, z, block_num, &idx, ptrs, res, bs, failed);
     else if (code == "LotusLRC")
         ECProject::decode_lotus_lrc(k, r, z, block_num, &idx, ptrs, res, bs, failed);
+    else if (code == "HLRC")
+        ECProject::decode_hlrc(k, r, z, block_num, &idx, ptrs, res, bs, failed);
 }
 
 // Generic GF(2^8) span test: is gen-row[target] in the row space of {gen-row[idx]}?
@@ -192,6 +195,9 @@ int main()
     audit("UniformLRC", 48, 3, 4);
     audit("UniLRC", 12, 6, 3);
     audit("UniLRC", 24, 8, 4);
+    audit("HLRC", 24, 1, 4);
+    audit("HLRC", 25, 5, 8);
+    audit("HLRC", 26, 1, 8);
     std::cout << "----- layout dump -----\n";
     dump_uniform_layout(48, 3, 4);
     return 0;
