@@ -102,10 +102,10 @@ namespace ECProject
     bool delete_key(std::string key);
     bool delete_stripe(int stripe_id);
     bool delete_all_stripes();
-    int get_append_slice_plans(std::string append_mode, int curr_logical_offset, int append_size, std::vector<std::vector<int>> *node_slice_sizes_per_cluster, std::vector<int> *modified_data_block_nums_per_cluster, std::vector<int> *data_ptr_size_array, int &parity_slice_size, int &parity_slice_offset);
-    void split_for_append_data_and_parity(const coordinator_proto::ReplyProxyIPsPorts *reply_proxy_ips_ports, const std::vector<char *> &cluster_slice_data, const std::vector<std::vector<int>> &node_slice_sizes_per_cluster, const std::vector<int> &modified_data_block_nums_per_cluster, std::vector<char *> &data_ptr_array, std::vector<char *> &global_parity_ptr_array, std::vector<char *> &local_parity_ptr_array);
-    void split_for_set_data_and_parity(const coordinator_proto::ReplyProxyIPsPorts *reply_proxy_ips_ports, const std::vector<char *> &cluster_slice_data, const std::vector<int> &data_block_num_per_group, const std::vector<int> &global_parity_block_num_per_group, const std::vector<int> &local_parity_block_num_per_group, std::vector<char *> &data_ptr_array, std::vector<char *> &global_parity_ptr_array, std::vector<char *> &local_parity_ptr_array);
-    void async_append_to_proxies(char *cluster_slice_data, std::string append_key, int cluster_slice_size, std::string proxy_ip, int proxy_port, int index, bool *if_commit_arr);
+    int get_append_slice_plans(std::string append_mode, int curr_logical_offset, int append_size, std::vector<std::vector<int>> *node_slice_sizes_per_node, std::vector<int> *modified_data_block_nums_per_node, std::vector<int> *data_ptr_size_array, int &parity_slice_size, int &parity_slice_offset);
+    void split_for_append_data_and_parity(const coordinator_proto::ReplyProxyIPsPorts *reply_proxy_ips_ports, const std::vector<char *> &node_slice_data, const std::vector<std::vector<int>> &node_slice_sizes_per_node, const std::vector<int> &modified_data_block_nums_per_node, std::vector<char *> &data_ptr_array, std::vector<char *> &global_parity_ptr_array, std::vector<char *> &local_parity_ptr_array);
+    void split_for_set_data_and_parity(const coordinator_proto::ReplyProxyIPsPorts *reply_proxy_ips_ports, const std::vector<char *> &node_slice_data, const std::vector<int> &data_block_num_per_group, const std::vector<int> &global_parity_block_num_per_group, const std::vector<int> &local_parity_block_num_per_group, std::vector<char *> &data_ptr_array, std::vector<char *> &global_parity_ptr_array, std::vector<char *> &local_parity_ptr_array);
+    void async_append_to_proxies(char *node_slice_data, std::string append_key, int node_slice_size, std::string proxy_ip, int proxy_port, int index, bool *if_commit_arr);
     void get_cached_parity_slices(std::vector<char *> &global_parity_ptr_array, std::vector<char *> &local_parity_ptr_array, const int parity_slice_size, const int parity_slice_offset);
     void cache_latest_parity_slices(std::vector<char *> &global_parity_ptr_array, std::vector<char *> &local_parity_ptr_array, const int parity_slice_size, const int parity_slice_offset);
     std::vector<int> get_parameters();
@@ -118,13 +118,13 @@ namespace ECProject
                                           const std::vector<int> &recovery_block_ids,
                                           double &disk_read_time, double &network_time,
                                           double &decode_time, double &disk_write_time);
-    // Scheme B: clusters touched by a single-block recovery (sources + dest). Empty = cannot
+    // Scheme B: nodes touched by a single-block recovery (sources + dest). Empty = cannot
     // determine (caller should serialize). Used to decide if two recoveries can run in parallel.
-    std::set<int> recovery_cluster_set(int stripe_id, int failed_block_id);
-    // Relaxed Scheme B: the single write-back (dest) cluster of a recovery. The only real
+    std::set<int> recovery_node_set(int stripe_id, int failed_block_id);
+    // Relaxed Scheme B: the single write-back (dest) node of a recovery. The only real
     // concurrency hazard is two recoveries sharing the same dest proxy (single shared acceptor);
-    // shared read-only source clusters are safe. Returns -1 if it cannot be determined.
-    int recovery_dest_cluster(int stripe_id, int failed_block_id);
+    // shared read-only source nodes are safe. Returns -1 if it cannot be determined.
+    int recovery_dest_node(int stripe_id, int failed_block_id);
     std::unique_ptr<coordinator_proto::coordinatorService::Stub> m_coordinator_ptr;
     std::string m_coordinatorIpPort;
     std::string m_clientIPForGet;

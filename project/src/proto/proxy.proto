@@ -46,7 +46,7 @@ service proxyService {
 
 // parity block recalculation
 message locationInfo {
-  int32 cluster_id = 1;
+  int32 node_id = 1;
   string proxy_ip = 2;
   int32 proxy_port = 3;
   repeated string datanodeip = 4;
@@ -58,7 +58,7 @@ message locationInfo {
 message mainRecalPlan {
   bool type = 1;  // to distinguish local and global
   bool if_partial_decoding = 2;
-  repeated locationInfo clusters = 3;
+  repeated locationInfo nodes = 3;
   repeated string p_datanodeip = 4;
   repeated int32 p_datanodeport = 5;
   repeated string p_blockkeys = 6;
@@ -119,6 +119,9 @@ message NodeAndBlock {
   repeated int32 datanodeport = 3;
   int32 stripe_id = 4;
   string key = 5;
+  repeated int32 node_ids = 6;
+  repeated string owner_proxy_ips = 7;
+  repeated int32 owner_proxy_ports = 8;
 }
 
 message DelReply {
@@ -151,6 +154,9 @@ message ObjectAndPlacement{
   int32 encode_type = 12;
   string clientip = 13;
   int32 clientport = 14;
+  repeated int32 node_ids = 15;
+  repeated string owner_proxy_ips = 16;
+  repeated int32 owner_proxy_ports = 17;
 }
 
 // degraded read
@@ -281,6 +287,13 @@ message RecoveryRequest{
   // NOTE: local_parity_block_ids/ip/port/keys carry ALL dest-directly-read sources (the surviving
   // local parity block(s) plus any group member not read by a helper), not only local parities.
   repeated int32 local_fill_source_ids = 29;
+  string replaced_proxy_ip = 30;
+  int32 replaced_proxy_port = 31;
+  repeated int32 source_node_ids = 32;
+  repeated string source_proxy_ips = 33;
+  repeated int32 source_proxy_ports = 34;
+  repeated string replaced_proxy_ips = 35;
+  repeated int32 replaced_proxy_ports = 36;
 }
 
 message MultipleRecoveryRequest{
@@ -311,9 +324,9 @@ message RecoveryReply {
 // append
 message AppendStripeDataPlacement{
   string key = 1;
-  int32 cluster_id = 2;
+  int32 node_id = 2;
   int32 stripe_id = 3;
-  // sum of all append slices within the cluster
+  // sum of all append slices within the node
   uint64 append_size = 4;
   repeated string datanodeip = 5;
   repeated int32 datanodeport = 6;

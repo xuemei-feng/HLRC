@@ -23,7 +23,7 @@ namespace ECProject
   public:
     CoordinatorImpl()
     {
-      m_cur_cluster_id = 0;
+      m_cur_node_id = 0;
       m_cur_stripe_id = 0;
     }
     ~CoordinatorImpl() {};
@@ -141,16 +141,15 @@ namespace ECProject
         const coordinator_proto::RequestToCoordinator *req,
         coordinator_proto::RepStripeIds *listReplyClient) override;
 
-    bool init_clusterinfo(std::string m_clusterinfo_path);
+    bool init_nodeinfo(std::string m_nodeinfo_path);
     bool init_proxyinfo();
     void update_stripe_info_in_node(bool add_or_sub, int t_node_id, int stripe_id);
-    int randomly_select_a_cluster(int stripe_id);
-    int randomly_select_a_node(int cluster_id, int stripe_id);
+    int randomly_select_a_node(int stripe_id);
     int generate_placement(int stripe_id, int block_size);
-    void blocks_in_cluster(std::map<char, std::vector<ECProject::Block *>> &block_info, int cluster_id, int stripe_id);
-    void find_max_group(int &max_group_id, int &max_group_num, int cluster_id, int stripe_id);
-    int count_block_num(char type, int cluster_id, int stripe_id, int group_id);
-    bool find_block(char type, int cluster_id, int stripe_id);
+    void blocks_in_node(std::map<char, std::vector<ECProject::Block *>> &block_info, int node_id, int stripe_id);
+    void find_max_group(int &max_group_id, int &max_group_num, int node_id, int stripe_id);
+    int count_block_num(char type, int node_id, int stripe_id, int group_id);
+    bool find_block(char type, int node_id, int stripe_id);
 
     void initialize_unilrc_stripe_placement(Stripe *stripe);
     void initialize_azurelrc_stripe_placement(Stripe *stripe);
@@ -162,12 +161,12 @@ namespace ECProject
     std::vector<proxy_proto::AppendStripeDataPlacement> generate_sub_add_plans(Stripe *stripe, size_t subset_size);
     std::vector<proxy_proto::AppendStripeDataPlacement> generateAppendPlan(Stripe *stripe, int curr_logical_offset, int append_size);
     void update_stripe_info_in_node(int t_node_id, int stripe_id, int index);
-    int getClusterAppendSize(Stripe *stripe, const std::map<int, std::pair<int, int>> &block_to_slice_sizes, int curr_group_id, int parity_slice_size);
+    int getNodeAppendSize(Stripe *stripe, const std::map<int, std::pair<int, int>> &block_to_slice_sizes, int curr_group_id, int parity_slice_size);
     void notify_proxies_ready(const proxy_proto::AppendStripeDataPlacement &plan);
     std::vector<int> get_recovery_group_ids(std::string code_type, int k, int r, int z, int failed_block_id);
     void init_recovery_group_lookup_table();
     void print_stripe_data_placement(Stripe &stripe);
-    int get_cluster_id_by_group_id(Stripe &stripe, int group_id);
+    int get_node_id_by_group_id(Stripe &stripe, int group_id);
     void add_block_list_to_recovery_request(Stripe &stripe, const std::vector<int> &block_ids, proxy_proto::RecoveryRequest *request);
     void add_block_list_to_degraded_read_request(Stripe &stripe, const std::vector<int> &block_ids, proxy_proto::DegradedReadRequest *request);
     void getStripeFromProxy(std::string client_ip, int client_port, std::string proxy_ip, int proxy_port, int stripe_id, int group_id, std::vector<int> block_ids);
@@ -223,11 +222,10 @@ namespace ECProject
     bool degraded_read_one_block_for_workload(int stripe_id, int failed_block_id, std::string client_ip, int client_port, int block_id_to_send);
     ECProject::Config *m_sys_config;
     ECProject::ToolBox *m_toolbox;
-    int m_cur_cluster_id = 0;
+    int m_cur_node_id = 0;
     int m_cur_stripe_id = 0;
     std::unordered_map<std::string, ObjectInfo> m_object_commit_table;
     std::unordered_map<std::string, ObjectInfo> m_object_updating_table;
-    std::map<int, Cluster> m_cluster_table;
     std::map<int, Node> m_node_table;
     std::map<int, Stripe> m_stripe_table;
     std::map<std::string, StripeOffset> m_cur_offset_table;
@@ -240,10 +238,10 @@ namespace ECProject
         m_proxy_ptrs;
     ECSchema m_encode_parameters;
     std::vector<int> m_stripe_deleting_table;
-    int m_num_of_Clusters;
+    int m_num_of_Nodes;
     // merge groups, for DIS and OPT, the stripes from the same group object to the selected placement scheme
     std::vector<std::vector<int>> m_merge_groups;
-    std::vector<int> m_free_clusters;
+    std::vector<int> m_free_nodes;
     int m_agg_start_cid = 0;
   };
 
@@ -252,38 +250,33 @@ namespace ECProject
   public:
     Coordinator(
         std::string m_coordinator_ip_port,
-        std::string m_clusterinfo_path)
+        std::string m_nodeinfo_path)
         : m_coordinator_ip_port{m_coordinator_ip_port},
-          m_clusterinfo_path{m_clusterinfo_path}
+          m_nodeinfo_path{m_nodeinfo_path}
     {
-      m_coordinatorImpl.init_clusterinfo(m_clusterinfo_path);
+      m_coordinatorImpl.init_nodeinfo(m_nodeinfo_path);
       m_coordinatorImpl.init_proxyinfo();
     };
     Coordinator(
         std::string m_coordinator_ip_port,
-        std::string m_clusterinfo_path, std::string sys_config_path)
+        std::string m_nodeinfo_path, std::string sys_config_path)
         : m_coordinator_ip_port{m_coordinator_ip_port},
-          m_clusterinfo_path{m_clusterinfo_path}
+          m_nodeinfo_path{m_nodeinfo_path}
     {
-      m_coordinatorImpl.init_clusterinfo(m_clusterinfo_path);
+      m_coordinatorImpl.init_nodeinfo(m_nodeinfo_path);
       m_coordinatorImpl.init_proxyinfo();
       m_coordinatorImpl.m_sys_config = ECProject::Config::getInstance(sys_config_path);
       m_coordinatorImpl.m_toolbox = ECProject::ToolBox::getInstance();
 
       // initializing
-      m_coordinatorImpl.m_cur_cluster_id = 0;
+      m_coordinatorImpl.m_cur_node_id = 0;
       m_coordinatorImpl.m_cur_stripe_id = 0;
       m_coordinatorImpl.m_object_commit_table.clear();
       m_coordinatorImpl.m_object_updating_table.clear();
-      for (auto it = m_coordinatorImpl.m_cluster_table.begin(); it != m_coordinatorImpl.m_cluster_table.end(); it++)
-      {
-        Cluster &t_cluster = it->second;
-        t_cluster.blocks.clear();
-        t_cluster.stripes.clear();
-      }
       for (auto it = m_coordinatorImpl.m_node_table.begin(); it != m_coordinatorImpl.m_node_table.end(); it++)
       {
         Node &t_node = it->second;
+        t_node.blocks.clear();
         t_node.stripes.clear();
       }
       m_coordinatorImpl.m_stripe_table.clear();
@@ -306,7 +299,7 @@ namespace ECProject
 
   private:
     std::string m_coordinator_ip_port;
-    std::string m_clusterinfo_path;
+    std::string m_nodeinfo_path;
     ECProject::CoordinatorImpl m_coordinatorImpl;
   };
 } // namespace ECProject

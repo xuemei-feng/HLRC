@@ -17,7 +17,7 @@
 
 namespace {
 
-// Same as CoordinatorImpl::*_stripe_placement: map2cluster = (stripe_id + map2group) % cluster_num
+// Same as Coordinator placement: each block uses a distinct node in the stripe.
 int block_id_to_group(const std::string &code_type, int k, int r, int z, int block_id)
 {
     if (code_type == "LotusLRC")
@@ -53,15 +53,14 @@ int block_id_to_group(const std::string &code_type, int k, int r, int z, int blo
     throw std::runtime_error("unsupported code_type for layout: " + code_type);
 }
 
-std::vector<int> blocks_on_cluster(const std::string &code_type, int k, int r, int z, int n,
-                                   int stripe_id, int cluster_id, int cluster_num)
+std::vector<int> blocks_on_node(const std::string &code_type, int k, int r, int z, int n,
+                                   int stripe_id, int node_id, int node_num)
 {
     std::vector<int> blocks;
     blocks.reserve(static_cast<size_t>(n));
     for (int bid = 0; bid < n; ++bid)
     {
-        int gid = block_id_to_group(code_type, k, r, z, bid);
-        if ((stripe_id + gid) % cluster_num == cluster_id)
+        if ((stripe_id + bid) % node_num == node_id)
             blocks.push_back(bid);
     }
     std::sort(blocks.begin(), blocks.end());
@@ -253,7 +252,7 @@ int main(int argc, char **argv)
     std::cout << "Current working directory: " << sys_config_path << std::endl;
 
     const ECProject::Config *config = ECProject::Config::getInstance(sys_config_path);
-    std::string client_ip = "172.16.0.1";
+    std::string client_ip = "127.0.0.1";
     int client_port = 44444;
     ECProject::Client client(client_ip, client_port, config->CoordinatorIP + ":" + std::to_string(config->CoordinatorPort), sys_config_path);
     std::cout << client.sayHelloToCoordinatorByGrpc("Client ID: " + client_ip + ":" + std::to_string(client_port)) << std::endl;
@@ -373,12 +372,12 @@ int main(int argc, char **argv)
     // Maintenance-robust normal read（与 Normal/Degraded read 共用预写后的 stripe 0）
     {
         const int test_stripe_id = 0;
-        const int failed_cluster_id = 0;
+        const int failed_node_id = 0;
         std::vector<int> first_rack_failed;
         try
         {
-            first_rack_failed = blocks_on_cluster(
-                code_type, k, r, z, n, test_stripe_id, failed_cluster_id, config->ClusterNum);
+            first_rack_failed = blocks_on_node(
+                code_type, k, r, z, n, test_stripe_id, failed_node_id, config->NodeNum);
         }
         catch (const std::exception &e)
         {
@@ -392,15 +391,15 @@ int main(int argc, char **argv)
 
         if (failed_data.empty())
         {
-            std::cout << "No data blocks on cluster " << failed_cluster_id << " for stripe "
+            std::cout << "No data blocks on node " << failed_node_id << " for stripe "
                       << test_stripe_id << ", skip maintenance-robust read test" << std::endl;
         }
         else
         {
             auto parity_survives = [&](int pid) {
                 int gid = block_id_to_group(code_type, k, r, z, pid);
-                int cl = (test_stripe_id + gid) % config->ClusterNum;
-                return cl != failed_cluster_id;
+                int cl = (test_stripe_id + gid) % config->NodeNum;
+                return cl != failed_node_id;
             };
             int g_last = ECProject::get_block_id_to_local_group_id(code_type, k, r, z, failed_data.back());
             std::vector<int> grp_failed_data;
@@ -424,8 +423,8 @@ int main(int argc, char **argv)
                     global_batch.push_back(bid);
             }
 
-            std::cout << "Maintenance-robust normal read test start (one rack, cluster "
-                      << failed_cluster_id << ", stripe " << test_stripe_id << ", code "
+            std::cout << "Maintenance-robust normal read test start (one rack, node "
+                      << failed_node_id << ", stripe " << test_stripe_id << ", code "
                       << code_type << ")" << std::endl;
             print_block_ids("  Failed blocks on rack (layout+placement):", first_rack_failed);
             print_block_ids("  Failed DATA blocks to reconstruct:", failed_data);
@@ -589,15 +588,15 @@ int main(int argc, char **argv)
 */
 
 /*
-// Multi block recovery: first cluster (rack) fails under current layout + placement
+// Multi block recovery: first node (rack) fails under current layout + placement
     {
         const int test_stripe_id = 0;
-        const int failed_cluster_id = 0;
+        const int failed_node_id = 0;
         std::vector<int> first_rack_failed;
         try
         {
-            first_rack_failed = blocks_on_cluster(
-                code_type, k, r, z, n, test_stripe_id, failed_cluster_id, config->ClusterNum);
+            first_rack_failed = blocks_on_node(
+                code_type, k, r, z, n, test_stripe_id, failed_node_id, config->NodeNum);
         }
         catch (const std::exception &e)
         {
@@ -606,7 +605,7 @@ int main(int argc, char **argv)
         }
         if (first_rack_failed.empty())
         {
-            std::cout << "No blocks on cluster " << failed_cluster_id
+            std::cout << "No blocks on node " << failed_node_id
                       << " for stripe " << test_stripe_id << ", skip one-rack test" << std::endl;
         }
         else
@@ -625,8 +624,8 @@ int main(int argc, char **argv)
         const bool lotus_two_block_local =
             (code_type == "LotusLRC" && local_recover_ids.size() == 2);
 
-        std::cout << "Multi block recovery test start (one rack, cluster "
-                  << failed_cluster_id << ", stripe " << test_stripe_id << ")" << std::endl;
+        std::cout << "Multi block recovery test start (one rack, node "
+                  << failed_node_id << ", stripe " << test_stripe_id << ")" << std::endl;
         print_block_ids("  Failed blocks on rack (layout+placement):", first_rack_failed);
         print_block_ids("  Blocks via globalRecovery batch:", multi_recover_ids);
         if (lotus_two_block_local)
@@ -665,11 +664,11 @@ int main(int argc, char **argv)
 /*
 //多条带单机架修复
     {
-        const int failed_cluster_id = 0;
+        const int failed_node_id = 0;
 
         // Per-stripe repair plan: every stripe written above puts a (possibly different)
-        // subset of its blocks on the failed cluster, since placement is
-        // (stripe_id + group_id) % cluster_num.
+        // subset of its blocks on the failed node, since placement is
+        // (stripe_id + group_id) % node_num.
         struct StripeRepairPlan
         {
             int stripe_id;
@@ -694,8 +693,8 @@ int main(int argc, char **argv)
             std::vector<int> failed;
             try
             {
-                failed = blocks_on_cluster(
-                    code_type, k, r, z, n, sid, failed_cluster_id, config->ClusterNum);
+                failed = blocks_on_node(
+                    code_type, k, r, z, n, sid, failed_node_id, config->NodeNum);
             }
             catch (const std::exception &e)
             {
@@ -704,7 +703,7 @@ int main(int argc, char **argv)
                 break;
             }
             if (failed.empty())
-                continue; // this stripe has no block on the failed cluster
+                continue; // this stripe has no block on the failed node
 
             StripeRepairPlan plan;
             plan.stripe_id = sid;
@@ -734,14 +733,14 @@ int main(int argc, char **argv)
 
         if (plans.empty())
         {
-            std::cout << "No blocks on cluster " << failed_cluster_id
+            std::cout << "No blocks on node " << failed_node_id
                     << " for any of the " << stripe_num
                     << " stripe(s), skip multi-stripe one-rack test" << std::endl;
         }
         else
         {
-        std::cout << "Multi-stripe one-rack recovery test start (cluster "
-                << failed_cluster_id << ", " << plans.size() << " of " << stripe_num
+        std::cout << "Multi-stripe one-rack recovery test start (node "
+                << failed_node_id << ", " << plans.size() << " of " << stripe_num
                 << " stripe(s) affected)" << std::endl;
         for (const auto &plan : plans)
         {
@@ -768,7 +767,7 @@ int main(int argc, char **argv)
         for (int i = 0; i < 5; i++)
         {
             std::chrono::high_resolution_clock::time_point t1 = std::chrono::high_resolution_clock::now();
-            // Repair every affected stripe on the failed cluster.
+            // Repair every affected stripe on the failed node.
             for (const auto &plan : plans)
             {
                 if (plan.combined_two_block)
@@ -804,15 +803,15 @@ int main(int argc, char **argv)
 
 
 /*
-    const int total_nodes = config->ClusterNum * config->DatanodeNumPerCluster;
+    const int total_nodes = config->NodeNum * config->NodeNum;
 
-    //Full node repair: fixed-seed sample over [0, ClusterNum*DatanodeNumPerCluster)
+    //Full node repair: fixed-seed sample over [0, NodeNum*NodeNum)
     std::cout << "Full node repair test start" << std::endl;
     const int node_num = 5;
     std::vector<int> node_ids;
     if (total_nodes <= 0)
     {
-        std::cout << "Invalid ClusterNum/DatanodeNumPerCluster, skip full node repair test" << std::endl;
+        std::cout << "Invalid NodeNum/NodeNum, skip full node repair test" << std::endl;
     }
     else
     {

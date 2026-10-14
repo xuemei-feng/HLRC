@@ -1,238 +1,83 @@
 #!/usr/bin/env python3
-"""
-从 all_ips 读取全部 IP，排序后分配角色：
-  最小 IP -> client
-  次小 IP -> coordinator
-  剩余按 cluster.ini 分组：每组 1 proxy + datanode_per_cluster datanode
-"""
+"""Resolve a flat one-proxy/one-datanode localhost topology."""
 from __future__ import annotations
-
 import argparse
 import configparser
-import ipaddress
-import sys
 from dataclasses import dataclass
 from pathlib import Path
 
 CONFIG_DIR = Path(__file__).resolve().parent
 DEFAULT_INI = CONFIG_DIR / "cluster.ini"
 
+@dataclass(frozen=True)
+class NodeEndpoint:
+    node_id: int
+    proxy: str
+    datanode: str
 
-@dataclass
-class ClusterLayout:
+@dataclass(frozen=True)
+class NodeLayout:
     client_ip: str
     coordinator_ip: str
-    first_proxy_ip: str
-    clusters: list[dict]
-    all_hosts: list[str]
-    proxy_hosts: list[str]
-    node_ips: list[str]
+    nodes: list[NodeEndpoint]
 
-
-def load_ini(ini_path: Path) -> configparser.ConfigParser:
+def load_ini(path: Path) -> configparser.ConfigParser:
     cfg = configparser.ConfigParser()
-    if not ini_path.exists():
-        print(f"Error: {ini_path} not found", file=sys.stderr)
-        sys.exit(1)
-    cfg.read(ini_path, encoding="utf-8")
+    if not cfg.read(path, encoding="utf-8"):
+        raise FileNotFoundError(path)
     return cfg
 
+def repo_root_from_ini(path: Path) -> Path:
+    return path.resolve().parent.parent.parent
 
-def repo_root_from_ini(ini_path: Path) -> Path:
-    return ini_path.resolve().parent.parent.parent
-
-
-def resolve_all_ips_path(cfg: configparser.ConfigParser, repo_root: Path) -> Path:
-    rel = cfg["cluster"].get("all_ips_file", "all_ips").strip()
-    path = Path(rel) if Path(rel).is_absolute() else repo_root / rel
-    if not path.exists():
-        print(f"Error: all_ips not found: {path}", file=sys.stderr)
-        sys.exit(1)
-    return path
-
-
-def load_all_ips(path: Path) -> list[str]:
-    ips: list[str] = []
-    for line in path.read_text(encoding="utf-8").splitlines():
-        line = line.split("#", 1)[0].strip()
-        if not line:
-            continue
-        try:
-            ipaddress.ip_address(line)
-        except ValueError:
-            print(f"Error: invalid IP in {path}: {line}", file=sys.stderr)
-            sys.exit(1)
-        ips.append(line)
-    return ips
-
-
-def sort_ips(ips: list[str]) -> list[str]:
-    return sorted(ips, key=lambda x: ipaddress.ip_address(x))
-
-
-def allocate_all_ips(
-    raw_ips: list[str],
-    cluster_num: int,
-    dn_per: int,
-    first_port: int,
-    dn_start: int,
-) -> ClusterLayout:
-    group_size = 1 + dn_per
-    expected = 2 + cluster_num * group_size
-    if len(raw_ips) != expected:
-        print(
-            f"Error: all_ips count {len(raw_ips)} != expected {expected} "
-            f"(2 + {cluster_num} * (1 + {dn_per}))",
-            file=sys.stderr,
-        )
-        sys.exit(1)
-
-    sorted_ips = sort_ips(raw_ips)
-    client_ip = sorted_ips[0]
-    coordinator_ip = sorted_ips[1]
-    node_ips = sorted_ips[2:]
-
-    clusters: list[dict] = []
-    proxy_hosts: list[str] = []
-    idx = 0
-    for c in range(cluster_num):
-        proxy_ip = node_ips[idx]
-        idx += 1
-        proxy_hosts.append(proxy_ip)
-        proxy_port = first_port + c
-        datanodes: list[str] = []
-        for d in range(dn_per):
-            datanodes.append(f"{node_ips[idx]}:{dn_start + c * dn_per + d}")
-            idx += 1
-        clusters.append({"proxy": f"{proxy_ip}:{proxy_port}", "datanodes": datanodes})
-
-    return ClusterLayout(
-        client_ip=client_ip,
-        coordinator_ip=coordinator_ip,
-        first_proxy_ip=proxy_hosts[0],
-        clusters=clusters,
-        all_hosts=sorted_ips,
-        proxy_hosts=proxy_hosts,
-        node_ips=node_ips,
-    )
-
-
-def compute_distributed_layout(cfg: configparser.ConfigParser) -> ClusterLayout:
-    sect = cfg["cluster"]
-    cluster_num = int(sect["cluster_num"])
-    dn_per = int(sect["datanode_per_cluster"])
-    first_ip = sect["first_proxy_ip"].strip()
-    first_port = int(sect["first_proxy_port"])
-    dn_start = int(sect["datanode_port_start"])
-    coordinator_ip = sect.get("coordinator_ip", "0.0.0.0").strip()
-    client_ip = sect.get("client_ip", "127.0.0.1").strip()
-
-    if first_ip == "127.0.0.1":
-        prefix, first_octet = "", 0
-        use_localhost = True
-    else:
-        parts = first_ip.rsplit(".", 1)
-        prefix = parts[0] + "."
-        first_octet = int(parts[1])
-        use_localhost = False
-
-    clusters: list[dict] = []
-    proxy_hosts: list[str] = []
-    node_ips: list[str] = []
-    ip_idx = 0
-    for c in range(cluster_num):
-        if use_localhost:
-            proxy_ip = "127.0.0.1"
-        else:
-            proxy_ip = f"{prefix}{first_octet + ip_idx}"
-            ip_idx += 1
-        proxy_hosts.append(proxy_ip)
-        node_ips.append(proxy_ip)
-        datanodes: list[str] = []
-        for d in range(dn_per):
-            if use_localhost:
-                dn_ip = "127.0.0.1"
-            else:
-                dn_ip = f"{prefix}{first_octet + ip_idx}"
-                ip_idx += 1
-                node_ips.append(dn_ip)
-            datanodes.append(f"{dn_ip}:{dn_start + c * dn_per + d}")
-        clusters.append({"proxy": f"{proxy_ip}:{first_port + c}", "datanodes": datanodes})
-
-    all_hosts = sort_ips([client_ip, coordinator_ip] + list(dict.fromkeys(node_ips)))
-    return ClusterLayout(
-        client_ip=client_ip,
-        coordinator_ip=coordinator_ip,
-        first_proxy_ip=proxy_hosts[0],
-        clusters=clusters,
-        all_hosts=all_hosts,
-        proxy_hosts=proxy_hosts,
-        node_ips=node_ips,
-    )
-
-
-def compute_layout(cfg: configparser.ConfigParser, ini_path: Path) -> ClusterLayout:
-    ip_mode = cfg["cluster"].get("ip_mode", "distributed").strip()
-    if ip_mode == "all_ips":
-        repo_root = repo_root_from_ini(ini_path)
-        all_ips_path = resolve_all_ips_path(cfg, repo_root)
-        raw_ips = load_all_ips(all_ips_path)
-        return allocate_all_ips(
-            raw_ips,
-            int(cfg["cluster"]["cluster_num"]),
-            int(cfg["cluster"]["datanode_per_cluster"]),
-            int(cfg["cluster"]["first_proxy_port"]),
-            int(cfg["cluster"]["datanode_port_start"]),
-        )
-    if ip_mode == "hosts_list":
-        print(
-            "Error: ip_mode=hosts_list is removed; use all_ips and project/config/all_ips",
-            file=sys.stderr,
-        )
-        sys.exit(1)
-    return compute_distributed_layout(cfg)
-
+def compute_layout(cfg: configparser.ConfigParser, _path: Path | None = None) -> NodeLayout:
+    section = cfg["topology"]
+    count = section.getint("node_num")
+    host = section.get("host", "127.0.0.1").strip()
+    proxy_start = section.getint("proxy_port_start")
+    datanode_start = section.getint("datanode_port_start")
+    proxy_data_start = proxy_start + 1000
+    proxy_peer_start = proxy_start + 2000
+    datanode_data_start = datanode_start + 500
+    if count <= 0:
+        raise ValueError("node_num must be positive")
+    ranges = {
+        "proxy grpc": (proxy_start, proxy_start + count - 1),
+        "proxy data": (proxy_data_start, proxy_data_start + count - 1),
+        "proxy peer": (proxy_peer_start, proxy_peer_start + count - 1),
+        "datanode grpc": (datanode_start, datanode_start + count - 1),
+        "datanode data": (datanode_data_start, datanode_data_start + count - 1),
+    }
+    for name, (lo, hi) in ranges.items():
+        if lo < 1 or hi > 65535:
+            raise ValueError(f"{name} port range {lo}-{hi} is invalid")
+    items = list(ranges.items())
+    for i, (left_name, (left_lo, left_hi)) in enumerate(items):
+        for right_name, (right_lo, right_hi) in items[i + 1:]:
+            if max(left_lo, right_lo) <= min(left_hi, right_hi):
+                raise ValueError(f"port ranges overlap: {left_name} and {right_name}")
+    nodes = [NodeEndpoint(i, f"{host}:{proxy_start+i}", f"{host}:{datanode_start+i}") for i in range(count)]
+    return NodeLayout(section.get("client_ip", host).strip(), section.get("coordinator_ip", host).strip(), nodes)
 
 def write_lines(path: Path, lines: list[str], header: str | None = None) -> None:
-    body = []
-    if header:
-        body.append(f"# {header}")
-    body.extend(lines)
-    path.write_text("\n".join(body) + "\n", encoding="utf-8")
-
+    values = ([f"# {header}"] if header else []) + lines
+    path.write_text("\n".join(values) + "\n", encoding="utf-8")
 
 def main_cli() -> None:
-    parser = argparse.ArgumentParser(description="Resolve cluster IP layout from all_ips")
-    parser.add_argument("--ini", type=Path, default=DEFAULT_INI, help="cluster.ini path")
-    parser.add_argument(
-        "--format",
-        choices=[
-            "node-ips",
-            "proxy-ips",
-            "client-ip",
-            "coordinator-ip",
-            "all-hosts",
-        ],
-        required=True,
-    )
+    parser = argparse.ArgumentParser(description="Resolve flat node endpoints")
+    parser.add_argument("--ini", type=Path, default=DEFAULT_INI)
+    parser.add_argument("--format", required=True, choices=("node-ips", "proxy-ips", "client-ip", "coordinator-ip", "all-hosts", "nodes"))
     args = parser.parse_args()
-    cfg = load_ini(args.ini)
-    layout = compute_layout(cfg, args.ini)
-
-    if args.format == "node-ips":
-        for ip in layout.node_ips:
-            print(ip)
+    layout = compute_layout(load_ini(args.ini), args.ini)
+    if args.format == "client-ip": print(layout.client_ip)
+    elif args.format == "coordinator-ip": print(layout.coordinator_ip)
+    elif args.format == "nodes":
+        for n in layout.nodes: print(n.node_id, n.proxy, n.datanode)
     elif args.format == "proxy-ips":
-        for ip in layout.proxy_hosts:
-            print(ip)
-    elif args.format == "client-ip":
-        print(layout.client_ip)
-    elif args.format == "coordinator-ip":
-        print(layout.coordinator_ip)
-    elif args.format == "all-hosts":
-        for ip in layout.all_hosts:
-            print(ip)
+        for n in layout.nodes: print(n.proxy.split(":", 1)[0])
+    elif args.format == "node-ips":
+        for n in layout.nodes: print(n.datanode.split(":", 1)[0])
+    else:
+        for host in dict.fromkeys([layout.client_ip, layout.coordinator_ip] + [n.proxy.split(":",1)[0] for n in layout.nodes]): print(host)
 
-
-if __name__ == "__main__":
-    main_cli()
+if __name__ == "__main__": main_cli()

@@ -15,35 +15,7 @@ namespace ECProject
 
   void Config::validateConfig() const
   {
-    //invalidate the config validation for now
-    /*
-    assert(BlockSize % UnitSize == 0 && "Error: BlockSize must be divisible by UnitSize");
-    assert((AppendMode == "REP_MODE" || AppendMode == "UNILRC_MODE" || AppendMode == "CACHED_MODE") && "Error: AppendMode must be REP_MODE, UNILRC_MODE, or CACHED_MODE");
-    assert((CodeType == "UniLRC" || CodeType == "AzureLRC" || CodeType == "OptimalLRC" || CodeType == "UniformLRC") && "Error: CodeType must be UniLRC, AzureLRC, OptimalLRC, or UniformLRC");
-    assert(DatanodeNumPerCluster > 0 && "Error: DatanodeNumPerCluster must be greater than 0");
-    assert(ClusterNum > 0 && "Error: ClusterNum must be greater than 0");
-    if (CodeType == "UniLRC")
-    {
-      assert(DatanodeNumPerCluster > n / z && "Error: DatanodeNumPerCluster must be greater than n / z");
-      assert(ClusterNum > z && "Error: ClusterNum must be greater than z");
-    }
-    if (CodeType == "AzureLRC")
-    {
-      assert(DatanodeNumPerCluster > k / z + 1 && "Error: DatanodeNumPerCluster must be greater than k / z + 1");
-      assert(ClusterNum > z + 1 && "Error: ClusterNum must be greater than z + 1");
-    }
-    if (CodeType == "OptimalLRC")
-    {
-      assert(DatanodeNumPerCluster > r + 1 && "Error: DatanodeNumPerCluster must be greater than r + 1");
-      assert(ClusterNum > std::ceil(1.0 * k / z / (r + 1)) * z + 1 && "Error: ClusterNum must be greater than std::ceil(1.0 * k / z / (r + 1)) * z + 1");
-    }
-    if (CodeType == "UniformLRC")
-    {
-      assert(DatanodeNumPerCluster > r && "Error: DatanodeNumPerCluster must be greater than r");
-      assert(ClusterNum > ((((k + r) / z + 1) / (r + 1) + (bool)(((k + r) / z + 1) % (r + 1))) * ((k + r) % z)) + (((k + r) / z) / (r + 1) + (bool)(((k + r) / z) % (r + 1))) * (z - ((k + r) % z)) && "Error: ClusterNum must be greater than ((((k + r) / z + 1) / (r + 1) + (bool)(((k + r) / z + 1) % (r + 1))) * ((k + r) % z)) + (((k + r) / z) / (r + 1) + (bool)(((k + r) / z) % (r + 1))) * (z - ((k + r) % z))");
-    }
-    */
-
+    assert(NodeNum >= n && "NodeNum must hold every block of a stripe on a distinct node");
   }
 
   Config *Config::getInstance(const std::string &configPath)
@@ -97,10 +69,8 @@ namespace ECProject
     }
     n = k + r + z;
 
-    if (auto elem = root->FirstChildElement("DatanodeNumPerCluster"))
-      DatanodeNumPerCluster = std::stoi(elem->GetText());
-    if (auto elem = root->FirstChildElement("ClusterNum"))
-      ClusterNum = std::stoi(elem->GetText());
+    if (auto elem = root->FirstChildElement("NodeNum"))
+      NodeNum = std::stoi(elem->GetText());
     if (auto elem = root->FirstChildElement("CoordinatorIP"))
       CoordinatorIP = std::string(elem->GetText());
     if (auto elem = root->FirstChildElement("CoordinatorPort"))
@@ -121,8 +91,7 @@ namespace ECProject
     std::cout << "  k: " << k << std::endl;
     std::cout << "  r: " << r << std::endl;
     std::cout << "  (n, k, r, z): (" << n << ", " << k << ", " << r << ", " << (int)z << ")" << std::endl;
-    std::cout << "  DatanodeNumPerCluster: " << DatanodeNumPerCluster << " nodes/cluster" << std::endl;
-    std::cout << "  ClusterNum: " << (int)ClusterNum << " clusters" << std::endl;
+    std::cout << "  NodeNum: " << NodeNum << " nodes" << std::endl;
     std::cout << "  CoordinatorIP: " << CoordinatorIP << std::endl;
     std::cout << "  CoordinatorPort: " << CoordinatorPort << std::endl;
     std::cout << "  AppendMode: " << AppendMode << std::endl;

@@ -116,7 +116,7 @@ message ReplyProxyIPsPorts {
   repeated string append_keys = 2;
   repeated string proxyips = 3;
   repeated int32 proxyports = 4;
-  repeated uint64 cluster_slice_sizes = 5;
+  repeated uint64 node_slice_sizes = 5;
   repeated int32 group_ids = 6;
 }
 

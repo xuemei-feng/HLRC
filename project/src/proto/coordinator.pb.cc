@@ -132,8 +132,8 @@ PROTOBUF_CONSTEXPR ReplyProxyIPsPorts::ReplyProxyIPsPorts(
   , /*decltype(_impl_.proxyips_)*/{}
   , /*decltype(_impl_.proxyports_)*/{}
   , /*decltype(_impl_._proxyports_cached_byte_size_)*/{0}
-  , /*decltype(_impl_.cluster_slice_sizes_)*/{}
-  , /*decltype(_impl_._cluster_slice_sizes_cached_byte_size_)*/{0}
+  , /*decltype(_impl_.node_slice_sizes_)*/{}
+  , /*decltype(_impl_._node_slice_sizes_cached_byte_size_)*/{0}
   , /*decltype(_impl_.group_ids_)*/{}
   , /*decltype(_impl_._group_ids_cached_byte_size_)*/{0}
   , /*decltype(_impl_.sum_append_size_)*/uint64_t{0u}
@@ -464,7 +464,7 @@ const uint32_t TableStruct_coordinator_2eproto::offsets[] PROTOBUF_SECTION_VARIA
   PROTOBUF_FIELD_OFFSET(::coordinator_proto::ReplyProxyIPsPorts, _impl_.append_keys_),
   PROTOBUF_FIELD_OFFSET(::coordinator_proto::ReplyProxyIPsPorts, _impl_.proxyips_),
   PROTOBUF_FIELD_OFFSET(::coordinator_proto::ReplyProxyIPsPorts, _impl_.proxyports_),
-  PROTOBUF_FIELD_OFFSET(::coordinator_proto::ReplyProxyIPsPorts, _impl_.cluster_slice_sizes_),
+  PROTOBUF_FIELD_OFFSET(::coordinator_proto::ReplyProxyIPsPorts, _impl_.node_slice_sizes_),
   PROTOBUF_FIELD_OFFSET(::coordinator_proto::ReplyProxyIPsPorts, _impl_.group_ids_),
   ~0u,  // no _has_bits_
   PROTOBUF_FIELD_OFFSET(::coordinator_proto::AskIfSuccess, _internal_metadata_),
@@ -675,107 +675,107 @@ const char descriptor_table_protodef_coordinator_2eproto[] PROTOBUF_SECTION_VARI
   "ort\022\017\n\007proxyip\030\001 \001(\t\022\021\n\tproxyport\030\002 \001(\005\""
   "W\n\016CommitAbortKey\022\013\n\003key\030\001 \001(\t\022\030\n\020ifcomm"
   "itmetadata\030\002 \001(\010\022\013\n\003opp\030\003 \001(\005\022\021\n\tstripe_"
-  "id\030\004 \001(\005\"\230\001\n\022ReplyProxyIPsPorts\022\027\n\017sum_a"
+  "id\030\004 \001(\005\"\225\001\n\022ReplyProxyIPsPorts\022\027\n\017sum_a"
   "ppend_size\030\001 \001(\004\022\023\n\013append_keys\030\002 \003(\t\022\020\n"
-  "\010proxyips\030\003 \003(\t\022\022\n\nproxyports\030\004 \003(\005\022\033\n\023c"
-  "luster_slice_sizes\030\005 \003(\004\022\021\n\tgroup_ids\030\006 "
-  "\003(\005\";\n\014AskIfSuccess\022\013\n\003key\030\001 \001(\t\022\013\n\003opp\030"
-  "\002 \001(\005\022\021\n\tstripe_id\030\003 \001(\005\" \n\014RepIfSuccess"
-  "\022\020\n\010ifcommit\030\001 \001(\010\"C\n\016KeyAndClientIP\022\013\n\003"
-  "key\030\001 \001(\t\022\020\n\010clientip\030\002 \001(\t\022\022\n\nclientpor"
-  "t\030\003 \001(\005\"\?\n\017RepIfGetSuccess\022\024\n\014ifgetsucce"
-  "ss\030\001 \001(\010\022\026\n\016valuesizebytes\030\002 \001(\005\"\202\001\n\023Blo"
-  "ckIDsAndClientIP\022\026\n\016start_block_id\030\001 \001(\005"
-  "\022\024\n\014end_block_id\030\002 \001(\005\022\020\n\010clientip\030\003 \001(\t"
-  "\022\022\n\nclientport\030\004 \001(\005\022\027\n\017failed_block_id\030"
-  "\005 \001(\005\"\034\n\rKeyFromClient\022\013\n\003key\030\001 \001(\t\"\'\n\022S"
-  "tripeIdFromClient\022\021\n\tstripe_id\030\001 \001(\005\"a\n\035"
-  "StripeIdAndBlockIDsFromClient\022\021\n\tstripe_"
-  "id\030\001 \001(\005\022\021\n\tblock_ids\030\002 \003(\005\022\032\n\022recovery_"
-  "block_ids\030\003 \003(\005\"\220\001\n\026MaintenanceReadReque"
-  "st\022\021\n\tstripe_id\030\001 \001(\005\022\035\n\025failed_data_blo"
-  "ck_ids\030\002 \003(\005\022\036\n\026global_batch_block_ids\030\003"
-  " \003(\005\022\020\n\010clientip\030\004 \001(\t\022\022\n\nclientport\030\005 \001"
-  "(\005\"#\n\020NodeIdFromClient\022\017\n\007node_id\030\001 \001(\005\""
-  "<\n\024TwoNodeIdsFromClient\022\021\n\tnode_id_0\030\001 \001"
-  "(\005\022\021\n\tnode_id_1\030\002 \001(\005\"\037\n\013RepIfDeling\022\020\n\010"
-  "ifdeling\030\001 \001(\010\"\"\n\014RepStripeIds\022\022\n\nstripe"
-  "_ids\030\001 \003(\005\" \n\013RepBlockNum\022\021\n\tblock_num\030\001"
-  " \001(\005\"m\n\021DegradedReadReply\022\024\n\014disk_io_tim"
-  "e\030\001 \001(\001\022\024\n\014network_time\030\002 \001(\001\022\023\n\013decode_"
-  "time\030\003 \001(\001\022\027\n\017grpc_start_time\030\004 \001(\001\"\275\001\n\r"
-  "RecoveryReply\022\026\n\016disk_read_time\030\001 \001(\001\022\024\n"
-  "\014network_time\030\002 \001(\001\022\023\n\013decode_time\030\003 \001(\001"
-  "\022\027\n\017disk_write_time\030\004 \001(\001\022\027\n\017grpc_start_"
-  "time\030\005 \001(\001\022\035\n\025maintenance_fell_back\030\006 \001("
-  "\010\022\030\n\020maintenance_note\030\007 \001(\t2\330\023\n\022coordina"
-  "torService\022k\n\025sayHelloToCoordinator\022\'.co"
-  "ordinator_proto.RequestToCoordinator\032\'.c"
-  "oordinator_proto.ReplyFromCoordinator\"\000\022"
-  "`\n\ncheckalive\022\'.coordinator_proto.Reques"
-  "tToCoordinator\032\'.coordinator_proto.Reply"
-  "FromCoordinator\"\000\022V\n\014setParameter\022\034.coor"
-  "dinator_proto.Parameter\032&.coordinator_pr"
-  "oto.RepIfSetParaSuccess\"\000\022d\n\024uploadOrigi"
-  "nKeyValue\022%.coordinator_proto.RequestPro"
-  "xyIPPort\032#.coordinator_proto.ReplyProxyI"
-  "PPort\"\000\022a\n\021reportCommitAbort\022!.coordinat"
-  "or_proto.CommitAbortKey\032\'.coordinator_pr"
-  "oto.ReplyFromCoordinator\"\000\022V\n\020checkCommi"
-  "tAbort\022\037.coordinator_proto.AskIfSuccess\032"
-  "\037.coordinator_proto.RepIfSuccess\"\000\022`\n\016up"
-  "loadSetValue\022%.coordinator_proto.Request"
-  "ProxyIPPort\032%.coordinator_proto.ReplyPro"
-  "xyIPsPorts\"\000\022c\n\021uploadSubsetValue\022%.coor"
-  "dinator_proto.RequestProxyIPPort\032%.coord"
-  "inator_proto.ReplyProxyIPsPorts\"\000\022c\n\021upl"
-  "oadAppendValue\022%.coordinator_proto.Reque"
-  "stProxyIPPort\032%.coordinator_proto.ReplyP"
-  "roxyIPsPorts\"\000\022S\n\010getValue\022!.coordinator"
-  "_proto.KeyAndClientIP\032\".coordinator_prot"
-  "o.RepIfGetSuccess\"\000\022W\n\tgetStripe\022!.coord"
-  "inator_proto.KeyAndClientIP\032%.coordinato"
-  "r_proto.ReplyProxyIPsPorts\"\000\022\\\n\tgetBlock"
-  "s\022&.coordinator_proto.BlockIDsAndClientI"
-  "P\032%.coordinator_proto.ReplyProxyIPsPorts"
-  "\"\000\022h\n\025getDegradedReadBlocks\022&.coordinato"
-  "r_proto.BlockIDsAndClientIP\032%.coordinato"
-  "r_proto.ReplyProxyIPsPorts\"\000\022a\n\024getDegra"
-  "dedReadBlock\022!.coordinator_proto.KeyAndC"
-  "lientIP\032$.coordinator_proto.DegradedRead"
-  "Reply\"\000\022j\n\035getDegradedReadBlockBreakdown"
-  "\022!.coordinator_proto.KeyAndClientIP\032$.co"
-  "ordinator_proto.DegradedReadReply\"\000\022T\n\013g"
-  "etRecovery\022!.coordinator_proto.KeyAndCli"
-  "entIP\032 .coordinator_proto.RecoveryReply\""
-  "\000\022]\n\024getRecoveryBreakdown\022!.coordinator_"
-  "proto.KeyAndClientIP\032 .coordinator_proto"
-  ".RecoveryReply\"\000\022Y\n\020fullNodeRecovery\022#.c"
-  "oordinator_proto.NodeIdFromClient\032\036.coor"
-  "dinator_proto.RepBlockNum\"\000\022\\\n\017twoNodeRe"
-  "covery\022\'.coordinator_proto.TwoNodeIdsFro"
-  "mClient\032\036.coordinator_proto.RepBlockNum\""
-  "\000\022f\n\016globalRecovery\0220.coordinator_proto."
-  "StripeIdAndBlockIDsFromClient\032 .coordina"
-  "tor_proto.RecoveryReply\"\000\022o\n\027globalRecov"
-  "eryBreakdown\0220.coordinator_proto.StripeI"
-  "dAndBlockIDsFromClient\032 .coordinator_pro"
-  "to.RecoveryReply\"\000\022f\n\025maintenanceReadStr"
-  "ipe\022).coordinator_proto.MaintenanceReadR"
-  "equest\032 .coordinator_proto.RecoveryReply"
-  "\"\000\022N\n\010delByKey\022 .coordinator_proto.KeyFr"
-  "omClient\032\036.coordinator_proto.RepIfDeling"
-  "\"\000\022V\n\013delByStripe\022%.coordinator_proto.St"
-  "ripeIdFromClient\032\036.coordinator_proto.Rep"
-  "IfDeling\"\000\022Y\n\013listStripes\022\'.coordinator_"
-  "proto.RequestToCoordinator\032\037.coordinator"
-  "_proto.RepStripeIds\"\000\022W\n\ndecodeTest\022!.co"
-  "ordinator_proto.KeyAndClientIP\032$.coordin"
-  "ator_proto.DegradedReadReply\"\000b\006proto3"
+  "\010proxyips\030\003 \003(\t\022\022\n\nproxyports\030\004 \003(\005\022\030\n\020n"
+  "ode_slice_sizes\030\005 \003(\004\022\021\n\tgroup_ids\030\006 \003(\005"
+  "\";\n\014AskIfSuccess\022\013\n\003key\030\001 \001(\t\022\013\n\003opp\030\002 \001"
+  "(\005\022\021\n\tstripe_id\030\003 \001(\005\" \n\014RepIfSuccess\022\020\n"
+  "\010ifcommit\030\001 \001(\010\"C\n\016KeyAndClientIP\022\013\n\003key"
+  "\030\001 \001(\t\022\020\n\010clientip\030\002 \001(\t\022\022\n\nclientport\030\003"
+  " \001(\005\"\?\n\017RepIfGetSuccess\022\024\n\014ifgetsuccess\030"
+  "\001 \001(\010\022\026\n\016valuesizebytes\030\002 \001(\005\"\202\001\n\023BlockI"
+  "DsAndClientIP\022\026\n\016start_block_id\030\001 \001(\005\022\024\n"
+  "\014end_block_id\030\002 \001(\005\022\020\n\010clientip\030\003 \001(\t\022\022\n"
+  "\nclientport\030\004 \001(\005\022\027\n\017failed_block_id\030\005 \001"
+  "(\005\"\034\n\rKeyFromClient\022\013\n\003key\030\001 \001(\t\"\'\n\022Stri"
+  "peIdFromClient\022\021\n\tstripe_id\030\001 \001(\005\"a\n\035Str"
+  "ipeIdAndBlockIDsFromClient\022\021\n\tstripe_id\030"
+  "\001 \001(\005\022\021\n\tblock_ids\030\002 \003(\005\022\032\n\022recovery_blo"
+  "ck_ids\030\003 \003(\005\"\220\001\n\026MaintenanceReadRequest\022"
+  "\021\n\tstripe_id\030\001 \001(\005\022\035\n\025failed_data_block_"
+  "ids\030\002 \003(\005\022\036\n\026global_batch_block_ids\030\003 \003("
+  "\005\022\020\n\010clientip\030\004 \001(\t\022\022\n\nclientport\030\005 \001(\005\""
+  "#\n\020NodeIdFromClient\022\017\n\007node_id\030\001 \001(\005\"<\n\024"
+  "TwoNodeIdsFromClient\022\021\n\tnode_id_0\030\001 \001(\005\022"
+  "\021\n\tnode_id_1\030\002 \001(\005\"\037\n\013RepIfDeling\022\020\n\010ifd"
+  "eling\030\001 \001(\010\"\"\n\014RepStripeIds\022\022\n\nstripe_id"
+  "s\030\001 \003(\005\" \n\013RepBlockNum\022\021\n\tblock_num\030\001 \001("
+  "\005\"m\n\021DegradedReadReply\022\024\n\014disk_io_time\030\001"
+  " \001(\001\022\024\n\014network_time\030\002 \001(\001\022\023\n\013decode_tim"
+  "e\030\003 \001(\001\022\027\n\017grpc_start_time\030\004 \001(\001\"\275\001\n\rRec"
+  "overyReply\022\026\n\016disk_read_time\030\001 \001(\001\022\024\n\014ne"
+  "twork_time\030\002 \001(\001\022\023\n\013decode_time\030\003 \001(\001\022\027\n"
+  "\017disk_write_time\030\004 \001(\001\022\027\n\017grpc_start_tim"
+  "e\030\005 \001(\001\022\035\n\025maintenance_fell_back\030\006 \001(\010\022\030"
+  "\n\020maintenance_note\030\007 \001(\t2\330\023\n\022coordinator"
+  "Service\022k\n\025sayHelloToCoordinator\022\'.coord"
+  "inator_proto.RequestToCoordinator\032\'.coor"
+  "dinator_proto.ReplyFromCoordinator\"\000\022`\n\n"
+  "checkalive\022\'.coordinator_proto.RequestTo"
+  "Coordinator\032\'.coordinator_proto.ReplyFro"
+  "mCoordinator\"\000\022V\n\014setParameter\022\034.coordin"
+  "ator_proto.Parameter\032&.coordinator_proto"
+  ".RepIfSetParaSuccess\"\000\022d\n\024uploadOriginKe"
+  "yValue\022%.coordinator_proto.RequestProxyI"
+  "PPort\032#.coordinator_proto.ReplyProxyIPPo"
+  "rt\"\000\022a\n\021reportCommitAbort\022!.coordinator_"
+  "proto.CommitAbortKey\032\'.coordinator_proto"
+  ".ReplyFromCoordinator\"\000\022V\n\020checkCommitAb"
+  "ort\022\037.coordinator_proto.AskIfSuccess\032\037.c"
+  "oordinator_proto.RepIfSuccess\"\000\022`\n\016uploa"
+  "dSetValue\022%.coordinator_proto.RequestPro"
+  "xyIPPort\032%.coordinator_proto.ReplyProxyI"
+  "PsPorts\"\000\022c\n\021uploadSubsetValue\022%.coordin"
+  "ator_proto.RequestProxyIPPort\032%.coordina"
+  "tor_proto.ReplyProxyIPsPorts\"\000\022c\n\021upload"
+  "AppendValue\022%.coordinator_proto.RequestP"
+  "roxyIPPort\032%.coordinator_proto.ReplyProx"
+  "yIPsPorts\"\000\022S\n\010getValue\022!.coordinator_pr"
+  "oto.KeyAndClientIP\032\".coordinator_proto.R"
+  "epIfGetSuccess\"\000\022W\n\tgetStripe\022!.coordina"
+  "tor_proto.KeyAndClientIP\032%.coordinator_p"
+  "roto.ReplyProxyIPsPorts\"\000\022\\\n\tgetBlocks\022&"
+  ".coordinator_proto.BlockIDsAndClientIP\032%"
+  ".coordinator_proto.ReplyProxyIPsPorts\"\000\022"
+  "h\n\025getDegradedReadBlocks\022&.coordinator_p"
+  "roto.BlockIDsAndClientIP\032%.coordinator_p"
+  "roto.ReplyProxyIPsPorts\"\000\022a\n\024getDegraded"
+  "ReadBlock\022!.coordinator_proto.KeyAndClie"
+  "ntIP\032$.coordinator_proto.DegradedReadRep"
+  "ly\"\000\022j\n\035getDegradedReadBlockBreakdown\022!."
+  "coordinator_proto.KeyAndClientIP\032$.coord"
+  "inator_proto.DegradedReadReply\"\000\022T\n\013getR"
+  "ecovery\022!.coordinator_proto.KeyAndClient"
+  "IP\032 .coordinator_proto.RecoveryReply\"\000\022]"
+  "\n\024getRecoveryBreakdown\022!.coordinator_pro"
+  "to.KeyAndClientIP\032 .coordinator_proto.Re"
+  "coveryReply\"\000\022Y\n\020fullNodeRecovery\022#.coor"
+  "dinator_proto.NodeIdFromClient\032\036.coordin"
+  "ator_proto.RepBlockNum\"\000\022\\\n\017twoNodeRecov"
+  "ery\022\'.coordinator_proto.TwoNodeIdsFromCl"
+  "ient\032\036.coordinator_proto.RepBlockNum\"\000\022f"
+  "\n\016globalRecovery\0220.coordinator_proto.Str"
+  "ipeIdAndBlockIDsFromClient\032 .coordinator"
+  "_proto.RecoveryReply\"\000\022o\n\027globalRecovery"
+  "Breakdown\0220.coordinator_proto.StripeIdAn"
+  "dBlockIDsFromClient\032 .coordinator_proto."
+  "RecoveryReply\"\000\022f\n\025maintenanceReadStripe"
+  "\022).coordinator_proto.MaintenanceReadRequ"
+  "est\032 .coordinator_proto.RecoveryReply\"\000\022"
+  "N\n\010delByKey\022 .coordinator_proto.KeyFromC"
+  "lient\032\036.coordinator_proto.RepIfDeling\"\000\022"
+  "V\n\013delByStripe\022%.coordinator_proto.Strip"
+  "eIdFromClient\032\036.coordinator_proto.RepIfD"
+  "eling\"\000\022Y\n\013listStripes\022\'.coordinator_pro"
+  "to.RequestToCoordinator\032\037.coordinator_pr"
+  "oto.RepStripeIds\"\000\022W\n\ndecodeTest\022!.coord"
+  "inator_proto.KeyAndClientIP\032$.coordinato"
+  "r_proto.DegradedReadReply\"\000b\006proto3"
   ;
 static ::_pbi::once_flag descriptor_table_coordinator_2eproto_once;
 const ::_pbi::DescriptorTable descriptor_table_coordinator_2eproto = {
-    false, false, 4518, descriptor_table_protodef_coordinator_2eproto,
+    false, false, 4515, descriptor_table_protodef_coordinator_2eproto,
     "coordinator.proto",
     &descriptor_table_coordinator_2eproto_once, nullptr, 0, 24,
     schemas, file_default_instances, TableStruct_coordinator_2eproto::offsets,
@@ -2570,8 +2570,8 @@ ReplyProxyIPsPorts::ReplyProxyIPsPorts(const ReplyProxyIPsPorts& from)
     , decltype(_impl_.proxyips_){from._impl_.proxyips_}
     , decltype(_impl_.proxyports_){from._impl_.proxyports_}
     , /*decltype(_impl_._proxyports_cached_byte_size_)*/{0}
-    , decltype(_impl_.cluster_slice_sizes_){from._impl_.cluster_slice_sizes_}
-    , /*decltype(_impl_._cluster_slice_sizes_cached_byte_size_)*/{0}
+    , decltype(_impl_.node_slice_sizes_){from._impl_.node_slice_sizes_}
+    , /*decltype(_impl_._node_slice_sizes_cached_byte_size_)*/{0}
     , decltype(_impl_.group_ids_){from._impl_.group_ids_}
     , /*decltype(_impl_._group_ids_cached_byte_size_)*/{0}
     , decltype(_impl_.sum_append_size_){}
@@ -2591,8 +2591,8 @@ inline void ReplyProxyIPsPorts::SharedCtor(
     , decltype(_impl_.proxyips_){arena}
     , decltype(_impl_.proxyports_){arena}
     , /*decltype(_impl_._proxyports_cached_byte_size_)*/{0}
-    , decltype(_impl_.cluster_slice_sizes_){arena}
-    , /*decltype(_impl_._cluster_slice_sizes_cached_byte_size_)*/{0}
+    , decltype(_impl_.node_slice_sizes_){arena}
+    , /*decltype(_impl_._node_slice_sizes_cached_byte_size_)*/{0}
     , decltype(_impl_.group_ids_){arena}
     , /*decltype(_impl_._group_ids_cached_byte_size_)*/{0}
     , decltype(_impl_.sum_append_size_){uint64_t{0u}}
@@ -2614,7 +2614,7 @@ inline void ReplyProxyIPsPorts::SharedDtor() {
   _impl_.append_keys_.~RepeatedPtrField();
   _impl_.proxyips_.~RepeatedPtrField();
   _impl_.proxyports_.~RepeatedField();
-  _impl_.cluster_slice_sizes_.~RepeatedField();
+  _impl_.node_slice_sizes_.~RepeatedField();
   _impl_.group_ids_.~RepeatedField();
 }
 
@@ -2631,7 +2631,7 @@ void ReplyProxyIPsPorts::Clear() {
   _impl_.append_keys_.Clear();
   _impl_.proxyips_.Clear();
   _impl_.proxyports_.Clear();
-  _impl_.cluster_slice_sizes_.Clear();
+  _impl_.node_slice_sizes_.Clear();
   _impl_.group_ids_.Clear();
   _impl_.sum_append_size_ = uint64_t{0u};
   _internal_metadata_.Clear<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>();
@@ -2692,13 +2692,13 @@ const char* ReplyProxyIPsPorts::_InternalParse(const char* ptr, ::_pbi::ParseCon
         } else
           goto handle_unusual;
         continue;
-      // repeated uint64 cluster_slice_sizes = 5;
+      // repeated uint64 node_slice_sizes = 5;
       case 5:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 42)) {
-          ptr = ::PROTOBUF_NAMESPACE_ID::internal::PackedUInt64Parser(_internal_mutable_cluster_slice_sizes(), ptr, ctx);
+          ptr = ::PROTOBUF_NAMESPACE_ID::internal::PackedUInt64Parser(_internal_mutable_node_slice_sizes(), ptr, ctx);
           CHK_(ptr);
         } else if (static_cast<uint8_t>(tag) == 40) {
-          _internal_add_cluster_slice_sizes(::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr));
+          _internal_add_node_slice_sizes(::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr));
           CHK_(ptr);
         } else
           goto handle_unusual;
@@ -2778,12 +2778,12 @@ uint8_t* ReplyProxyIPsPorts::_InternalSerialize(
     }
   }
 
-  // repeated uint64 cluster_slice_sizes = 5;
+  // repeated uint64 node_slice_sizes = 5;
   {
-    int byte_size = _impl_._cluster_slice_sizes_cached_byte_size_.load(std::memory_order_relaxed);
+    int byte_size = _impl_._node_slice_sizes_cached_byte_size_.load(std::memory_order_relaxed);
     if (byte_size > 0) {
       target = stream->WriteUInt64Packed(
-          5, _internal_cluster_slice_sizes(), byte_size, target);
+          5, _internal_node_slice_sizes(), byte_size, target);
     }
   }
 
@@ -2842,16 +2842,16 @@ size_t ReplyProxyIPsPorts::ByteSizeLong() const {
     total_size += data_size;
   }
 
-  // repeated uint64 cluster_slice_sizes = 5;
+  // repeated uint64 node_slice_sizes = 5;
   {
     size_t data_size = ::_pbi::WireFormatLite::
-      UInt64Size(this->_impl_.cluster_slice_sizes_);
+      UInt64Size(this->_impl_.node_slice_sizes_);
     if (data_size > 0) {
       total_size += 1 +
         ::_pbi::WireFormatLite::Int32Size(static_cast<int32_t>(data_size));
     }
     int cached_size = ::_pbi::ToCachedSize(data_size);
-    _impl_._cluster_slice_sizes_cached_byte_size_.store(cached_size,
+    _impl_._node_slice_sizes_cached_byte_size_.store(cached_size,
                                     std::memory_order_relaxed);
     total_size += data_size;
   }
@@ -2896,7 +2896,7 @@ void ReplyProxyIPsPorts::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, con
   _this->_impl_.append_keys_.MergeFrom(from._impl_.append_keys_);
   _this->_impl_.proxyips_.MergeFrom(from._impl_.proxyips_);
   _this->_impl_.proxyports_.MergeFrom(from._impl_.proxyports_);
-  _this->_impl_.cluster_slice_sizes_.MergeFrom(from._impl_.cluster_slice_sizes_);
+  _this->_impl_.node_slice_sizes_.MergeFrom(from._impl_.node_slice_sizes_);
   _this->_impl_.group_ids_.MergeFrom(from._impl_.group_ids_);
   if (from._internal_sum_append_size() != 0) {
     _this->_internal_set_sum_append_size(from._internal_sum_append_size());
@@ -2921,7 +2921,7 @@ void ReplyProxyIPsPorts::InternalSwap(ReplyProxyIPsPorts* other) {
   _impl_.append_keys_.InternalSwap(&other->_impl_.append_keys_);
   _impl_.proxyips_.InternalSwap(&other->_impl_.proxyips_);
   _impl_.proxyports_.InternalSwap(&other->_impl_.proxyports_);
-  _impl_.cluster_slice_sizes_.InternalSwap(&other->_impl_.cluster_slice_sizes_);
+  _impl_.node_slice_sizes_.InternalSwap(&other->_impl_.node_slice_sizes_);
   _impl_.group_ids_.InternalSwap(&other->_impl_.group_ids_);
   swap(_impl_.sum_append_size_, other->_impl_.sum_append_size_);
 }

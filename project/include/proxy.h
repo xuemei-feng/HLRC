@@ -27,13 +27,17 @@ namespace ECProject
   public:
     ProxyImpl(std::string proxy_ip_port, std::string config_path, std::string coordinator_address) : config_path(config_path), proxy_ip_port(proxy_ip_port), acceptor(io_context, asio::ip::tcp::endpoint(asio::ip::address::from_string(proxy_ip_port.substr(0, proxy_ip_port.find(':')).c_str()), ECProject::PROXY_PORT_SHIFT + std::stoi(proxy_ip_port.substr(proxy_ip_port.find(':') + 1, proxy_ip_port.size())))), m_coordinator_address(coordinator_address)
     {
-      init_coordinator();
-      init_datanodes(config_path);
       m_ip = proxy_ip_port.substr(0, proxy_ip_port.find(':'));
       m_port = std::stoi(proxy_ip_port.substr(proxy_ip_port.find(':') + 1, proxy_ip_port.size()));
-      std::cout << "Cluster id:" << m_self_cluster_id << std::endl;
+      init_coordinator();
+      init_datanodes(config_path);
+      std::cout << "Node id:" << m_self_node_id << std::endl;
     }
-    ~ProxyImpl() {};
+    ~ProxyImpl()
+    {
+      if (m_peer_acceptor) { asio::error_code ec; m_peer_acceptor->close(ec); }
+      if (m_peer_thread.joinable()) m_peer_thread.detach();
+    };
     grpc::Status checkalive(
         grpc::ServerContext *context,
         const proxy_proto::CheckaliveCMD *request,
@@ -106,6 +110,11 @@ namespace ECProject
     bool SetToDatanode(const char *key, size_t key_length, const char *value, size_t value_length, const char *ip, int port, int offset);
     bool GetFromDatanode(const char *key, size_t key_length, char *value, size_t value_length, const char *ip, int port, int offset);
     bool DelInDatanode(std::string key, std::string node_ip_port);
+    bool PutToOwnerProxy(const std::string &proxy_ip, int proxy_port, const std::string &key,
+                         int block_id, const char *data, size_t size, bool recovery);
+    bool GetFromOwnerProxy(const std::string &proxy_ip, int proxy_port, const std::string &key,
+                           char *data, size_t size);
+    bool DeleteFromOwnerProxy(const std::string &proxy_ip, int proxy_port, const std::string &key);
 
     ECProject::Config *m_sys_config;
     ECProject::ToolBox *m_toolbox;
@@ -123,18 +132,36 @@ namespace ECProject
     void get_from_node_breakdown(const std::string &block_key, char *block_value, const size_t block_size, const char *datanode_ip, const int datanode_port, bool *status, int index, 
       double *disk_io_start_time, double *disk_io_end_time, double *network_start_time, double *network_end_time, double *grpc_notify_time, double *grpc_start_time);
 
+    bool PeerPutForTest(const std::string &proxy_ip, int proxy_port, const std::string &key, const std::string &data)
+    { return PutToOwnerProxy(proxy_ip, proxy_port, key, 0, data.data(), data.size(), false); }
+    bool PeerGetForTest(const std::string &proxy_ip, int proxy_port, const std::string &key, std::string &data)
+    { return GetFromOwnerProxy(proxy_ip, proxy_port, key, data.data(), data.size()); }
+    bool PeerDeleteForTest(const std::string &proxy_ip, int proxy_port, const std::string &key)
+    { return DeleteFromOwnerProxy(proxy_ip, proxy_port, key); }
+    size_t LocalDatanodeStubCountForTest() const { return m_datanode_ptrs.size(); }
+
   private:
     std::mutex m_mutex;
     std::condition_variable cv;
     bool init_coordinator();
     bool init_datanodes(std::string datanodeinfo_path);
+    void run_peer_gateway();
+    bool handle_peer_connection(asio::ip::tcp::socket socket);
+    std::pair<std::string, int> paired_datanode_endpoint() const;
     std::unique_ptr<coordinator_proto::coordinatorService::Stub> m_coordinator_ptr;
     std::map<std::string, std::unique_ptr<datanode_proto::datanodeService::Stub>> m_datanode_ptrs;
     std::string config_path;
     std::string proxy_ip_port;
     std::string m_ip;
     int m_port;
-    int m_self_cluster_id;
+    int m_self_node_id = -1;
+    std::string m_paired_datanode;
+    std::map<int, std::string> m_node_owner_proxies;
+    std::map<std::string, std::string> m_datanode_owner_proxies;
+    std::map<std::string, std::string> m_proxy_owned_datanodes;
+    std::unique_ptr<asio::ip::tcp::acceptor> m_peer_acceptor;
+    std::thread m_peer_thread;
+    std::mutex m_datanode_io_mutex;
     asio::io_context io_context;
     asio::ip::tcp::acceptor acceptor;
     sem_t sem;

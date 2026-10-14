@@ -139,7 +139,7 @@ FILELIST_COORD="$TMPDIR/unilrc-files-coordinator.txt"
 cat >"$FILELIST_PROXY" <<'EOF'
 project/cmake/build/run_proxy
 project/config/cluster.ini
-project/config/clusterInformation.xml
+project/config/nodeInformation.xml
 project/config/parameterConfiguration.xml
 all_ips
 hosts
@@ -149,7 +149,7 @@ EOF
 cat >"$FILELIST_DN" <<'EOF'
 project/cmake/build/run_datanode
 project/config/cluster.ini
-project/config/clusterInformation.xml
+project/config/nodeInformation.xml
 project/config/parameterConfiguration.xml
 all_ips
 hosts
@@ -159,7 +159,7 @@ EOF
 cat >"$FILELIST_COORD" <<'EOF'
 project/cmake/build/run_coordinator
 project/config/cluster.ini
-project/config/clusterInformation.xml
+project/config/nodeInformation.xml
 project/config/parameterConfiguration.xml
 all_ips
 hosts

@@ -1,170 +1,53 @@
 #!/bin/bash
-# B 方案：在 client 端执行，通过 SSH 在各 proxy/datanode 节点上启动进程
-# 配置文件默认：项目根目录下 project/config/cluster.ini
+# Start and verify a flat localhost topology with one proxy and one datanode per node.
+set -euo pipefail
+ROOT="$(cd "$(dirname "$0")" && pwd)"
+CONFIG="${1:-$ROOT/project/config/cluster.ini}"
+BUILD="$ROOT/project/cmake/build"
+mapfile -t NODES < <(PYTHONDONTWRITEBYTECODE=1 python3 "$ROOT/project/config/ip_layout.py" --ini "$CONFIG" --format nodes)
+[ "${#NODES[@]}" -gt 0 ] || { echo "No nodes configured" >&2; exit 1; }
 
-set -e
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-CONFIG="${1:-$SCRIPT_DIR/project/config/cluster.ini}"
-
-if [ ! -f "$CONFIG" ]; then
-  echo "Config not found: $CONFIG"
-  echo "Usage: $0 [cluster.ini]"
-  exit 1
-fi
-
-# 读 INI：取 [section] 下 key 的值（去掉首尾空格）
-# 使用字面匹配 [section]，避免在 awk 正则中 [cluster] 被当作字符类
-get_ini() {
-  local section="$1" key="$2"
-  awk -F'=' -v SECTION="$section" -v KEY="$key" '
-    function trim(s) { gsub(/^[ \t]+|[ \t]+$/, "", s); return s }
-    /^[ \t]*#/ { next }
-    /^[ \t]*\[/ {
-      line = trim($0)
-      f = (line == "[" SECTION "]")
-      next
-    }
-    f && NF >= 2 {
-      k = trim($1)
-      if (k == KEY) {
-        v = $0
-        sub(/^[^=]*=/, "", v)   # keep value even if it contains '='
-        v = trim(v)
-        print v
-        exit
-      }
-    }
-  ' "$CONFIG"
-}
-
-CLUSTER_NUM=$(get_ini cluster cluster_num)
-DN_PER=$(get_ini cluster datanode_per_cluster)
-FIRST_IP=$(get_ini cluster first_proxy_ip)
-FIRST_PORT=$(get_ini cluster first_proxy_port)
-DN_PORT_START=$(get_ini cluster datanode_port_start)
-COORD_IP=$(get_ini cluster coordinator_ip)
-SSH_USER=$(get_ini ssh user)
-IP_MODE=$(get_ini cluster ip_mode)
-REMOTE_REPO="$SCRIPT_DIR"
-[ -n "$IP_MODE" ] || IP_MODE="distributed"
-
-IP_LAYOUT="$SCRIPT_DIR/project/config/ip_layout.py"
-
-# 校验
-[ -n "$CLUSTER_NUM" ] && [ -n "$DN_PER" ] && [ -n "$FIRST_PORT" ] || {
-  echo "Missing required [cluster] keys in $CONFIG"
-  exit 1
-}
-if [ "$IP_MODE" != "all_ips" ]; then
-  [ -n "$FIRST_IP" ] || {
-    echo "Missing first_proxy_ip in $CONFIG"
-    exit 1
-  }
-fi
-[ -n "$SSH_USER" ] || {
-  echo "Missing required [ssh] user in $CONFIG"
-  exit 1
-}
-
-# 127.0.0.1 则所有节点 IP 均为 127.0.0.1
-if [ "$FIRST_IP" = "127.0.0.1" ]; then
-  USE_LOCALHOST=1
-  IP_MODE="colocated"
-else
-  USE_LOCALHOST=0
-  PREFIX="${FIRST_IP%.*}."
-  FIRST_OCTET="${FIRST_IP##*.}"
-fi
-
-BUILD="$REMOTE_REPO/project/cmake/build"
-
-NODE_HOSTS=()
-if [ "$IP_MODE" = "all_ips" ]; then
-  if [ ! -f "$IP_LAYOUT" ]; then
-    echo "ip_layout.py not found: $IP_LAYOUT"
-    exit 1
-  fi
-  mapfile -t NODE_HOSTS < <(python3 "$IP_LAYOUT" --ini "$CONFIG" --format node-ips)
-  expected=$((CLUSTER_NUM * (1 + DN_PER)))
-  if [ "${#NODE_HOSTS[@]}" -ne "$expected" ]; then
-    echo "all_ips node count ${#NODE_HOSTS[@]} != expected $expected"
-    exit 1
-  fi
-  CLIENT_IP=$(python3 "$IP_LAYOUT" --ini "$CONFIG" --format client-ip)
-  if [ "$CLIENT_IP" = "127.0.0.1" ]; then
-    USE_LOCALHOST=1
-    IP_MODE="colocated"
-  else
-    USE_LOCALHOST=0
-  fi
-fi
-
-# 本机运行时只在最开始 kill 一次，避免每次循环都杀掉已启动的进程
-if [ "$USE_LOCALHOST" = 1 ]; then
-  pkill -9 run_datanode 2>/dev/null || true
-  pkill -9 run_proxy 2>/dev/null || true
-  sleep 0.002
-fi
-
-ip_idx=0
-c=0
-while [ "$c" -lt "$CLUSTER_NUM" ]; do
-  PROXY_PORT=$((FIRST_PORT + c))
-
-  # Same logic as generate_xml_from_ini.py
-  if [ "$USE_LOCALHOST" = 1 ]; then
-    PROXY_IP="127.0.0.1"
-  elif [ "$IP_MODE" = "port_simulated" ]; then
-    PROXY_IP="${PREFIX}$((FIRST_OCTET + c))"
-  elif [ "$IP_MODE" = "all_ips" ]; then
-    PROXY_IP="${NODE_HOSTS[$ip_idx]}"
-    ip_idx=$((ip_idx + 1))
-  else
-    PROXY_IP="${PREFIX}$((FIRST_OCTET + ip_idx))"
-    ip_idx=$((ip_idx + 1))
-  fi
-
-  echo "Cluster $c: proxy ${PROXY_IP}:${PROXY_PORT}"
-
-  # Start datanodes (port_simulated / localhost: same host as proxy, different ports)
-  d=0
-  while [ "$d" -lt "$DN_PER" ]; do
-    DP=$((DN_PORT_START + c * DN_PER + d))
-    if [ "$USE_LOCALHOST" = 1 ] || [ "$IP_MODE" = "port_simulated" ]; then
-      DN_IP="$PROXY_IP"
-    elif [ "$IP_MODE" = "all_ips" ]; then
-      DN_IP="${NODE_HOSTS[$ip_idx]}"
-      ip_idx=$((ip_idx + 1))
-    else
-      DN_IP="${PREFIX}$((FIRST_OCTET + ip_idx))"
-      ip_idx=$((ip_idx + 1))
-    fi
-    echo "  datanode $d: ${DN_IP}:${DP}"
-    if [ "$DN_IP" = "127.0.0.1" ]; then
-      # Detach output to avoid blocking this script
-      bash -c "cd $REMOTE_REPO && nohup $BUILD/run_datanode ${DN_IP}:${DP} </dev/null >\"/tmp/unilrc-datanode-${DN_IP//./_}-${DP}.log\" 2>&1 &" || {
-        echo "Failed: datanode $d of cluster $c at $DN_IP"
-      }
-    else
-      # Use -n and nohup + redirection so ssh returns immediately (no stdout/stderr attached)
-      ssh -n -o ConnectTimeout=5 "${SSH_USER}@${DN_IP}" "cd $REMOTE_REPO && pkill -9 run_datanode 2>/dev/null || true; sleep 0.002; nohup $BUILD/run_datanode ${DN_IP}:${DP} </dev/null >\"/tmp/unilrc-datanode-${DN_IP//./_}-${DP}.log\" 2>&1 &" || {
-        echo "Failed: datanode $d of cluster $c at $DN_IP"
-      }
-    fi
-    d=$((d + 1))
+wait_port() {
+  local host="$1" port="$2" label="$3"
+  for _ in $(seq 1 100); do
+    if (echo >"/dev/tcp/$host/$port") 2>/dev/null; then return 0; fi
+    sleep 0.05
   done
+  echo "Timed out waiting for $label at $host:$port" >&2
+  return 1
+}
 
-  # Start proxy (on PROXY_IP host)
-  if [ "$PROXY_IP" = "127.0.0.1" ]; then
-    bash -c "cd $REMOTE_REPO && sleep 0.002 && nohup $BUILD/run_proxy ${PROXY_IP}:${PROXY_PORT} ${COORD_IP} </dev/null >\"/tmp/unilrc-proxy-${PROXY_IP//./_}-${PROXY_PORT}.log\" 2>&1 &" || {
-      echo "Failed: proxy of cluster $c at $PROXY_IP"
-    }
-  else
-    ssh -n -o ConnectTimeout=5 "${SSH_USER}@${PROXY_IP}" "cd $REMOTE_REPO && pkill -9 run_proxy 2>/dev/null || true; sleep 0.002; nohup $BUILD/run_proxy ${PROXY_IP}:${PROXY_PORT} ${COORD_IP} </dev/null >\"/tmp/unilrc-proxy-${PROXY_IP//./_}-${PROXY_PORT}.log\" 2>&1 &" || {
-      echo "Failed: proxy of cluster $c at $PROXY_IP"
-    }
-  fi
+pkill -9 run_datanode 2>/dev/null || true
+pkill -9 run_proxy 2>/dev/null || true
+rm -f /tmp/hlrc-datanode-*.pid /tmp/hlrc-proxy-*.pid
 
-  c=$((c + 1))
+for entry in "${NODES[@]}"; do
+  read -r node_id proxy datanode <<<"$entry"
+  nohup "$BUILD/run_datanode" "$datanode" </dev/null >"/tmp/hlrc-datanode-$node_id.log" 2>&1 &
+  echo $! >"/tmp/hlrc-datanode-$node_id.pid"
 done
-echo "Done."
+for entry in "${NODES[@]}"; do
+  read -r node_id proxy datanode <<<"$entry"
+  wait_port "${datanode%:*}" "${datanode##*:}" "datanode $node_id"
+done
+
+for entry in "${NODES[@]}"; do
+  read -r node_id proxy datanode <<<"$entry"
+  nohup "$BUILD/run_proxy" "$proxy" </dev/null >"/tmp/hlrc-proxy-$node_id.log" 2>&1 &
+  echo $! >"/tmp/hlrc-proxy-$node_id.pid"
+done
+for entry in "${NODES[@]}"; do
+  read -r node_id proxy datanode <<<"$entry"
+  proxy_port="${proxy##*:}"
+  wait_port "${proxy%:*}" "$proxy_port" "proxy grpc $node_id"
+  wait_port "${proxy%:*}" "$((proxy_port + 2000))" "proxy peer $node_id"
+done
+
+dn_count=$(pgrep -xc run_datanode || true)
+proxy_count=$(pgrep -xc run_proxy || true)
+expected=${#NODES[@]}
+if [ "$dn_count" -ne "$expected" ] || [ "$proxy_count" -ne "$expected" ]; then
+  echo "Process count mismatch: expected=$expected datanodes=$dn_count proxies=$proxy_count" >&2
+  exit 1
+fi
+echo "Verified $expected datanodes and $expected proxies; all gRPC and peer ports are listening."

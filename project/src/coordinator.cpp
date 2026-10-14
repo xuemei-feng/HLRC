@@ -50,16 +50,16 @@ namespace ECProject
                              parameter->x_stripepermergegroup());
     m_encode_parameters = system_metadata;
     setParameterReply->set_ifsetparameter(true);
-    m_cur_cluster_id = 0;
+    m_cur_node_id = 0;
     m_cur_stripe_id = 0;
     m_object_commit_table.clear();
     m_object_updating_table.clear();
     m_stripe_deleting_table.clear();
-    for (auto it = m_cluster_table.begin(); it != m_cluster_table.end(); it++)
+    for (auto it = m_node_table.begin(); it != m_node_table.end(); it++)
     {
-      Cluster &t_cluster = it->second;
-      t_cluster.blocks.clear();
-      t_cluster.stripes.clear();
+      Node &t_node = it->second;
+      t_node.blocks.clear();
+      t_node.stripes.clear();
     }
     for (auto it = m_node_table.begin(); it != m_node_table.end(); it++)
     {
@@ -68,7 +68,7 @@ namespace ECProject
     }
     m_stripe_table.clear();
     m_merge_groups.clear();
-    m_free_clusters.clear();
+    m_free_nodes.clear();
     m_agg_start_cid = 0;
     std::cout << "setParameter success" << std::endl;
     return grpc::Status::OK;
@@ -125,21 +125,24 @@ namespace ECProject
     m_stripe_table[t_stripe.stripe_id] = t_stripe;
     new_object.map2stripe = t_stripe.stripe_id;
 
-    int s_cluster_id = generate_placement(t_stripe.stripe_id, block_size);
+    int s_node_id = generate_placement(t_stripe.stripe_id, block_size);
 
     Stripe &stripe = m_stripe_table[t_stripe.stripe_id];
     object_placement.set_stripe_id(stripe.stripe_id);
     for (int i = 0; i < int(stripe.blocks.size()); i++)
     {
-      object_placement.add_datanodeip(m_node_table[stripe.blocks[i]->map2node].node_ip);
-      object_placement.add_datanodeport(m_node_table[stripe.blocks[i]->map2node].node_port);
+      object_placement.add_datanodeip(m_node_table[stripe.blocks[i]->map2node].proxy_ip);
+      object_placement.add_datanodeport(m_node_table[stripe.blocks[i]->map2node].proxy_port);
       object_placement.add_blockkeys(stripe.blocks[i]->block_key);
+      object_placement.add_node_ids(stripe.blocks[i]->map2node);
+      object_placement.add_owner_proxy_ips(m_node_table[stripe.blocks[i]->map2node].proxy_ip);
+      object_placement.add_owner_proxy_ports(m_node_table[stripe.blocks[i]->map2node].proxy_port);
     }
 
     grpc::ClientContext cont;
     proxy_proto::SetReply set_reply;
-    std::string selected_proxy_ip = m_cluster_table[s_cluster_id].proxy_ip;
-    int selected_proxy_port = m_cluster_table[s_cluster_id].proxy_port;
+    std::string selected_proxy_ip = m_node_table[s_node_id].proxy_ip;
+    int selected_proxy_port = m_node_table[s_node_id].proxy_port;
     std::string chosen_proxy = selected_proxy_ip + ":" + std::to_string(selected_proxy_port);
     grpc::Status status = m_proxy_ptrs[chosen_proxy]->encodeAndSetObject(&cont, object_placement, &set_reply);
     proxyIPPort->set_proxyip(selected_proxy_ip);
@@ -166,7 +169,7 @@ namespace ECProject
 
     Block *blocks_info = new Block[stripe->n];
     assert(stripe->object_keys.size() == 1);
-    int t_cluster_id = stripe->stripe_id % m_sys_config->ClusterNum;
+    int t_node_id = stripe->stripe_id % m_sys_config->NodeNum;
 
     for (int i = 0; i < stripe->n; i++)
     {
@@ -191,15 +194,12 @@ namespace ECProject
         blocks_info[i].block_type = 'L';
         blocks_info[i].block_key = std::to_string(stripe->stripe_id) + "_L" + std::to_string(i - stripe->k - stripe->r);
       }
-
-      blocks_info[i].map2cluster = (t_cluster_id + blocks_info[i].map2group) % m_sys_config->ClusterNum;
-      int t_node_id = randomly_select_a_node(blocks_info[i].map2cluster, stripe->stripe_id);
+      int t_node_id = (stripe->stripe_id + i) % m_sys_config->NodeNum;
       blocks_info[i].map2node = t_node_id;
       update_stripe_info_in_node(t_node_id, stripe->stripe_id, i);
-      m_cluster_table[blocks_info[i].map2cluster].blocks.push_back(&blocks_info[i]);
-      m_cluster_table[blocks_info[i].map2cluster].stripes.insert(stripe->stripe_id);
+      m_node_table[t_node_id].blocks.push_back(&blocks_info[i]);
       stripe->blocks.push_back(&blocks_info[i]);
-      stripe->place2clusters.insert(blocks_info[i].map2cluster);
+      stripe->place2nodes.insert(blocks_info[i].map2node);
       add_to_map(stripe->group_to_blocks, blocks_info[i].map2group, i);
     }
 
@@ -214,7 +214,7 @@ namespace ECProject
 
     Block *blocks_info = new Block[stripe->n];
     assert(stripe->object_keys.size() == 1);
-    int t_cluster_id = stripe->stripe_id % m_sys_config->ClusterNum;
+    int t_node_id = stripe->stripe_id % m_sys_config->NodeNum;
 
     for (int i = 0; i < stripe->n; i++)
     {
@@ -239,15 +239,12 @@ namespace ECProject
         blocks_info[i].block_type = 'L';
         blocks_info[i].block_key = std::to_string(stripe->stripe_id) + "_L" + std::to_string(i - stripe->k - stripe->r);
       }
-
-      blocks_info[i].map2cluster = (t_cluster_id + blocks_info[i].map2group) % m_sys_config->ClusterNum;
-      int t_node_id = randomly_select_a_node(blocks_info[i].map2cluster, stripe->stripe_id);
+      int t_node_id = (stripe->stripe_id + i) % m_sys_config->NodeNum;
       blocks_info[i].map2node = t_node_id;
       update_stripe_info_in_node(t_node_id, stripe->stripe_id, i);
-      m_cluster_table[blocks_info[i].map2cluster].blocks.push_back(&blocks_info[i]);
-      m_cluster_table[blocks_info[i].map2cluster].stripes.insert(stripe->stripe_id);
+      m_node_table[t_node_id].blocks.push_back(&blocks_info[i]);
       stripe->blocks.push_back(&blocks_info[i]);
-      stripe->place2clusters.insert(blocks_info[i].map2cluster);
+      stripe->place2nodes.insert(blocks_info[i].map2node);
       add_to_map(stripe->group_to_blocks, blocks_info[i].map2group, i);
     }
 
@@ -259,11 +256,11 @@ namespace ECProject
     int k = stripe->k, r = stripe->r, z = stripe->z;
     std::unordered_map<int, int> block_id_to_group_id =
         ECProject::get_lotuslrc_block_id_to_group_id(k, r, z);
-  
+
     Block *blocks_info = new Block[stripe->n];
     assert(stripe->object_keys.size() == 1);
-    int t_cluster_id = stripe->stripe_id % m_sys_config->ClusterNum;
-  
+    int t_node_id = stripe->stripe_id % m_sys_config->NodeNum;
+
     for (int i = 0; i < stripe->n; i++)
     {
       blocks_info[i].block_size = m_sys_config->BlockSize;
@@ -271,7 +268,7 @@ namespace ECProject
       blocks_info[i].map2key = stripe->object_keys[0];
       blocks_info[i].block_id = i;
       blocks_info[i].map2group = block_id_to_group_id.at(i);  // 使用 encoder_layout 的映射
-  
+
       if (i < stripe->k) {
         blocks_info[i].block_type = 'D';
         blocks_info[i].block_key = std::to_string(stripe->stripe_id) + "_D" + std::to_string(i);
@@ -282,18 +279,15 @@ namespace ECProject
         blocks_info[i].block_type = 'L';
         blocks_info[i].block_key = std::to_string(stripe->stripe_id) + "_L" + std::to_string(i - stripe->k - stripe->r);
       }
-  
-      blocks_info[i].map2cluster = (t_cluster_id + blocks_info[i].map2group) % m_sys_config->ClusterNum;
-      int t_node_id = randomly_select_a_node(blocks_info[i].map2cluster, stripe->stripe_id);
+      int t_node_id = (stripe->stripe_id + i) % m_sys_config->NodeNum;
       blocks_info[i].map2node = t_node_id;
       update_stripe_info_in_node(t_node_id, stripe->stripe_id, i);
-      m_cluster_table[blocks_info[i].map2cluster].blocks.push_back(&blocks_info[i]);
-      m_cluster_table[blocks_info[i].map2cluster].stripes.insert(stripe->stripe_id);
+      m_node_table[t_node_id].blocks.push_back(&blocks_info[i]);
       stripe->blocks.push_back(&blocks_info[i]);
-      stripe->place2clusters.insert(blocks_info[i].map2cluster);
+      stripe->place2nodes.insert(blocks_info[i].map2node);
       add_to_map(stripe->group_to_blocks, blocks_info[i].map2group, i);
     }
-  
+
     stripe->num_groups = stripe->group_to_blocks.size();
   }
 
@@ -305,7 +299,7 @@ namespace ECProject
 
     Block *blocks_info = new Block[stripe->n];
     assert(stripe->object_keys.size() == 1);
-    int t_cluster_id = stripe->stripe_id % m_sys_config->ClusterNum;
+    int t_node_id = stripe->stripe_id % m_sys_config->NodeNum;
 
     for (int i = 0; i < stripe->n; i++)
     {
@@ -330,15 +324,12 @@ namespace ECProject
         blocks_info[i].block_type = 'L';
         blocks_info[i].block_key = std::to_string(stripe->stripe_id) + "_L" + std::to_string(i - stripe->k - stripe->r);
       }
-
-      blocks_info[i].map2cluster = (t_cluster_id + blocks_info[i].map2group) % m_sys_config->ClusterNum;
-      int t_node_id = randomly_select_a_node(blocks_info[i].map2cluster, stripe->stripe_id);
+      int t_node_id = (stripe->stripe_id + i) % m_sys_config->NodeNum;
       blocks_info[i].map2node = t_node_id;
       update_stripe_info_in_node(t_node_id, stripe->stripe_id, i);
-      m_cluster_table[blocks_info[i].map2cluster].blocks.push_back(&blocks_info[i]);
-      m_cluster_table[blocks_info[i].map2cluster].stripes.insert(stripe->stripe_id);
+      m_node_table[t_node_id].blocks.push_back(&blocks_info[i]);
       stripe->blocks.push_back(&blocks_info[i]);
-      stripe->place2clusters.insert(blocks_info[i].map2cluster);
+      stripe->place2nodes.insert(blocks_info[i].map2node);
       add_to_map(stripe->group_to_blocks, blocks_info[i].map2group, i);
     }
 
@@ -350,7 +341,7 @@ namespace ECProject
     int k = stripe->k, r = stripe->r, z = stripe->z;
     Block *blocks_info = new Block[stripe->n];
     assert(stripe->object_keys.size() == 1);
-    int t_cluster_id = stripe->stripe_id % m_sys_config->ClusterNum;
+    int t_node_id = stripe->stripe_id % m_sys_config->NodeNum;
     int local_data_num = k / z;
     int local_global_parity_num = r / z;
 
@@ -381,14 +372,12 @@ namespace ECProject
         blocks_info[i].block_type = 'L';
         blocks_info[i].block_key = std::to_string(stripe->stripe_id) + "_L" + std::to_string(i - stripe->k - stripe->r);
       }
-      blocks_info[i].map2cluster = (t_cluster_id + blocks_info[i].map2group) % m_sys_config->ClusterNum;
-      int t_node_id = randomly_select_a_node(blocks_info[i].map2cluster, stripe->stripe_id);
+      int t_node_id = (stripe->stripe_id + i) % m_sys_config->NodeNum;
       blocks_info[i].map2node = t_node_id;
       update_stripe_info_in_node(t_node_id, stripe->stripe_id, i);
-      m_cluster_table[blocks_info[i].map2cluster].blocks.push_back(&blocks_info[i]);
-      m_cluster_table[blocks_info[i].map2cluster].stripes.insert(stripe->stripe_id);
+      m_node_table[t_node_id].blocks.push_back(&blocks_info[i]);
       stripe->blocks.push_back(&blocks_info[i]);
-      stripe->place2clusters.insert(blocks_info[i].map2cluster);
+      stripe->place2nodes.insert(blocks_info[i].map2node);
       add_to_map(stripe->group_to_blocks, blocks_info[i].map2group, i);
     }
 
@@ -402,18 +391,18 @@ namespace ECProject
     map[key].push_back(value);
   }
 
-  int CoordinatorImpl::getClusterAppendSize(Stripe *stripe, const std::map<int, std::pair<int, int>> &block_to_slice_sizes, int curr_group_id, int parity_slice_size)
+  int CoordinatorImpl::getNodeAppendSize(Stripe *stripe, const std::map<int, std::pair<int, int>> &block_to_slice_sizes, int curr_group_id, int parity_slice_size)
   {
-    int cluster_append_size = 0;
+    int node_append_size = 0;
 
     for (int i = curr_group_id * stripe->k / stripe->z; i < (curr_group_id + 1) * stripe->k / stripe->z; i++)
     {
       if (block_to_slice_sizes.find(i) != block_to_slice_sizes.end())
-        cluster_append_size += block_to_slice_sizes.at(i).first;
+        node_append_size += block_to_slice_sizes.at(i).first;
     }
 
-    cluster_append_size += parity_slice_size * (stripe->r + stripe->z) / stripe->z;
-    return cluster_append_size;
+    node_append_size += parity_slice_size * (stripe->r + stripe->z) / stripe->z;
+    return node_append_size;
   }
 
   // add repeated fields to plan
@@ -422,8 +411,8 @@ namespace ECProject
                             const Node &node,
                             const std::pair<int, int> &slice_info)
   {
-    plan.add_datanodeip(node.node_ip);
-    plan.add_datanodeport(node.node_port);
+    plan.add_datanodeip(node.proxy_ip);
+    plan.add_datanodeport(node.proxy_port);
     plan.add_blockkeys(block->block_key);
     plan.add_blockids(block->block_id);
     plan.add_offsets(slice_info.second);
@@ -521,9 +510,9 @@ namespace ECProject
       proxy_proto::AppendStripeDataPlacement plan;
       plan.set_key(m_toolbox->gen_append_key(stripe->stripe_id, i));
       plan.set_stripe_id(stripe->stripe_id);
-      plan.set_append_size(getClusterAppendSize(stripe, block_to_slice_sizes, i, parity_slice_size));
+      plan.set_append_size(getNodeAppendSize(stripe, block_to_slice_sizes, i, parity_slice_size));
       plan.set_is_merge_parity(is_merge_parity);
-      plan.set_cluster_id(stripe->blocks[stripe->group_to_blocks[i][0]]->map2cluster);
+      plan.set_node_id(stripe->blocks[stripe->group_to_blocks[i][0]]->map2node);
       plan.set_append_mode(append_mode);
       if (curr_logical_offset == 0 && append_size == m_sys_config->BlockSize * stripe->k)
       {
@@ -575,7 +564,7 @@ namespace ECProject
   {
     grpc::ClientContext cont;
     proxy_proto::SetReply set_reply;
-    std::string chosen_proxy = m_cluster_table[plan.cluster_id()].proxy_ip + ":" + std::to_string(m_cluster_table[plan.cluster_id()].proxy_port);
+    std::string chosen_proxy = m_node_table[plan.node_id()].proxy_ip + ":" + std::to_string(m_node_table[plan.node_id()].proxy_port);
     grpc::Status status = m_proxy_ptrs[chosen_proxy]->scheduleAppend2Datanode(&cont, plan, &set_reply);
     if (status.ok())
     {
@@ -664,9 +653,9 @@ namespace ECProject
     {
       threads.push_back(std::thread(&CoordinatorImpl::notify_proxies_ready, this, plan));
       proxyIPPort->add_append_keys(plan.key());
-      proxyIPPort->add_proxyips(m_cluster_table[plan.cluster_id()].proxy_ip);
-      proxyIPPort->add_proxyports(m_cluster_table[plan.cluster_id()].proxy_port + ECProject::PROXY_PORT_SHIFT); // use another port to accept data
-      proxyIPPort->add_cluster_slice_sizes(plan.append_size());
+      proxyIPPort->add_proxyips(m_node_table[plan.node_id()].proxy_ip);
+      proxyIPPort->add_proxyports(m_node_table[plan.node_id()].proxy_port + ECProject::PROXY_PORT_SHIFT); // use another port to accept data
+      proxyIPPort->add_node_slice_sizes(plan.append_size());
       sum_append_size += plan.append_size();
     }
     for (auto &thread : threads)
@@ -691,14 +680,14 @@ namespace ECProject
     for (int i = 0; i < stripe->num_groups; i++)
     {
       proxy_proto::AppendStripeDataPlacement plan;
-      int mapped_cluster_id = stripe->blocks[stripe->group_to_blocks[i][0]]->map2cluster;
+      int mapped_node_id = stripe->blocks[stripe->group_to_blocks[i][0]]->map2node;
       size_t append_size = stripe->group_to_blocks[i].size() * m_sys_config->BlockSize;
 
       plan.set_key(m_toolbox->gen_append_key(stripe->stripe_id, i));
       plan.set_stripe_id(stripe->stripe_id);
       plan.set_append_size(append_size);
       plan.set_is_merge_parity(false);
-      plan.set_cluster_id(mapped_cluster_id);
+      plan.set_node_id(mapped_node_id);
       plan.set_append_mode("UNILRC_MODE");
       plan.set_is_serialized(false);
 
@@ -743,12 +732,12 @@ namespace ECProject
         continue; // no data to append
       }
 
-      int mapped_cluster_id = stripe->blocks[stripe->group_to_blocks[i][0]]->map2cluster;
+      int mapped_node_id = stripe->blocks[stripe->group_to_blocks[i][0]]->map2node;
 
       plan.set_key(m_toolbox->gen_append_key(stripe->stripe_id, i));
       plan.set_stripe_id(stripe->stripe_id);
       plan.set_is_merge_parity(false);
-      plan.set_cluster_id(mapped_cluster_id);
+      plan.set_node_id(mapped_node_id);
       plan.set_append_mode("UNILRC_MODE");
       plan.set_is_serialized(false);
       plan.set_append_size(append_size);
@@ -764,7 +753,7 @@ namespace ECProject
     std::cout << "Stripe " << stripe.stripe_id << " data placement: " << std::endl;
     for (int i = 0; i < stripe.num_groups; i++)
     {
-      std::cout << "Group " << i << ": (" << stripe.group_to_blocks[i].size() << " blocks, mapped to cluster " << stripe.blocks[stripe.group_to_blocks[i][0]]->map2cluster << ") ";
+      std::cout << "Group " << i << ": (" << stripe.group_to_blocks[i].size() << " blocks, mapped to node " << stripe.blocks[stripe.group_to_blocks[i][0]]->map2node << ") ";
       for (int j = 0; j < stripe.group_to_blocks[i].size(); j++)
       {
         std::cout << stripe.blocks[stripe.group_to_blocks[i][j]]->block_key << " ";
@@ -820,9 +809,9 @@ namespace ECProject
     {
       threads.push_back(std::thread(&CoordinatorImpl::notify_proxies_ready, this, plan));
       proxyIPPort->add_append_keys(plan.key());
-      proxyIPPort->add_proxyips(m_cluster_table[plan.cluster_id()].proxy_ip);
-      proxyIPPort->add_proxyports(m_cluster_table[plan.cluster_id()].proxy_port + ECProject::PROXY_PORT_SHIFT); // use another port to accept data
-      proxyIPPort->add_cluster_slice_sizes(plan.append_size());
+      proxyIPPort->add_proxyips(m_node_table[plan.node_id()].proxy_ip);
+      proxyIPPort->add_proxyports(m_node_table[plan.node_id()].proxy_port + ECProject::PROXY_PORT_SHIFT); // use another port to accept data
+      proxyIPPort->add_node_slice_sizes(plan.append_size());
       sum_append_size += plan.append_size();
     }
     for (auto &thread : threads)
@@ -882,9 +871,9 @@ namespace ECProject
     {
       threads.push_back(std::thread(&CoordinatorImpl::notify_proxies_ready, this, plan));
       proxyIPPort->add_append_keys(plan.key());
-      proxyIPPort->add_proxyips(m_cluster_table[plan.cluster_id()].proxy_ip);
-      proxyIPPort->add_proxyports(m_cluster_table[plan.cluster_id()].proxy_port + ECProject::PROXY_PORT_SHIFT); // use another port to accept data
-      proxyIPPort->add_cluster_slice_sizes(plan.append_size());
+      proxyIPPort->add_proxyips(m_node_table[plan.node_id()].proxy_ip);
+      proxyIPPort->add_proxyports(m_node_table[plan.node_id()].proxy_port + ECProject::PROXY_PORT_SHIFT); // use another port to accept data
+      proxyIPPort->add_node_slice_sizes(plan.append_size());
       //proxyIPPort->add_group_ids(group_id);
       sum_append_size += plan.append_size();
       //group_id++;
@@ -899,7 +888,7 @@ namespace ECProject
 
     return grpc::Status::OK;
   }
-  
+
   std::vector<int> CoordinatorImpl::get_recovery_group_ids(std::string code_type, int k, int r, int z, int failed_block_id)
   {
     std::vector<int> recovery_group_ids;
@@ -1079,8 +1068,8 @@ namespace ECProject
     {
       stripe_block_ids.add_block_ids(block_ids[i]);
       stripe_block_ids.add_block_keys(m_stripe_table[stripe_id].blocks[block_ids[i]]->block_key);
-      stripe_block_ids.add_datanodeips(m_node_table[m_stripe_table[stripe_id].blocks[block_ids[i]]->map2node].node_ip);
-      stripe_block_ids.add_datanodeports(m_node_table[m_stripe_table[stripe_id].blocks[block_ids[i]]->map2node].node_port);
+      stripe_block_ids.add_datanodeips(m_node_table[m_stripe_table[stripe_id].blocks[block_ids[i]]->map2node].proxy_ip);
+      stripe_block_ids.add_datanodeports(m_node_table[m_stripe_table[stripe_id].blocks[block_ids[i]]->map2node].proxy_port);
     }
     grpc::Status status = m_proxy_ptrs[proxy_ip + ":" + std::to_string(proxy_port)]->getBlocks(&cont, stripe_block_ids, &stripe_reply);
     if (status.ok())
@@ -1094,7 +1083,7 @@ namespace ECProject
   }
 
 
-  grpc::Status 
+  grpc::Status
   CoordinatorImpl::getStripe(
       grpc::ServerContext *context,
       const coordinator_proto::KeyAndClientIP *keyClient,
@@ -1109,17 +1098,17 @@ namespace ECProject
     //std::cout << "[GET] getting stripe " << stripe_id << " with " << num_data_groups << " data groups" << std::endl;
     std::vector<int> block_num_per_group = ECProject::get_data_block_num_per_group(k, m_sys_config->r, m_sys_config->z, code_type);
     int num_data_groups = block_num_per_group.size();
-    std::vector<int> get_cluster_ids;
+    std::vector<int> get_node_ids;
     for (int i = 0; i < num_data_groups; i++)
     {
-      get_cluster_ids.push_back(t_stripe.blocks[t_stripe.group_to_blocks[i][0]]->map2cluster);
-      //std::cout << "group " << i << " is mapped to cluster " << get_cluster_ids[i] << std::endl;
+      get_node_ids.push_back(t_stripe.blocks[t_stripe.group_to_blocks[i][0]]->map2node);
+      //std::cout << "group " << i << " is mapped to node " << get_node_ids[i] << std::endl;
     }
     for (int i = 0; i < num_data_groups; i++)
     {
-      proxyIPPort->add_proxyips(m_cluster_table[get_cluster_ids[i]].proxy_ip);
-      proxyIPPort->add_proxyports(m_cluster_table[get_cluster_ids[i]].proxy_port);
-      proxyIPPort->add_cluster_slice_sizes(block_num_per_group[i]);
+      proxyIPPort->add_proxyips(m_node_table[get_node_ids[i]].proxy_ip);
+      proxyIPPort->add_proxyports(m_node_table[get_node_ids[i]].proxy_port);
+      proxyIPPort->add_node_slice_sizes(block_num_per_group[i]);
     }
     /*for(int i = 0; i < t_stripe.num_groups; i++){
       m_proxy_ptrs[proxyIPPort->proxyips(i) + ":" + std::to_string(proxyIPPort->proxyports(i))]->getStripe(stripe_id, t_stripe.group_to_blocks[i]);
@@ -1137,7 +1126,7 @@ namespace ECProject
           block_ids.push_back(t_stripe.group_to_blocks[i][j]);
         }
       }
-      threads.push_back(std::thread(&CoordinatorImpl::getStripeFromProxy, this, keyClient->clientip(), keyClient->clientport(), 
+      threads.push_back(std::thread(&CoordinatorImpl::getStripeFromProxy, this, keyClient->clientip(), keyClient->clientport(),
         proxyIPPort->proxyips(i), proxyIPPort->proxyports(i), stripe_id, i, block_ids));
     }
     for (auto &thread : threads)
@@ -1150,7 +1139,7 @@ namespace ECProject
 
     return grpc::Status::OK;
   }
-  
+
   grpc::Status
   CoordinatorImpl::getBlocks(
       grpc::ServerContext *context,
@@ -1171,38 +1160,38 @@ namespace ECProject
       block_ids.push_back(i % m_sys_config->k);
       relative_block_ids.push_back(i - start_block_id);
     }
-    std::vector<int> get_cluster_ids;
-    std::vector<int> unique_cluster_ids;
+    std::vector<int> get_node_ids;
+    std::vector<int> unique_node_ids;
     for (int i = 0; i < stripe_ids.size(); i++)
     {
-      get_cluster_ids.push_back(m_stripe_table[stripe_ids[i]].blocks[block_ids[i]]->map2cluster);
-      if(std::find(unique_cluster_ids.begin(), unique_cluster_ids.end(), get_cluster_ids[i]) == unique_cluster_ids.end()){
-        unique_cluster_ids.push_back(get_cluster_ids[i]);
+      get_node_ids.push_back(m_stripe_table[stripe_ids[i]].blocks[block_ids[i]]->map2node);
+      if(std::find(unique_node_ids.begin(), unique_node_ids.end(), get_node_ids[i]) == unique_node_ids.end()){
+        unique_node_ids.push_back(get_node_ids[i]);
       }
     }
-    proxy_proto::StripeAndBlockIDs stripe_block_ids[unique_cluster_ids.size()];
+    proxy_proto::StripeAndBlockIDs stripe_block_ids[unique_node_ids.size()];
     for(int i = 0; i < stripe_ids.size(); i++){
-      int idx = std::find(unique_cluster_ids.begin(), unique_cluster_ids.end(), get_cluster_ids[i]) - unique_cluster_ids.begin();
+      int idx = std::find(unique_node_ids.begin(), unique_node_ids.end(), get_node_ids[i]) - unique_node_ids.begin();
       stripe_block_ids[idx].add_block_ids(relative_block_ids[i]);
       stripe_block_ids[idx].add_block_keys(m_stripe_table[stripe_ids[i]].blocks[block_ids[i]]->block_key);
-      stripe_block_ids[idx].add_datanodeips(m_node_table[m_stripe_table[stripe_ids[i]].blocks[block_ids[i]]->map2node].node_ip);
-      stripe_block_ids[idx].add_datanodeports(m_node_table[m_stripe_table[stripe_ids[i]].blocks[block_ids[i]]->map2node].node_port);
+      stripe_block_ids[idx].add_datanodeips(m_node_table[m_stripe_table[stripe_ids[i]].blocks[block_ids[i]]->map2node].proxy_ip);
+      stripe_block_ids[idx].add_datanodeports(m_node_table[m_stripe_table[stripe_ids[i]].blocks[block_ids[i]]->map2node].proxy_port);
     }
     std::vector<std::thread> get_threads;
-    for(int i = 0; i < unique_cluster_ids.size(); i++){
-      get_threads.push_back(std::thread([this, &stripe_block_ids, &client_ip, &client_port, &proxyIPPort, &unique_cluster_ids, i](){
+    for(int i = 0; i < unique_node_ids.size(); i++){
+      get_threads.push_back(std::thread([this, &stripe_block_ids, &client_ip, &client_port, &proxyIPPort, &unique_node_ids, i](){
         grpc::ClientContext cont;
         proxy_proto::GetReply stripe_reply;
         stripe_block_ids[i].set_clientip(client_ip);
         stripe_block_ids[i].set_clientport(client_port);
-        grpc::Status status = m_proxy_ptrs[m_cluster_table[unique_cluster_ids[i]].proxy_ip + ":" + std::to_string(m_cluster_table[unique_cluster_ids[i]].proxy_port)]->getBlocks(&cont, stripe_block_ids[i], &stripe_reply);
+        grpc::Status status = m_proxy_ptrs[m_node_table[unique_node_ids[i]].proxy_ip + ":" + std::to_string(m_node_table[unique_node_ids[i]].proxy_port)]->getBlocks(&cont, stripe_block_ids[i], &stripe_reply);
         if (status.ok())
         {
-          std::cout << "[GET] getting blocks from proxy " << m_cluster_table[unique_cluster_ids[i]].proxy_ip << ":" << m_cluster_table[unique_cluster_ids[i]].proxy_port << " succeeded!" << std::endl;
+          std::cout << "[GET] getting blocks from proxy " << m_node_table[unique_node_ids[i]].proxy_ip << ":" << m_node_table[unique_node_ids[i]].proxy_port << " succeeded!" << std::endl;
         }
         else
         {
-          std::cout << "[GET] getting blocks from proxy " << m_cluster_table[unique_cluster_ids[i]].proxy_ip << ":" << m_cluster_table[unique_cluster_ids[i]].proxy_port << " failed!" << std::endl;
+          std::cout << "[GET] getting blocks from proxy " << m_node_table[unique_node_ids[i]].proxy_ip << ":" << m_node_table[unique_node_ids[i]].proxy_port << " failed!" << std::endl;
         }
       }));
     }
@@ -1277,22 +1266,25 @@ namespace ECProject
       object_placement.set_clientip(client_ip);
       object_placement.set_clientport(client_port);
       Stripe &t_stripe = m_stripe_table[object_info.map2stripe];
-      std::unordered_set<int> t_cluster_set;
+      std::unordered_set<int> t_node_set;
       for (int i = 0; i < int(t_stripe.blocks.size()); i++)
       {
         if (t_stripe.blocks[i]->map2key == key)
         {
-          object_placement.add_datanodeip(m_node_table[t_stripe.blocks[i]->map2node].node_ip);
-          object_placement.add_datanodeport(m_node_table[t_stripe.blocks[i]->map2node].node_port);
+          object_placement.add_datanodeip(m_node_table[t_stripe.blocks[i]->map2node].proxy_ip);
+          object_placement.add_datanodeport(m_node_table[t_stripe.blocks[i]->map2node].proxy_port);
           object_placement.add_blockkeys(t_stripe.blocks[i]->block_key);
+          object_placement.add_node_ids(t_stripe.blocks[i]->map2node);
+          object_placement.add_owner_proxy_ips(m_node_table[t_stripe.blocks[i]->map2node].proxy_ip);
+          object_placement.add_owner_proxy_ports(m_node_table[t_stripe.blocks[i]->map2node].proxy_port);
           object_placement.add_blockids(t_stripe.blocks[i]->block_id);
-          t_cluster_set.insert(t_stripe.blocks[i]->map2cluster);
+          t_node_set.insert(t_stripe.blocks[i]->map2node);
         }
       }
-      // randomly select a cluster
-      int idx = rand_num(int(t_cluster_set.size()));
-      int r_cluster_id = *(std::next(t_cluster_set.begin(), idx));
-      std::string chosen_proxy = m_cluster_table[r_cluster_id].proxy_ip + ":" + std::to_string(m_cluster_table[r_cluster_id].proxy_port);
+      // randomly select a node
+      int idx = rand_num(int(t_node_set.size()));
+      int r_node_id = *(std::next(t_node_set.begin(), idx));
+      std::string chosen_proxy = m_node_table[r_node_id].proxy_ip + ":" + std::to_string(m_node_table[r_node_id].proxy_port);
       status = m_proxy_ptrs[chosen_proxy]->decodeAndGetObject(&decode_and_get, object_placement, &get_reply);
       if (status.ok())
       {
@@ -1307,10 +1299,10 @@ namespace ECProject
     return grpc::Status::OK;
   }
 
-  int CoordinatorImpl::get_cluster_id_by_group_id(Stripe &t_stripe, int group_id)
+  int CoordinatorImpl::get_node_id_by_group_id(Stripe &t_stripe, int group_id)
   {
     int block_id = t_stripe.group_to_blocks[group_id][0];
-    return t_stripe.blocks[block_id]->map2cluster;
+    return t_stripe.blocks[block_id]->map2node;
   }
 
   void CoordinatorImpl::add_block_list_to_recovery_request(Stripe &stripe, const std::vector<int> &block_ids, proxy_proto::RecoveryRequest *request)
@@ -1318,8 +1310,8 @@ namespace ECProject
     for (int bid : block_ids)
     {
       Block *t_block = stripe.blocks[bid];
-      request->add_datanodeip(m_node_table[t_block->map2node].node_ip);
-      request->add_datanodeport(m_node_table[t_block->map2node].node_port);
+      request->add_datanodeip(m_node_table[t_block->map2node].proxy_ip);
+      request->add_datanodeport(m_node_table[t_block->map2node].proxy_port);
       request->add_blockkeys(t_block->block_key);
       request->add_blockids(t_block->block_id);
     }
@@ -1330,8 +1322,8 @@ namespace ECProject
     for (int bid : block_ids)
     {
       Block *t_block = stripe.blocks[bid];
-      request->add_datanodeip(m_node_table[t_block->map2node].node_ip);
-      request->add_datanodeport(m_node_table[t_block->map2node].node_port);
+      request->add_datanodeip(m_node_table[t_block->map2node].proxy_ip);
+      request->add_datanodeport(m_node_table[t_block->map2node].proxy_port);
       request->add_blockkeys(t_block->block_key);
       request->add_blockids(t_block->block_id);
     }
@@ -1438,14 +1430,14 @@ namespace ECProject
       proxy_proto::RecoveryRequest recovery_request;
       proxy_proto::RecoveryReply recovery_reply;
 
-      int chosen_cluster_id = get_cluster_id_by_group_id(t_stripe, recovery_group_ids[0]);
-      std::string chosen_proxy = m_cluster_table[chosen_cluster_id].proxy_ip + ":" + std::to_string(m_cluster_table[chosen_cluster_id].proxy_port);
+      int chosen_node_id = get_node_id_by_group_id(t_stripe, recovery_group_ids[0]);
+      std::string chosen_proxy = m_node_table[chosen_node_id].proxy_ip + ":" + std::to_string(m_node_table[chosen_node_id].proxy_port);
       recovery_request.set_failed_block_id(failed_block_id);
       recovery_request.set_failed_block_key(t_stripe.blocks[failed_block_id]->block_key);
       // Write recovery result back to the original failed block node.
       int t_node_id = t_stripe.blocks[failed_block_id]->map2node;
-      recovery_request.set_replaced_node_ip(m_node_table[t_node_id].node_ip);
-      recovery_request.set_replaced_node_port(m_node_table[t_node_id].node_port);
+      recovery_request.set_replaced_node_ip(m_node_table[t_node_id].proxy_ip);
+      recovery_request.set_replaced_node_port(m_node_table[t_node_id].proxy_port);
       recovery_request.set_cross_rack_num(0);
       std::vector<int> blockids = t_stripe.group_to_blocks[recovery_group_ids[0]];
       for (int i = 0; i < int(blockids.size()); i++)
@@ -1454,8 +1446,8 @@ namespace ECProject
           continue;
 
         Block *t_block = t_stripe.blocks[blockids[i]];
-        recovery_request.add_datanodeip(m_node_table[t_block->map2node].node_ip);
-        recovery_request.add_datanodeport(m_node_table[t_block->map2node].node_port);
+        recovery_request.add_datanodeip(m_node_table[t_block->map2node].proxy_ip);
+        recovery_request.add_datanodeport(m_node_table[t_block->map2node].proxy_port);
         recovery_request.add_blockkeys(t_block->block_key);
         recovery_request.add_blockids(t_block->block_id);
       }
@@ -1489,16 +1481,16 @@ namespace ECProject
     else
     {
       int dest_group_id = t_stripe.blocks[failed_block_id]->map2group;
-      int dest_cluster_id = get_cluster_id_by_group_id(t_stripe, dest_group_id);
-      std::string dest_proxy_ip = m_cluster_table[dest_cluster_id].proxy_ip;
-      int dest_proxy_port = m_cluster_table[dest_cluster_id].proxy_port;
-      std::vector<int> chosen_cluster_ids;
+      int dest_node_id = get_node_id_by_group_id(t_stripe, dest_group_id);
+      std::string dest_proxy_ip = m_node_table[dest_node_id].proxy_ip;
+      int dest_proxy_port = m_node_table[dest_node_id].proxy_port;
+      std::vector<int> chosen_node_ids;
       for(int i = 0; i < recovery_group_ids.size(); i++){
-        chosen_cluster_ids.push_back(get_cluster_id_by_group_id(t_stripe, recovery_group_ids[i]));
+        chosen_node_ids.push_back(get_node_id_by_group_id(t_stripe, recovery_group_ids[i]));
       }
       std::vector<std::string> chosen_proxies;
-      for(int i = 0; i < chosen_cluster_ids.size(); i++){
-        chosen_proxies.push_back(m_cluster_table[chosen_cluster_ids[i]].proxy_ip + ":" + std::to_string(m_cluster_table[chosen_cluster_ids[i]].proxy_port));
+      for(int i = 0; i < chosen_node_ids.size(); i++){
+        chosen_proxies.push_back(m_node_table[chosen_node_ids[i]].proxy_ip + ":" + std::to_string(m_node_table[chosen_node_ids[i]].proxy_port));
       }
       std::vector<std::thread> threads;
       for(int i = 0; i < recovery_group_ids.size(); i++){
@@ -1506,7 +1498,7 @@ namespace ECProject
           continue;
         }
         threads.push_back(std::thread([&t_stripe, &chosen_proxies, &recovery_group_ids, i, failed_block_id, dest_proxy_ip, dest_proxy_port, this,
-          &disk_io_start_time, &disk_io_end_time, &decode_start_time, &decode_end_time, &network_start_time, &network_end_time, 
+          &disk_io_start_time, &disk_io_end_time, &decode_start_time, &decode_end_time, &network_start_time, &network_end_time,
           &grpc_notify_time, &grpc_start_time, &data_node_grpc_notify_time, &data_node_grpc_start_time
         ](){
           grpc::ClientContext degraded_read_context;
@@ -1526,8 +1518,8 @@ namespace ECProject
               continue;
 
             Block *t_block = t_stripe.blocks[blockids[j]];
-            degraded_read_request.add_datanodeip(m_node_table[t_block->map2node].node_ip);
-            degraded_read_request.add_datanodeport(m_node_table[t_block->map2node].node_port);
+            degraded_read_request.add_datanodeip(m_node_table[t_block->map2node].proxy_ip);
+            degraded_read_request.add_datanodeport(m_node_table[t_block->map2node].proxy_port);
             degraded_read_request.add_blockkeys(t_block->block_key);
             degraded_read_request.add_blockids(t_block->block_id);
           }
@@ -1547,7 +1539,7 @@ namespace ECProject
             data_node_grpc_notify_time.push_back(degraded_read_reply.data_node_grpc_notify_time());
             data_node_grpc_start_time.push_back(degraded_read_reply.data_node_grpc_start_time());
             grpc_notify_time.push_back(std::chrono::duration_cast<std::chrono::duration<double>>(start.time_since_epoch()).count());
-    
+
             std::cout << "[Coordinator] partial degraded read of " << failed_block_id << " success!" << std::endl;
           }
           else
@@ -1558,8 +1550,8 @@ namespace ECProject
 
       }
       int cross_rack_num = recovery_group_ids.size() - 1;
-      threads.push_back(std::thread([this, &t_stripe, cross_rack_num, dest_group_id, dest_cluster_id, dest_proxy_ip, dest_proxy_port, stripe_id, failed_block_id,
-        &disk_io_start_time, &disk_io_end_time, &decode_start_time, &decode_end_time, &network_start_time, &network_end_time, 
+      threads.push_back(std::thread([this, &t_stripe, cross_rack_num, dest_group_id, dest_node_id, dest_proxy_ip, dest_proxy_port, stripe_id, failed_block_id,
+        &disk_io_start_time, &disk_io_end_time, &decode_start_time, &decode_end_time, &network_start_time, &network_end_time,
         &grpc_notify_time, &grpc_start_time, &data_node_grpc_notify_time, &data_node_grpc_start_time, &cross_rack_network_time, &cross_rack_xor_time,
         &dest_data_node_network_time, &dest_data_node_disk_io_time
         ](){
@@ -1570,8 +1562,8 @@ namespace ECProject
         recovery_request.set_failed_block_key(t_stripe.blocks[failed_block_id]->block_key);
         // Write recovery result back to the original failed block node.
         int t_node_id = t_stripe.blocks[failed_block_id]->map2node;
-        recovery_request.set_replaced_node_ip(m_node_table[t_node_id].node_ip);
-        recovery_request.set_replaced_node_port(m_node_table[t_node_id].node_port);
+        recovery_request.set_replaced_node_ip(m_node_table[t_node_id].proxy_ip);
+        recovery_request.set_replaced_node_port(m_node_table[t_node_id].proxy_port);
         recovery_request.set_cross_rack_num(cross_rack_num);
         std::vector<int> blockids = t_stripe.group_to_blocks[dest_group_id];
         for (int i = 0; i < int(blockids.size()); i++)
@@ -1583,8 +1575,8 @@ namespace ECProject
             continue;
 
           Block *t_block = t_stripe.blocks[blockids[i]];
-          recovery_request.add_datanodeip(m_node_table[t_block->map2node].node_ip);
-          recovery_request.add_datanodeport(m_node_table[t_block->map2node].node_port);
+          recovery_request.add_datanodeip(m_node_table[t_block->map2node].proxy_ip);
+          recovery_request.add_datanodeport(m_node_table[t_block->map2node].proxy_port);
           recovery_request.add_blockkeys(t_block->block_key);
           recovery_request.add_blockids(t_block->block_id);
         }
@@ -1653,7 +1645,7 @@ namespace ECProject
     for(int i = 0; i < block_num; i++){
       recovery_data_ptrs.push_back(recovery_data + i * block_size);
     }
-    
+
     unsigned char *res = static_cast<unsigned char*>(std::aligned_alloc(32, m_sys_config->BlockSize));
     std::chrono::high_resolution_clock::time_point start = std::chrono::high_resolution_clock::now();
     if(code_type == "AzureLRC"){
@@ -1680,7 +1672,7 @@ namespace ECProject
     delete[] recovery_data;
 
     return grpc::Status::OK;
-  } 
+  }
 
   bool CoordinatorImpl::recovery_one_block(int stripe_id, int failed_block_id)
   {
@@ -1701,8 +1693,8 @@ namespace ECProject
       {
         int group_id = plan[0].first;
         const std::vector<int> &block_ids = plan[0].second;
-        int chosen_cluster_id = get_cluster_id_by_group_id(t_stripe, group_id);
-        std::string chosen_proxy = m_cluster_table[chosen_cluster_id].proxy_ip + ":" + std::to_string(m_cluster_table[chosen_cluster_id].proxy_port);
+        int chosen_node_id = get_node_id_by_group_id(t_stripe, group_id);
+        std::string chosen_proxy = m_node_table[chosen_node_id].proxy_ip + ":" + std::to_string(m_node_table[chosen_node_id].proxy_port);
         grpc::ClientContext recovery_context;
         proxy_proto::RecoveryRequest recovery_request;
         proxy_proto::RecoveryReply recovery_reply;
@@ -1710,8 +1702,8 @@ namespace ECProject
         recovery_request.set_failed_block_key(t_stripe.blocks[failed_block_id]->block_key);
         // Write recovery result back to the original failed block node.
         int t_node_id = t_stripe.blocks[failed_block_id]->map2node;
-        recovery_request.set_replaced_node_ip(m_node_table[t_node_id].node_ip);
-        recovery_request.set_replaced_node_port(m_node_table[t_node_id].node_port);
+        recovery_request.set_replaced_node_ip(m_node_table[t_node_id].proxy_ip);
+        recovery_request.set_replaced_node_port(m_node_table[t_node_id].proxy_port);
         recovery_request.set_cross_rack_num(0);
         add_block_list_to_recovery_request(t_stripe, block_ids, &recovery_request);
         status = m_proxy_ptrs[chosen_proxy]->recovery(&recovery_context, recovery_request, &recovery_reply);
@@ -1724,12 +1716,12 @@ namespace ECProject
         return false;
       }
       int dest_group_id = t_stripe.blocks[failed_block_id]->map2group;
-      int dest_cluster_id = get_cluster_id_by_group_id(t_stripe, dest_group_id);
-      std::string dest_proxy_ip = m_cluster_table[dest_cluster_id].proxy_ip;
-      int dest_proxy_port = m_cluster_table[dest_cluster_id].proxy_port;
+      int dest_node_id = get_node_id_by_group_id(t_stripe, dest_group_id);
+      std::string dest_proxy_ip = m_node_table[dest_node_id].proxy_ip;
+      int dest_proxy_port = m_node_table[dest_node_id].proxy_port;
       std::vector<std::string> chosen_proxies;
       for (size_t i = 0; i < plan.size(); i++)
-        chosen_proxies.push_back(m_cluster_table[get_cluster_id_by_group_id(t_stripe, plan[i].first)].proxy_ip + ":" + std::to_string(m_cluster_table[get_cluster_id_by_group_id(t_stripe, plan[i].first)].proxy_port));
+        chosen_proxies.push_back(m_node_table[get_node_id_by_group_id(t_stripe, plan[i].first)].proxy_ip + ":" + std::to_string(m_node_table[get_node_id_by_group_id(t_stripe, plan[i].first)].proxy_port));
       std::vector<std::thread> threads;
       int cross_rack_num = 0;
       for (size_t i = 0; i < plan.size(); i++)
@@ -1764,7 +1756,7 @@ namespace ECProject
         }
       bool dest_success = false;
       std::mutex dest_mutex;
-      threads.push_back(std::thread([this, &t_stripe, dest_proxy_ip, dest_proxy_port, dest_cluster_id, stripe_id, failed_block_id, cross_rack_num, dest_group_id, dest_block_ids, &plan, &dest_success, &dest_mutex]() {
+      threads.push_back(std::thread([this, &t_stripe, dest_proxy_ip, dest_proxy_port, dest_node_id, stripe_id, failed_block_id, cross_rack_num, dest_group_id, dest_block_ids, &plan, &dest_success, &dest_mutex]() {
         grpc::ClientContext recovery_context;
         proxy_proto::RecoveryRequest recovery_request;
         proxy_proto::RecoveryReply recovery_reply;
@@ -1772,15 +1764,15 @@ namespace ECProject
         recovery_request.set_failed_block_key(t_stripe.blocks[failed_block_id]->block_key);
         // Write recovery result back to the original failed block node.
         int t_node_id = t_stripe.blocks[failed_block_id]->map2node;
-        recovery_request.set_replaced_node_ip(m_node_table[t_node_id].node_ip);
-        recovery_request.set_replaced_node_port(m_node_table[t_node_id].node_port);
+        recovery_request.set_replaced_node_ip(m_node_table[t_node_id].proxy_ip);
+        recovery_request.set_replaced_node_port(m_node_table[t_node_id].proxy_port);
         recovery_request.set_cross_rack_num(cross_rack_num);
         for (size_t i = 0; i < plan.size(); i++)
           if (plan[i].first != dest_group_id)
           {
-            int cid = get_cluster_id_by_group_id(t_stripe, plan[i].first);
-            recovery_request.add_proxyip(m_cluster_table[cid].proxy_ip);
-            recovery_request.add_proxyport(m_cluster_table[cid].proxy_port);
+            int cid = get_node_id_by_group_id(t_stripe, plan[i].first);
+            recovery_request.add_proxyip(m_node_table[cid].proxy_ip);
+            recovery_request.add_proxyport(m_node_table[cid].proxy_port);
           }
         add_block_list_to_recovery_request(t_stripe, dest_block_ids, &recovery_request);
         grpc::Status st = m_proxy_ptrs[dest_proxy_ip + ":" + std::to_string(dest_proxy_port)]->recovery(&recovery_context, recovery_request, &recovery_reply);
@@ -1823,17 +1815,17 @@ namespace ECProject
     {
       int group_id = plan[0].first;
       const std::vector<int> &block_ids = plan[0].second;
-      int chosen_cluster_id = get_cluster_id_by_group_id(t_stripe, group_id);
-      std::string chosen_proxy = m_cluster_table[chosen_cluster_id].proxy_ip + ":" +
-                                 std::to_string(m_cluster_table[chosen_cluster_id].proxy_port);
+      int chosen_node_id = get_node_id_by_group_id(t_stripe, group_id);
+      std::string chosen_proxy = m_node_table[chosen_node_id].proxy_ip + ":" +
+                                 std::to_string(m_node_table[chosen_node_id].proxy_port);
       grpc::ClientContext recovery_context;
       proxy_proto::RecoveryRequest recovery_request;
       proxy_proto::RecoveryReply recovery_reply;
       recovery_request.set_failed_block_id(failed_block_id);
       recovery_request.set_failed_block_key(t_stripe.blocks[failed_block_id]->block_key);
       int t_node_id = t_stripe.blocks[failed_block_id]->map2node;
-      recovery_request.set_replaced_node_ip(m_node_table[t_node_id].node_ip);
-      recovery_request.set_replaced_node_port(m_node_table[t_node_id].node_port);
+      recovery_request.set_replaced_node_ip(m_node_table[t_node_id].proxy_ip);
+      recovery_request.set_replaced_node_port(m_node_table[t_node_id].proxy_port);
       recovery_request.set_cross_rack_num(0);
       add_block_list_to_recovery_request(t_stripe, block_ids, &recovery_request);
       std::chrono::high_resolution_clock::time_point grpc_notify = std::chrono::high_resolution_clock::now();
@@ -1854,13 +1846,13 @@ namespace ECProject
     }
 
     int dest_group_id = t_stripe.blocks[failed_block_id]->map2group;
-    int dest_cluster_id = get_cluster_id_by_group_id(t_stripe, dest_group_id);
-    std::string dest_proxy_ip = m_cluster_table[dest_cluster_id].proxy_ip;
-    int dest_proxy_port = m_cluster_table[dest_cluster_id].proxy_port;
+    int dest_node_id = get_node_id_by_group_id(t_stripe, dest_group_id);
+    std::string dest_proxy_ip = m_node_table[dest_node_id].proxy_ip;
+    int dest_proxy_port = m_node_table[dest_node_id].proxy_port;
     std::vector<std::string> chosen_proxies;
     for (size_t i = 0; i < plan.size(); i++)
-      chosen_proxies.push_back(m_cluster_table[get_cluster_id_by_group_id(t_stripe, plan[i].first)].proxy_ip +
-                               ":" + std::to_string(m_cluster_table[get_cluster_id_by_group_id(t_stripe, plan[i].first)].proxy_port));
+      chosen_proxies.push_back(m_node_table[get_node_id_by_group_id(t_stripe, plan[i].first)].proxy_ip +
+                               ":" + std::to_string(m_node_table[get_node_id_by_group_id(t_stripe, plan[i].first)].proxy_port));
 
     std::vector<std::thread> threads;
     int cross_rack_num = 0;
@@ -1921,15 +1913,15 @@ namespace ECProject
       recovery_request.set_failed_block_id(failed_block_id);
       recovery_request.set_failed_block_key(t_stripe.blocks[failed_block_id]->block_key);
       int t_node_id = t_stripe.blocks[failed_block_id]->map2node;
-      recovery_request.set_replaced_node_ip(m_node_table[t_node_id].node_ip);
-      recovery_request.set_replaced_node_port(m_node_table[t_node_id].node_port);
+      recovery_request.set_replaced_node_ip(m_node_table[t_node_id].proxy_ip);
+      recovery_request.set_replaced_node_port(m_node_table[t_node_id].proxy_port);
       recovery_request.set_cross_rack_num(cross_rack_num);
       for (size_t i = 0; i < plan.size(); i++)
         if (plan[i].first != dest_group_id)
         {
-          int cid = get_cluster_id_by_group_id(t_stripe, plan[i].first);
-          recovery_request.add_proxyip(m_cluster_table[cid].proxy_ip);
-          recovery_request.add_proxyport(m_cluster_table[cid].proxy_port);
+          int cid = get_node_id_by_group_id(t_stripe, plan[i].first);
+          recovery_request.add_proxyip(m_node_table[cid].proxy_ip);
+          recovery_request.add_proxyport(m_node_table[cid].proxy_port);
         }
       add_block_list_to_recovery_request(t_stripe, dest_block_ids, &recovery_request);
       std::chrono::high_resolution_clock::time_point grpc_notify = std::chrono::high_resolution_clock::now();
@@ -1997,7 +1989,7 @@ namespace ECProject
     }
   }
 
-  bool CoordinatorImpl::degraded_read_one_block_breakdown(int stripe_id, int failed_block_id, std::string client_ip, int client_port, 
+  bool CoordinatorImpl::degraded_read_one_block_breakdown(int stripe_id, int failed_block_id, std::string client_ip, int client_port,
     std::vector<double> &disk_io_start_time, std::vector<double> &disk_io_end_time, std::vector<double> &decode_start_time, std::vector<double> &decode_end_time,
     std::vector<double> &network_start_time, std::vector<double> &network_end_time, double &cross_rack_network_time, double &cross_rack_xor_time,
     std::vector<double> &grpc_notify_time, std::vector<double> &grpc_start_time, std::vector<double> &data_node_grpc_notify_time, std::vector<double> &data_node_grpc_start_time)
@@ -2015,8 +2007,8 @@ namespace ECProject
       proxy_proto::RecoveryRequest recovery_request;
       proxy_proto::DegradedReadReply degraded_read_reply;
 
-      int chosen_cluster_id = get_cluster_id_by_group_id(t_stripe, recovery_group_ids[0]);
-      std::string chosen_proxy = m_cluster_table[chosen_cluster_id].proxy_ip + ":" + std::to_string(m_cluster_table[chosen_cluster_id].proxy_port);
+      int chosen_node_id = get_node_id_by_group_id(t_stripe, recovery_group_ids[0]);
+      std::string chosen_proxy = m_node_table[chosen_node_id].proxy_ip + ":" + std::to_string(m_node_table[chosen_node_id].proxy_port);
       recovery_request.set_failed_block_id(failed_block_id);
       recovery_request.set_failed_block_key(t_stripe.blocks[failed_block_id]->block_key);
       recovery_request.set_replaced_node_ip(client_ip);
@@ -2029,8 +2021,8 @@ namespace ECProject
           continue;
 
         Block *t_block = t_stripe.blocks[blockids[i]];
-        recovery_request.add_datanodeip(m_node_table[t_block->map2node].node_ip);
-        recovery_request.add_datanodeport(m_node_table[t_block->map2node].node_port);
+        recovery_request.add_datanodeip(m_node_table[t_block->map2node].proxy_ip);
+        recovery_request.add_datanodeport(m_node_table[t_block->map2node].proxy_port);
         recovery_request.add_blockkeys(t_block->block_key);
         recovery_request.add_blockids(t_block->block_id);
       }
@@ -2063,24 +2055,24 @@ namespace ECProject
     else
     {
       int dest_group_id = t_stripe.blocks[failed_block_id]->map2group;
-      int dest_cluster_id = get_cluster_id_by_group_id(t_stripe, dest_group_id);
-      std::string dest_proxy_ip = m_cluster_table[dest_cluster_id].proxy_ip;
-      int dest_proxy_port = m_cluster_table[dest_cluster_id].proxy_port;
-      std::vector<int> chosen_cluster_ids;
+      int dest_node_id = get_node_id_by_group_id(t_stripe, dest_group_id);
+      std::string dest_proxy_ip = m_node_table[dest_node_id].proxy_ip;
+      int dest_proxy_port = m_node_table[dest_node_id].proxy_port;
+      std::vector<int> chosen_node_ids;
       for(int i = 0; i < recovery_group_ids.size(); i++){
-        chosen_cluster_ids.push_back(get_cluster_id_by_group_id(t_stripe, recovery_group_ids[i]));
+        chosen_node_ids.push_back(get_node_id_by_group_id(t_stripe, recovery_group_ids[i]));
       }
       std::vector<std::string> chosen_proxies;
-      for(int i = 0; i < chosen_cluster_ids.size(); i++){
-        chosen_proxies.push_back(m_cluster_table[chosen_cluster_ids[i]].proxy_ip + ":" + std::to_string(m_cluster_table[chosen_cluster_ids[i]].proxy_port));
+      for(int i = 0; i < chosen_node_ids.size(); i++){
+        chosen_proxies.push_back(m_node_table[chosen_node_ids[i]].proxy_ip + ":" + std::to_string(m_node_table[chosen_node_ids[i]].proxy_port));
       }
       std::vector<std::thread> threads;
       for(int i = 0; i < recovery_group_ids.size(); i++){
         if(recovery_group_ids[i] == dest_group_id){
           continue;
         }
-        threads.push_back(std::thread([&t_stripe, &chosen_proxies, &recovery_group_ids, i, failed_block_id, dest_proxy_ip, dest_proxy_port, this, 
-          &disk_io_start_time, &disk_io_end_time, &decode_start_time, &decode_end_time, &network_start_time, &network_end_time, 
+        threads.push_back(std::thread([&t_stripe, &chosen_proxies, &recovery_group_ids, i, failed_block_id, dest_proxy_ip, dest_proxy_port, this,
+          &disk_io_start_time, &disk_io_end_time, &decode_start_time, &decode_end_time, &network_start_time, &network_end_time,
           &grpc_notify_time, &grpc_start_time, &data_node_grpc_notify_time, &data_node_grpc_start_time](){
           grpc::ClientContext degraded_read_context;
           proxy_proto::DegradedReadRequest degraded_read_request;
@@ -2099,8 +2091,8 @@ namespace ECProject
               continue;
 
             Block *t_block = t_stripe.blocks[blockids[j]];
-            degraded_read_request.add_datanodeip(this->m_node_table[t_block->map2node].node_ip);
-            degraded_read_request.add_datanodeport(this->m_node_table[t_block->map2node].node_port);
+            degraded_read_request.add_datanodeip(this->m_node_table[t_block->map2node].proxy_ip);
+            degraded_read_request.add_datanodeport(this->m_node_table[t_block->map2node].proxy_port);
             degraded_read_request.add_blockkeys(t_block->block_key);
             degraded_read_request.add_blockids(t_block->block_id);
           }
@@ -2129,7 +2121,7 @@ namespace ECProject
 
       }
       int cross_rack_num = recovery_group_ids.size() - 1;
-      threads.push_back(std::thread([this, &t_stripe, cross_rack_num, dest_group_id, dest_cluster_id, dest_proxy_ip, dest_proxy_port, stripe_id, failed_block_id, client_ip, client_port, 
+      threads.push_back(std::thread([this, &t_stripe, cross_rack_num, dest_group_id, dest_node_id, dest_proxy_ip, dest_proxy_port, stripe_id, failed_block_id, client_ip, client_port,
         &disk_io_start_time, &disk_io_end_time, &decode_start_time, &decode_end_time, &network_start_time, &network_end_time, &cross_rack_network_time, &cross_rack_xor_time,
         &grpc_notify_time, &grpc_start_time, &data_node_grpc_notify_time, &data_node_grpc_start_time](){
         grpc::ClientContext recovery_context;
@@ -2150,8 +2142,8 @@ namespace ECProject
             continue;
 
           Block *t_block = t_stripe.blocks[blockids[i]];
-          recovery_request.add_datanodeip(this->m_node_table[t_block->map2node].node_ip);
-          recovery_request.add_datanodeport(this->m_node_table[t_block->map2node].node_port);
+          recovery_request.add_datanodeip(this->m_node_table[t_block->map2node].proxy_ip);
+          recovery_request.add_datanodeport(this->m_node_table[t_block->map2node].proxy_port);
           recovery_request.add_blockkeys(t_block->block_key);
           recovery_request.add_blockids(t_block->block_id);
         }
@@ -2199,8 +2191,8 @@ namespace ECProject
       {
         int group_id = plan[0].first;
         const std::vector<int> &block_ids = plan[0].second;
-        int chosen_cluster_id = get_cluster_id_by_group_id(t_stripe, group_id);
-        std::string chosen_proxy = m_cluster_table[chosen_cluster_id].proxy_ip + ":" + std::to_string(m_cluster_table[chosen_cluster_id].proxy_port);
+        int chosen_node_id = get_node_id_by_group_id(t_stripe, group_id);
+        std::string chosen_proxy = m_node_table[chosen_node_id].proxy_ip + ":" + std::to_string(m_node_table[chosen_node_id].proxy_port);
         grpc::ClientContext recovery_context;
         proxy_proto::RecoveryRequest recovery_request;
         proxy_proto::DegradedReadReply degraded_read_reply;
@@ -2220,12 +2212,12 @@ namespace ECProject
         return false;
       }
       int dest_group_id = t_stripe.blocks[failed_block_id]->map2group;
-      int dest_cluster_id = get_cluster_id_by_group_id(t_stripe, dest_group_id);
-      std::string dest_proxy_ip = m_cluster_table[dest_cluster_id].proxy_ip;
-      int dest_proxy_port = m_cluster_table[dest_cluster_id].proxy_port;
+      int dest_node_id = get_node_id_by_group_id(t_stripe, dest_group_id);
+      std::string dest_proxy_ip = m_node_table[dest_node_id].proxy_ip;
+      int dest_proxy_port = m_node_table[dest_node_id].proxy_port;
       std::vector<std::string> chosen_proxies;
       for (size_t i = 0; i < plan.size(); i++)
-        chosen_proxies.push_back(m_cluster_table[get_cluster_id_by_group_id(t_stripe, plan[i].first)].proxy_ip + ":" + std::to_string(m_cluster_table[get_cluster_id_by_group_id(t_stripe, plan[i].first)].proxy_port));
+        chosen_proxies.push_back(m_node_table[get_node_id_by_group_id(t_stripe, plan[i].first)].proxy_ip + ":" + std::to_string(m_node_table[get_node_id_by_group_id(t_stripe, plan[i].first)].proxy_port));
       std::vector<std::thread> threads;
       int cross_rack_num = 0;
       for (size_t i = 0; i < plan.size(); i++)
@@ -2270,9 +2262,9 @@ namespace ECProject
         for (size_t i = 0; i < plan.size(); i++)
           if (plan[i].first != dest_group_id)
           {
-            int cid = get_cluster_id_by_group_id(t_stripe, plan[i].first);
-            recovery_request.add_proxyip(m_cluster_table[cid].proxy_ip);
-            recovery_request.add_proxyport(m_cluster_table[cid].proxy_port);
+            int cid = get_node_id_by_group_id(t_stripe, plan[i].first);
+            recovery_request.add_proxyip(m_node_table[cid].proxy_ip);
+            recovery_request.add_proxyport(m_node_table[cid].proxy_port);
           }
         add_block_list_to_recovery_request(t_stripe, dest_block_ids, &recovery_request);
         grpc::Status st = m_proxy_ptrs[dest_proxy_ip + ":" + std::to_string(dest_proxy_port)]->degradedRead2Client(&recovery_context, recovery_request, &recovery_reply);
@@ -2301,8 +2293,8 @@ namespace ECProject
       {
         int group_id = plan[0].first;
         const std::vector<int> &block_ids = plan[0].second;
-        int chosen_cluster_id = get_cluster_id_by_group_id(t_stripe, group_id);
-        std::string chosen_proxy = m_cluster_table[chosen_cluster_id].proxy_ip + ":" + std::to_string(m_cluster_table[chosen_cluster_id].proxy_port);
+        int chosen_node_id = get_node_id_by_group_id(t_stripe, group_id);
+        std::string chosen_proxy = m_node_table[chosen_node_id].proxy_ip + ":" + std::to_string(m_node_table[chosen_node_id].proxy_port);
         grpc::ClientContext recovery_context;
         proxy_proto::RecoveryRequest recovery_request;
         proxy_proto::DegradedReadReply degraded_read_reply;
@@ -2324,12 +2316,12 @@ namespace ECProject
         return false;
       }
       int dest_group_id = t_stripe.blocks[failed_block_id]->map2group;
-      int dest_cluster_id = get_cluster_id_by_group_id(t_stripe, dest_group_id);
-      std::string dest_proxy_ip = m_cluster_table[dest_cluster_id].proxy_ip;
-      int dest_proxy_port = m_cluster_table[dest_cluster_id].proxy_port;
+      int dest_node_id = get_node_id_by_group_id(t_stripe, dest_group_id);
+      std::string dest_proxy_ip = m_node_table[dest_node_id].proxy_ip;
+      int dest_proxy_port = m_node_table[dest_node_id].proxy_port;
       std::vector<std::string> chosen_proxies;
       for (size_t i = 0; i < plan.size(); i++)
-        chosen_proxies.push_back(m_cluster_table[get_cluster_id_by_group_id(t_stripe, plan[i].first)].proxy_ip + ":" + std::to_string(m_cluster_table[get_cluster_id_by_group_id(t_stripe, plan[i].first)].proxy_port));
+        chosen_proxies.push_back(m_node_table[get_node_id_by_group_id(t_stripe, plan[i].first)].proxy_ip + ":" + std::to_string(m_node_table[get_node_id_by_group_id(t_stripe, plan[i].first)].proxy_port));
       std::vector<std::thread> threads;
       for (size_t i = 0; i < plan.size(); i++)
       {
@@ -2375,9 +2367,9 @@ namespace ECProject
         for (size_t i = 0; i < plan.size(); i++)
           if (plan[i].first != dest_group_id)
           {
-            int cid = get_cluster_id_by_group_id(t_stripe, plan[i].first);
-            recovery_request.add_proxyip(m_cluster_table[cid].proxy_ip);
-            recovery_request.add_proxyport(m_cluster_table[cid].proxy_port);
+            int cid = get_node_id_by_group_id(t_stripe, plan[i].first);
+            recovery_request.add_proxyip(m_node_table[cid].proxy_ip);
+            recovery_request.add_proxyport(m_node_table[cid].proxy_port);
           }
         add_block_list_to_recovery_request(t_stripe, dest_block_ids, &recovery_request);
         grpc::Status st = m_proxy_ptrs[dest_proxy_ip + ":" + std::to_string(dest_proxy_port)]->degradedRead2Client(&recovery_context, recovery_request, &recovery_reply);
@@ -2426,7 +2418,7 @@ namespace ECProject
     bool if_success = degraded_read_one_block_breakdown(stripe_id, failed_block_id, client_ip, client_port,
       disk_io_start_time, disk_io_end_time, decode_start_time, decode_end_time,
       network_start_time, network_end_time, cross_rack_network_time, cross_rack_xor_time,
-      grpc_notify_time, grpc_start_time, data_node_grpc_notify_time, data_node_grpc_start_time); 
+      grpc_notify_time, grpc_start_time, data_node_grpc_notify_time, data_node_grpc_start_time);
     if (if_success)
     {
       double max_disk_io_time = *std::max_element(disk_io_end_time.begin(), disk_io_end_time.end()) - *std::min_element(disk_io_start_time.begin(), disk_io_start_time.end());
@@ -2483,11 +2475,11 @@ namespace ECProject
       return -1;
     }
 
-    int recovery_dest_cluster(const ECProject::Config *cfg, int stripe_id, int failed_block_id)
+    int recovery_dest_node(const ECProject::Config *cfg, int stripe_id, int failed_block_id)
     {
       const std::string &code = cfg->CodeType;
       const int k = cfg->k, r = cfg->r, z = cfg->z;
-      const int CN = cfg->ClusterNum;
+      const int CN = cfg->NodeNum;
       if (CN <= 0)
         return -1;
       int fg = block_to_placement_group_id(code, k, r, z, failed_block_id);
@@ -2527,8 +2519,8 @@ namespace ECProject
 
     switch (mode) {
     case ECProject::TwoBlockRecoveryMode::TwoSingleBlock: {
-      int d0 = recovery_dest_cluster(m_sys_config, stripe_id, f0);
-      int d1 = recovery_dest_cluster(m_sys_config, stripe_id, f1);
+      int d0 = recovery_dest_node(m_sys_config, stripe_id, f0);
+      int d1 = recovery_dest_node(m_sys_config, stripe_id, f1);
       if (d0 >= 0 && d1 >= 0 && d0 != d1) {
         std::cout << "[Coordinator] stripe " << stripe_id
                   << " two-block: different local groups, PARALLEL (dest " << d0 << "," << d1
@@ -2619,8 +2611,8 @@ namespace ECProject
     coordinator_proto::RepBlockNum* response)
   {
     int node_id = request->node_id();
-    std::string node_ip = m_node_table[node_id].node_ip;
-    int node_port = m_node_table[node_id].node_port;
+    std::string node_ip = m_node_table[node_id].proxy_ip;
+    int node_port = m_node_table[node_id].proxy_port;
     std::vector<int> stripe_ids;
     std::vector<int> block_ids;
     for (auto it = m_stripe_table.begin(); it != m_stripe_table.end(); it++)
@@ -2647,8 +2639,8 @@ namespace ECProject
         bool result = this->recovery_one_block(stripe_ids[i], block_ids[i]);
         recovery_results[i] = result; // 保存结果
     }
-  
-        
+
+
     // 检查结果
     bool all_success = std::all_of(recovery_results.begin(), recovery_results.end(), [](bool res) { return res; });
     if (all_success) {
@@ -2668,7 +2660,7 @@ namespace ECProject
       return grpc::Status(grpc::StatusCode::INTERNAL, "Full node recovery failed!");
     }*/
     return grpc::Status::OK;
-  } 
+  }
 
   bool CoordinatorImpl::execute_global_recovery(int stripe_id,
                                                 const std::vector<int> &all_failed,
@@ -2729,32 +2721,32 @@ namespace ECProject
     std::cout << "[Coordinator] get multi decode plan success! " << decode_block_ids.size() << " blocks to decode" << std::endl;
 
     Stripe &t_stripe = m_stripe_table[stripe_id];
-    // Group decode blocks by cluster (cluster_id -> list of block ids in that cluster)
-    std::vector<int> clusters_with_blocks;
-    std::vector<std::vector<int>> decode_blocks_per_cluster;
+    // Group decode blocks by node (node_id -> list of block ids in that node)
+    std::vector<int> nodes_with_blocks;
+    std::vector<std::vector<int>> decode_blocks_per_node;
     for (size_t i = 0; i < decode_block_ids.size(); i++)
     {
-      int cid = t_stripe.blocks[decode_block_ids[i]]->map2cluster;
-      auto it = std::find(clusters_with_blocks.begin(), clusters_with_blocks.end(), cid);
-      if (it == clusters_with_blocks.end())
+      int cid = t_stripe.blocks[decode_block_ids[i]]->map2node;
+      auto it = std::find(nodes_with_blocks.begin(), nodes_with_blocks.end(), cid);
+      if (it == nodes_with_blocks.end())
       {
-        clusters_with_blocks.push_back(cid);
-        decode_blocks_per_cluster.push_back(std::vector<int>(1, decode_block_ids[i]));
+        nodes_with_blocks.push_back(cid);
+        decode_blocks_per_node.push_back(std::vector<int>(1, decode_block_ids[i]));
       }
       else
       {
-        size_t idx = std::distance(clusters_with_blocks.begin(), it);
-        decode_blocks_per_cluster[idx].push_back(decode_block_ids[i]);
+        size_t idx = std::distance(nodes_with_blocks.begin(), it);
+        decode_blocks_per_node[idx].push_back(decode_block_ids[i]);
       }
     }
-    // Dest cluster: first block to recover this round
-    int dest_cluster_id = t_stripe.blocks[recover[0]]->map2cluster;
-    std::string dest_proxy_ip = m_cluster_table[dest_cluster_id].proxy_ip;
-    int dest_proxy_port = m_cluster_table[dest_cluster_id].proxy_port;
+    // Dest node: first block to recover this round
+    int dest_node_id = t_stripe.blocks[recover[0]]->map2node;
+    std::string dest_proxy_ip = m_node_table[dest_node_id].proxy_ip;
+    int dest_proxy_port = m_node_table[dest_node_id].proxy_port;
     std::string dest_proxy_key = dest_proxy_ip + ":" + std::to_string(dest_proxy_port);
     int cross_rack_num = 0;
-    for (size_t i = 0; i < clusters_with_blocks.size(); i++)
-      if (clusters_with_blocks[i] != dest_cluster_id)
+    for (size_t i = 0; i < nodes_with_blocks.size(); i++)
+      if (nodes_with_blocks[i] != dest_node_id)
         cross_rack_num++;
 
     // Replaced node and key per recovered block (for dest recovery request)
@@ -2766,8 +2758,8 @@ namespace ECProject
       int bid = recover[f];
       // For globalRecovery, write each recovered block back to its original node.
       int node_id = t_stripe.blocks[bid]->map2node;
-      replaced_ips[f] = m_node_table[node_id].node_ip;
-      replaced_ports[f] = m_node_table[node_id].node_port;
+      replaced_ips[f] = m_node_table[node_id].proxy_ip;
+      replaced_ports[f] = m_node_table[node_id].proxy_port;
       failed_keys[f] = t_stripe.blocks[bid]->block_key;
     }
 
@@ -2775,12 +2767,12 @@ namespace ECProject
     std::vector<std::thread> threads;
     grpc::Status dest_status;
     std::mutex dest_status_mutex;
-    threads.push_back(std::thread([this, &t_stripe, dest_proxy_key, dest_cluster_id, stripe_id, recover_num, &all_failed, &recover, &decode_block_ids, &failed_keys, &replaced_ips, &replaced_ports, cross_rack_num, &decode_blocks_per_cluster, &clusters_with_blocks, &dest_status, &dest_status_mutex]() {
+    threads.push_back(std::thread([this, &t_stripe, dest_proxy_key, dest_node_id, stripe_id, recover_num, &all_failed, &recover, &decode_block_ids, &failed_keys, &replaced_ips, &replaced_ports, cross_rack_num, &decode_blocks_per_node, &nodes_with_blocks, &dest_status, &dest_status_mutex]() {
       grpc::ClientContext recovery_context;
       proxy_proto::RecoveryRequest recovery_request;
       proxy_proto::RecoveryReply recovery_reply;
       recovery_request.set_cross_rack_num(cross_rack_num);
-      std::cout << "[Coordinator] globalRecovery dest_cluster_id: " << dest_cluster_id << std::endl;
+      std::cout << "[Coordinator] globalRecovery dest_node_id: " << dest_node_id << std::endl;
       std::cout << "[Coordinator] globalRecovery cross_rack_num: " << cross_rack_num << std::endl;
       for (size_t i = 0; i < all_failed.size(); i++)
         recovery_request.add_all_failed_block_ids(all_failed[i]);
@@ -2794,24 +2786,24 @@ namespace ECProject
       for (size_t i = 0; i < decode_block_ids.size(); i++)
         recovery_request.add_decode_block_ids(decode_block_ids[i]);
       size_t dest_idx = 0;
-      for (; dest_idx < clusters_with_blocks.size(); dest_idx++)
-        if (clusters_with_blocks[dest_idx] == dest_cluster_id)
+      for (; dest_idx < nodes_with_blocks.size(); dest_idx++)
+        if (nodes_with_blocks[dest_idx] == dest_node_id)
           break;
-      if (dest_idx < clusters_with_blocks.size())
-        add_block_list_to_recovery_request(t_stripe, decode_blocks_per_cluster[dest_idx], &recovery_request);
+      if (dest_idx < nodes_with_blocks.size())
+        add_block_list_to_recovery_request(t_stripe, decode_blocks_per_node[dest_idx], &recovery_request);
       grpc::Status st = m_proxy_ptrs[dest_proxy_key]->recovery(&recovery_context, recovery_request, &recovery_reply);
       std::lock_guard<std::mutex> lock(dest_status_mutex);
       dest_status = st;
     }));
 
-    for (size_t i = 0; i < clusters_with_blocks.size(); i++)
+    for (size_t i = 0; i < nodes_with_blocks.size(); i++)
     {
-      if (clusters_with_blocks[i] == dest_cluster_id)
+      if (nodes_with_blocks[i] == dest_node_id)
         continue;
-      std::string proxy_key = m_cluster_table[clusters_with_blocks[i]].proxy_ip + ":" + std::to_string(m_cluster_table[clusters_with_blocks[i]].proxy_port);
+      std::string proxy_key = m_node_table[nodes_with_blocks[i]].proxy_ip + ":" + std::to_string(m_node_table[nodes_with_blocks[i]].proxy_port);
       std::cout << "[Coordinator] globalRecovery proxy_key: " << proxy_key << std::endl;
-      std::cout << "[Coordinator] globalRecovery clusters_with_blocks[i] number: " << clusters_with_blocks[i] << std::endl;
-      threads.push_back(std::thread([this, &t_stripe, proxy_key, dest_proxy_ip, dest_proxy_port, stripe_id, recover_num, &all_failed, &recover, &decode_block_ids, &decode_blocks_per_cluster, i]() {
+      std::cout << "[Coordinator] globalRecovery nodes_with_blocks[i] number: " << nodes_with_blocks[i] << std::endl;
+      threads.push_back(std::thread([this, &t_stripe, proxy_key, dest_proxy_ip, dest_proxy_port, stripe_id, recover_num, &all_failed, &recover, &decode_block_ids, &decode_blocks_per_node, i]() {
         grpc::ClientContext degraded_context;
         proxy_proto::DegradedReadRequest degraded_request;
         proxy_proto::DegradedReadReply degraded_reply;
@@ -2823,7 +2815,7 @@ namespace ECProject
           degraded_request.add_failed_block_ids(recover[j]);
         for (size_t j = 0; j < decode_block_ids.size(); j++)
           degraded_request.add_decode_block_ids(decode_block_ids[j]);
-        add_block_list_to_degraded_read_request(t_stripe, decode_blocks_per_cluster[i], &degraded_request);
+        add_block_list_to_degraded_read_request(t_stripe, decode_blocks_per_node[i], &degraded_request);
         grpc::Status st = m_proxy_ptrs[proxy_key]->degradedRead(&degraded_context, degraded_request, &degraded_reply);
         if (!st.ok())
           std::cout << "[Coordinator] globalRecovery degradedRead from proxy " << proxy_key << " failed: " << st.error_message() << std::endl;
@@ -2834,8 +2826,8 @@ namespace ECProject
     // partials on a single shared, source-unidentified acceptor port (proxy_port + SHIFT), so
     // a source connection that is still in flight after this call would be grabbed by the NEXT
     // recovery round's accept loop, corrupting it. Detaching the source threads here let stale
-    // connections bleed into subsequent same-dest-cluster recoveries (e.g. multi-stripe single
-    // -rack repair, where every stripe writes back to the failed cluster). Joining guarantees
+    // connections bleed into subsequent same-dest-node recoveries (e.g. multi-stripe single
+    // -rack repair, where every stripe writes back to the failed node). Joining guarantees
     // every connection for this round is fully drained/closed before we return.
     for (auto &th : threads)
       th.join();
@@ -2890,31 +2882,31 @@ namespace ECProject
     }
 
     Stripe &t_stripe = m_stripe_table[stripe_id];
-    std::vector<int> clusters_with_blocks;
-    std::vector<std::vector<int>> decode_blocks_per_cluster;
+    std::vector<int> nodes_with_blocks;
+    std::vector<std::vector<int>> decode_blocks_per_node;
     for (size_t i = 0; i < decode_block_ids.size(); i++)
     {
-      int cid = t_stripe.blocks[decode_block_ids[i]]->map2cluster;
-      auto it = std::find(clusters_with_blocks.begin(), clusters_with_blocks.end(), cid);
-      if (it == clusters_with_blocks.end())
+      int cid = t_stripe.blocks[decode_block_ids[i]]->map2node;
+      auto it = std::find(nodes_with_blocks.begin(), nodes_with_blocks.end(), cid);
+      if (it == nodes_with_blocks.end())
       {
-        clusters_with_blocks.push_back(cid);
-        decode_blocks_per_cluster.push_back(std::vector<int>(1, decode_block_ids[i]));
+        nodes_with_blocks.push_back(cid);
+        decode_blocks_per_node.push_back(std::vector<int>(1, decode_block_ids[i]));
       }
       else
       {
-        size_t idx = std::distance(clusters_with_blocks.begin(), it);
-        decode_blocks_per_cluster[idx].push_back(decode_block_ids[i]);
+        size_t idx = std::distance(nodes_with_blocks.begin(), it);
+        decode_blocks_per_node[idx].push_back(decode_block_ids[i]);
       }
     }
 
-    int dest_cluster_id = t_stripe.blocks[recover[0]]->map2cluster;
-    std::string dest_proxy_ip = m_cluster_table[dest_cluster_id].proxy_ip;
-    int dest_proxy_port = m_cluster_table[dest_cluster_id].proxy_port;
+    int dest_node_id = t_stripe.blocks[recover[0]]->map2node;
+    std::string dest_proxy_ip = m_node_table[dest_node_id].proxy_ip;
+    int dest_proxy_port = m_node_table[dest_node_id].proxy_port;
     std::string dest_proxy_key = dest_proxy_ip + ":" + std::to_string(dest_proxy_port);
     int cross_rack_num = 0;
-    for (size_t i = 0; i < clusters_with_blocks.size(); i++)
-      if (clusters_with_blocks[i] != dest_cluster_id)
+    for (size_t i = 0; i < nodes_with_blocks.size(); i++)
+      if (nodes_with_blocks[i] != dest_node_id)
         cross_rack_num++;
 
     std::vector<std::string> replaced_ips(recover_num);
@@ -2924,8 +2916,8 @@ namespace ECProject
     {
       int bid = recover[f];
       int node_id = t_stripe.blocks[bid]->map2node;
-      replaced_ips[f] = m_node_table[node_id].node_ip;
-      replaced_ports[f] = m_node_table[node_id].node_port;
+      replaced_ips[f] = m_node_table[node_id].proxy_ip;
+      replaced_ports[f] = m_node_table[node_id].proxy_port;
       failed_keys[f] = t_stripe.blocks[bid]->block_key;
     }
 
@@ -2935,9 +2927,9 @@ namespace ECProject
     std::string dest_error_message;
     std::vector<std::thread> threads;
 
-    threads.push_back(std::thread([this, &t_stripe, dest_proxy_key, dest_cluster_id, recover_num, &all_failed,
+    threads.push_back(std::thread([this, &t_stripe, dest_proxy_key, dest_node_id, recover_num, &all_failed,
                                    &recover, &decode_block_ids, &failed_keys, &replaced_ips, &replaced_ports,
-                                   cross_rack_num, &decode_blocks_per_cluster, &clusters_with_blocks, &samples,
+                                   cross_rack_num, &decode_blocks_per_node, &nodes_with_blocks, &samples,
                                    &samples_mutex, &dest_success, &dest_error_message]() {
       grpc::ClientContext recovery_context;
       proxy_proto::RecoveryRequest recovery_request;
@@ -2955,11 +2947,11 @@ namespace ECProject
       for (size_t i = 0; i < decode_block_ids.size(); i++)
         recovery_request.add_decode_block_ids(decode_block_ids[i]);
       size_t dest_idx = 0;
-      for (; dest_idx < clusters_with_blocks.size(); dest_idx++)
-        if (clusters_with_blocks[dest_idx] == dest_cluster_id)
+      for (; dest_idx < nodes_with_blocks.size(); dest_idx++)
+        if (nodes_with_blocks[dest_idx] == dest_node_id)
           break;
-      if (dest_idx < clusters_with_blocks.size())
-        add_block_list_to_recovery_request(t_stripe, decode_blocks_per_cluster[dest_idx], &recovery_request);
+      if (dest_idx < nodes_with_blocks.size())
+        add_block_list_to_recovery_request(t_stripe, decode_blocks_per_node[dest_idx], &recovery_request);
       std::chrono::high_resolution_clock::time_point grpc_notify = std::chrono::high_resolution_clock::now();
       double grpc_notify_time =
           std::chrono::duration_cast<std::chrono::duration<double>>(grpc_notify.time_since_epoch()).count();
@@ -2973,14 +2965,14 @@ namespace ECProject
         samples.append_recovery_reply(recovery_reply, grpc_notify_time);
     }));
 
-    for (size_t i = 0; i < clusters_with_blocks.size(); i++)
+    for (size_t i = 0; i < nodes_with_blocks.size(); i++)
     {
-      if (clusters_with_blocks[i] == dest_cluster_id)
+      if (nodes_with_blocks[i] == dest_node_id)
         continue;
-      std::string proxy_key = m_cluster_table[clusters_with_blocks[i]].proxy_ip + ":" +
-                              std::to_string(m_cluster_table[clusters_with_blocks[i]].proxy_port);
+      std::string proxy_key = m_node_table[nodes_with_blocks[i]].proxy_ip + ":" +
+                              std::to_string(m_node_table[nodes_with_blocks[i]].proxy_port);
       threads.push_back(std::thread([this, &t_stripe, proxy_key, dest_proxy_ip, dest_proxy_port, recover_num,
-                                     &all_failed, &recover, &decode_block_ids, &decode_blocks_per_cluster, i,
+                                     &all_failed, &recover, &decode_block_ids, &decode_blocks_per_node, i,
                                      &samples, &samples_mutex]() {
         grpc::ClientContext degraded_context;
         proxy_proto::DegradedReadRequest degraded_request;
@@ -2993,7 +2985,7 @@ namespace ECProject
           degraded_request.add_failed_block_ids(recover[j]);
         for (size_t j = 0; j < decode_block_ids.size(); j++)
           degraded_request.add_decode_block_ids(decode_block_ids[j]);
-        add_block_list_to_degraded_read_request(t_stripe, decode_blocks_per_cluster[i], &degraded_request);
+        add_block_list_to_degraded_read_request(t_stripe, decode_blocks_per_node[i], &degraded_request);
         std::chrono::high_resolution_clock::time_point grpc_notify = std::chrono::high_resolution_clock::now();
         double grpc_notify_time =
             std::chrono::duration_cast<std::chrono::duration<double>>(grpc_notify.time_since_epoch()).count();
@@ -3047,31 +3039,31 @@ namespace ECProject
     }
 
     Stripe &t_stripe = m_stripe_table[stripe_id];
-    std::vector<int> clusters_with_blocks;
-    std::vector<std::vector<int>> decode_blocks_per_cluster;
+    std::vector<int> nodes_with_blocks;
+    std::vector<std::vector<int>> decode_blocks_per_node;
     for (size_t i = 0; i < decode_block_ids.size(); i++)
     {
-      int cid = t_stripe.blocks[decode_block_ids[i]]->map2cluster;
-      auto it = std::find(clusters_with_blocks.begin(), clusters_with_blocks.end(), cid);
-      if (it == clusters_with_blocks.end())
+      int cid = t_stripe.blocks[decode_block_ids[i]]->map2node;
+      auto it = std::find(nodes_with_blocks.begin(), nodes_with_blocks.end(), cid);
+      if (it == nodes_with_blocks.end())
       {
-        clusters_with_blocks.push_back(cid);
-        decode_blocks_per_cluster.push_back(std::vector<int>(1, decode_block_ids[i]));
+        nodes_with_blocks.push_back(cid);
+        decode_blocks_per_node.push_back(std::vector<int>(1, decode_block_ids[i]));
       }
       else
       {
-        size_t idx = std::distance(clusters_with_blocks.begin(), it);
-        decode_blocks_per_cluster[idx].push_back(decode_block_ids[i]);
+        size_t idx = std::distance(nodes_with_blocks.begin(), it);
+        decode_blocks_per_node[idx].push_back(decode_block_ids[i]);
       }
     }
-    // Dest cluster: the failed rack (where the failed data blocks live).
-    int dest_cluster_id = t_stripe.blocks[recover[0]]->map2cluster;
-    std::string dest_proxy_ip = m_cluster_table[dest_cluster_id].proxy_ip;
-    int dest_proxy_port = m_cluster_table[dest_cluster_id].proxy_port;
+    // Dest node: the failed rack (where the failed data blocks live).
+    int dest_node_id = t_stripe.blocks[recover[0]]->map2node;
+    std::string dest_proxy_ip = m_node_table[dest_node_id].proxy_ip;
+    int dest_proxy_port = m_node_table[dest_node_id].proxy_port;
     std::string dest_proxy_key = dest_proxy_ip + ":" + std::to_string(dest_proxy_port);
     int cross_rack_num = 0;
-    for (size_t i = 0; i < clusters_with_blocks.size(); i++)
-      if (clusters_with_blocks[i] != dest_cluster_id)
+    for (size_t i = 0; i < nodes_with_blocks.size(); i++)
+      if (nodes_with_blocks[i] != dest_node_id)
         cross_rack_num++;
 
     std::vector<std::string> failed_keys(recover_num);
@@ -3081,7 +3073,7 @@ namespace ECProject
     std::vector<std::thread> threads;
     grpc::Status dest_status;
     std::mutex dest_status_mutex;
-    threads.push_back(std::thread([this, &t_stripe, dest_proxy_key, dest_cluster_id, stripe_id, recover_num, &all_failed, &recover, &decode_block_ids, &failed_keys, client_ip, client_port, cross_rack_num, &decode_blocks_per_cluster, &clusters_with_blocks, &dest_status, &dest_status_mutex]() {
+    threads.push_back(std::thread([this, &t_stripe, dest_proxy_key, dest_node_id, stripe_id, recover_num, &all_failed, &recover, &decode_block_ids, &failed_keys, client_ip, client_port, cross_rack_num, &decode_blocks_per_node, &nodes_with_blocks, &dest_status, &dest_status_mutex]() {
       grpc::ClientContext recovery_context;
       proxy_proto::RecoveryRequest recovery_request;
       proxy_proto::RecoveryReply recovery_reply;
@@ -3102,22 +3094,22 @@ namespace ECProject
       for (size_t i = 0; i < decode_block_ids.size(); i++)
         recovery_request.add_decode_block_ids(decode_block_ids[i]);
       size_t dest_idx = 0;
-      for (; dest_idx < clusters_with_blocks.size(); dest_idx++)
-        if (clusters_with_blocks[dest_idx] == dest_cluster_id)
+      for (; dest_idx < nodes_with_blocks.size(); dest_idx++)
+        if (nodes_with_blocks[dest_idx] == dest_node_id)
           break;
-      if (dest_idx < clusters_with_blocks.size())
-        add_block_list_to_recovery_request(t_stripe, decode_blocks_per_cluster[dest_idx], &recovery_request);
+      if (dest_idx < nodes_with_blocks.size())
+        add_block_list_to_recovery_request(t_stripe, decode_blocks_per_node[dest_idx], &recovery_request);
       grpc::Status st = m_proxy_ptrs[dest_proxy_key]->recovery(&recovery_context, recovery_request, &recovery_reply);
       std::lock_guard<std::mutex> lock(dest_status_mutex);
       dest_status = st;
     }));
 
-    for (size_t i = 0; i < clusters_with_blocks.size(); i++)
+    for (size_t i = 0; i < nodes_with_blocks.size(); i++)
     {
-      if (clusters_with_blocks[i] == dest_cluster_id)
+      if (nodes_with_blocks[i] == dest_node_id)
         continue;
-      std::string proxy_key = m_cluster_table[clusters_with_blocks[i]].proxy_ip + ":" + std::to_string(m_cluster_table[clusters_with_blocks[i]].proxy_port);
-      threads.push_back(std::thread([this, &t_stripe, proxy_key, dest_proxy_ip, dest_proxy_port, stripe_id, recover_num, &all_failed, &recover, &decode_block_ids, &decode_blocks_per_cluster, i]() {
+      std::string proxy_key = m_node_table[nodes_with_blocks[i]].proxy_ip + ":" + std::to_string(m_node_table[nodes_with_blocks[i]].proxy_port);
+      threads.push_back(std::thread([this, &t_stripe, proxy_key, dest_proxy_ip, dest_proxy_port, stripe_id, recover_num, &all_failed, &recover, &decode_block_ids, &decode_blocks_per_node, i]() {
         grpc::ClientContext degraded_context;
         proxy_proto::DegradedReadRequest degraded_request;
         proxy_proto::DegradedReadReply degraded_reply;
@@ -3129,7 +3121,7 @@ namespace ECProject
           degraded_request.add_failed_block_ids(recover[j]);
         for (size_t j = 0; j < decode_block_ids.size(); j++)
           degraded_request.add_decode_block_ids(decode_block_ids[j]);
-        add_block_list_to_degraded_read_request(t_stripe, decode_blocks_per_cluster[i], &degraded_request);
+        add_block_list_to_degraded_read_request(t_stripe, decode_blocks_per_node[i], &degraded_request);
         grpc::Status st = m_proxy_ptrs[proxy_key]->degradedRead(&degraded_context, degraded_request, &degraded_reply);
         if (!st.ok())
           std::cout << "[Coordinator] maintenance read degradedRead from proxy " << proxy_key << " failed: " << st.error_message() << std::endl;
@@ -3199,7 +3191,7 @@ namespace ECProject
       all_local_parity_ids.push_back(k + r + lg);
     }
 
-    const int dest_cluster_id = t_stripe.blocks[leftover[0]]->map2cluster;
+    const int dest_node_id = t_stripe.blocks[leftover[0]]->map2node;
     // N-1/N-2 split (as in single-rack repair): of the group's failed blocks, x stay as the
     // leftover (x = local-parity count). Those x slots first absorb the group's failed local
     // parities (which the read never solves), so only the surviving local parities are available to
@@ -3211,7 +3203,7 @@ namespace ECProject
         note = "local parity id out of range";
         return false;
       }
-      if (t_stripe.blocks[pid]->map2cluster != dest_cluster_id)
+      if (t_stripe.blocks[pid]->map2node != dest_node_id)
         local_parity_ids.push_back(pid);
     }
     if (local_parity_ids.size() < leftover.size()) {
@@ -3273,27 +3265,27 @@ namespace ECProject
     }
 
     Stripe &t_stripe = m_stripe_table[stripe_id];
-    std::vector<int> clusters_with_blocks;
-    std::vector<std::vector<int>> decode_blocks_per_cluster;
+    std::vector<int> nodes_with_blocks;
+    std::vector<std::vector<int>> decode_blocks_per_node;
     for (size_t i = 0; i < decode_block_ids.size(); i++)
     {
-      int cid = t_stripe.blocks[decode_block_ids[i]]->map2cluster;
-      auto it = std::find(clusters_with_blocks.begin(), clusters_with_blocks.end(), cid);
-      if (it == clusters_with_blocks.end())
+      int cid = t_stripe.blocks[decode_block_ids[i]]->map2node;
+      auto it = std::find(nodes_with_blocks.begin(), nodes_with_blocks.end(), cid);
+      if (it == nodes_with_blocks.end())
       {
-        clusters_with_blocks.push_back(cid);
-        decode_blocks_per_cluster.push_back(std::vector<int>(1, decode_block_ids[i]));
+        nodes_with_blocks.push_back(cid);
+        decode_blocks_per_node.push_back(std::vector<int>(1, decode_block_ids[i]));
       }
       else
       {
-        size_t idx = std::distance(clusters_with_blocks.begin(), it);
-        decode_blocks_per_cluster[idx].push_back(decode_block_ids[i]);
+        size_t idx = std::distance(nodes_with_blocks.begin(), it);
+        decode_blocks_per_node[idx].push_back(decode_block_ids[i]);
       }
     }
 
-    int dest_cluster_id = t_stripe.blocks[recover[0]]->map2cluster;
-    std::string dest_proxy_ip = m_cluster_table[dest_cluster_id].proxy_ip;
-    int dest_proxy_port = m_cluster_table[dest_cluster_id].proxy_port;
+    int dest_node_id = t_stripe.blocks[recover[0]]->map2node;
+    std::string dest_proxy_ip = m_node_table[dest_node_id].proxy_ip;
+    int dest_proxy_port = m_node_table[dest_node_id].proxy_port;
     std::string dest_proxy_key = dest_proxy_ip + ":" + std::to_string(dest_proxy_port);
 
     const int k = m_sys_config->k;
@@ -3330,7 +3322,7 @@ namespace ECProject
         source_block_ids.push_back(b);
         continue;
       }
-      if (t_stripe.blocks[b]->map2cluster == dest_cluster_id)
+      if (t_stripe.blocks[b]->map2node == dest_node_id)
         continue; // on the failed rack and not reconstructed -> unavailable
       source_block_ids.push_back(b);
       if (!decode_set.count(b))
@@ -3353,12 +3345,12 @@ namespace ECProject
     std::unordered_set<int> source_set(source_block_ids.begin(), source_block_ids.end());
     int cross_rack_num = 0;
     int local_fill_sender_num = 0;
-    for (size_t i = 0; i < clusters_with_blocks.size(); i++)
+    for (size_t i = 0; i < nodes_with_blocks.size(); i++)
     {
-      if (clusters_with_blocks[i] == dest_cluster_id)
+      if (nodes_with_blocks[i] == dest_node_id)
         continue;
       cross_rack_num++;
-      for (int bid : decode_blocks_per_cluster[i])
+      for (int bid : decode_blocks_per_node[i])
         if (source_set.count(bid)) { local_fill_sender_num++; break; }
     }
 
@@ -3369,7 +3361,7 @@ namespace ECProject
     std::vector<std::thread> threads;
     grpc::Status dest_status;
     std::mutex dest_status_mutex;
-    threads.push_back(std::thread([this, &t_stripe, dest_proxy_key, dest_cluster_id, recover_num, &failed_data, &recover, &decode_block_ids, &failed_keys, client_ip, client_port, cross_rack_num, local_fill_sender_num, &decode_blocks_per_cluster, &clusters_with_blocks, &leftover, &dest_read_source_ids, &source_block_ids, &reconstructed_lg_members, &dest_status, &dest_status_mutex]() {
+    threads.push_back(std::thread([this, &t_stripe, dest_proxy_key, dest_node_id, recover_num, &failed_data, &recover, &decode_block_ids, &failed_keys, client_ip, client_port, cross_rack_num, local_fill_sender_num, &decode_blocks_per_node, &nodes_with_blocks, &leftover, &dest_read_source_ids, &source_block_ids, &reconstructed_lg_members, &dest_status, &dest_status_mutex]() {
       grpc::ClientContext recovery_context;
       proxy_proto::RecoveryRequest recovery_request;
       proxy_proto::RecoveryReply recovery_reply;
@@ -3401,27 +3393,27 @@ namespace ECProject
       {
         Block *pb = t_stripe.blocks[sid];
         recovery_request.add_local_parity_block_ids(sid);
-        recovery_request.add_local_parity_datanodeip(m_node_table[pb->map2node].node_ip);
-        recovery_request.add_local_parity_datanodeport(m_node_table[pb->map2node].node_port);
+        recovery_request.add_local_parity_datanodeip(m_node_table[pb->map2node].proxy_ip);
+        recovery_request.add_local_parity_datanodeport(m_node_table[pb->map2node].proxy_port);
         recovery_request.add_local_parity_blockkeys(pb->block_key);
       }
       size_t dest_idx = 0;
-      for (; dest_idx < clusters_with_blocks.size(); dest_idx++)
-        if (clusters_with_blocks[dest_idx] == dest_cluster_id)
+      for (; dest_idx < nodes_with_blocks.size(); dest_idx++)
+        if (nodes_with_blocks[dest_idx] == dest_node_id)
           break;
-      if (dest_idx < clusters_with_blocks.size())
-        add_block_list_to_recovery_request(t_stripe, decode_blocks_per_cluster[dest_idx], &recovery_request);
+      if (dest_idx < nodes_with_blocks.size())
+        add_block_list_to_recovery_request(t_stripe, decode_blocks_per_node[dest_idx], &recovery_request);
       grpc::Status st = m_proxy_ptrs[dest_proxy_key]->recovery(&recovery_context, recovery_request, &recovery_reply);
       std::lock_guard<std::mutex> lock(dest_status_mutex);
       dest_status = st;
     }));
 
-    for (size_t i = 0; i < clusters_with_blocks.size(); i++)
+    for (size_t i = 0; i < nodes_with_blocks.size(); i++)
     {
-      if (clusters_with_blocks[i] == dest_cluster_id)
+      if (nodes_with_blocks[i] == dest_node_id)
         continue;
-      std::string proxy_key = m_cluster_table[clusters_with_blocks[i]].proxy_ip + ":" + std::to_string(m_cluster_table[clusters_with_blocks[i]].proxy_port);
-      threads.push_back(std::thread([this, &t_stripe, proxy_key, dest_proxy_ip, dest_proxy_port, recover_num, &failed_data, &recover, &decode_block_ids, &decode_blocks_per_cluster, &leftover, &source_block_ids, i]() {
+      std::string proxy_key = m_node_table[nodes_with_blocks[i]].proxy_ip + ":" + std::to_string(m_node_table[nodes_with_blocks[i]].proxy_port);
+      threads.push_back(std::thread([this, &t_stripe, proxy_key, dest_proxy_ip, dest_proxy_port, recover_num, &failed_data, &recover, &decode_block_ids, &decode_blocks_per_node, &leftover, &source_block_ids, i]() {
         grpc::ClientContext degraded_context;
         proxy_proto::DegradedReadRequest degraded_request;
         proxy_proto::DegradedReadReply degraded_reply;
@@ -3440,7 +3432,7 @@ namespace ECProject
           degraded_request.add_leftover_block_ids(bid);
         for (int bid : source_block_ids)
           degraded_request.add_local_fill_source_ids(bid);
-        add_block_list_to_degraded_read_request(t_stripe, decode_blocks_per_cluster[i], &degraded_request);
+        add_block_list_to_degraded_read_request(t_stripe, decode_blocks_per_node[i], &degraded_request);
         grpc::Status st = m_proxy_ptrs[proxy_key]->degradedRead(&degraded_context, degraded_request, &degraded_reply);
         if (!st.ok())
           std::cout << "[Coordinator] maintenance two-phase degradedRead from proxy " << proxy_key << " failed: " << st.error_message() << std::endl;
@@ -3492,9 +3484,9 @@ namespace ECProject
           grp_survivors.push_back(bid);
       if (grp_survivors.empty())
         continue;
-      int cluster_id = t_stripe.blocks[t_stripe.group_to_blocks[g][0]]->map2cluster;
-      std::string proxy_ip = m_cluster_table[cluster_id].proxy_ip;
-      int proxy_port = m_cluster_table[cluster_id].proxy_port;
+      int node_id = t_stripe.blocks[t_stripe.group_to_blocks[g][0]]->map2node;
+      std::string proxy_ip = m_node_table[node_id].proxy_ip;
+      int proxy_port = m_node_table[node_id].proxy_port;
       survivor_threads.push_back(std::thread(&CoordinatorImpl::getStripeFromProxy, this,
                                              client_ip, client_port, proxy_ip, proxy_port,
                                              stripe_id, g, grp_survivors));
@@ -3665,23 +3657,26 @@ namespace ECProject
       grpc::Status status;
       proxy_proto::DelReply del_reply;
       Stripe &t_stripe = m_stripe_table[object_info.map2stripe];
-      std::unordered_set<int> t_cluster_set;
+      std::unordered_set<int> t_node_set;
       for (int i = 0; i < int(t_stripe.blocks.size()); i++)
       {
         if (t_stripe.blocks[i]->map2key == key)
         {
-          node_block.add_datanodeip(m_node_table[t_stripe.blocks[i]->map2node].node_ip);
-          node_block.add_datanodeport(m_node_table[t_stripe.blocks[i]->map2node].node_port);
+          node_block.add_datanodeip(m_node_table[t_stripe.blocks[i]->map2node].proxy_ip);
+          node_block.add_datanodeport(m_node_table[t_stripe.blocks[i]->map2node].proxy_port);
+          node_block.add_node_ids(t_stripe.blocks[i]->map2node);
+          node_block.add_owner_proxy_ips(m_node_table[t_stripe.blocks[i]->map2node].proxy_ip);
+          node_block.add_owner_proxy_ports(m_node_table[t_stripe.blocks[i]->map2node].proxy_port);
           node_block.add_blockkeys(t_stripe.blocks[i]->block_key);
-          t_cluster_set.insert(t_stripe.blocks[i]->map2cluster);
+          t_node_set.insert(t_stripe.blocks[i]->map2node);
         }
       }
       node_block.set_stripe_id(-1); // as a flag to distinguish delete key or stripe
       node_block.set_key(key);
-      // randomly select a cluster
-      int idx = rand_num(int(t_cluster_set.size()));
-      int r_cluster_id = *(std::next(t_cluster_set.begin(), idx));
-      std::string chosen_proxy = m_cluster_table[r_cluster_id].proxy_ip + ":" + std::to_string(m_cluster_table[r_cluster_id].proxy_port);
+      // randomly select a node
+      int idx = rand_num(int(t_node_set.size()));
+      int r_node_id = *(std::next(t_node_set.begin(), idx));
+      std::string chosen_proxy = m_node_table[r_node_id].proxy_ip + ":" + std::to_string(m_node_table[r_node_id].proxy_port);
       status = m_proxy_ptrs[chosen_proxy]->deleteBlock(&context, node_block, &del_reply);
       delReplyClient->set_ifdeling(true);
       if (status.ok())
@@ -3714,23 +3709,26 @@ namespace ECProject
       grpc::Status status;
       proxy_proto::DelReply del_reply;
       Stripe &t_stripe = m_stripe_table[t_stripe_id];
-      std::unordered_set<int> t_cluster_set;
+      std::unordered_set<int> t_node_set;
       for (int i = 0; i < int(t_stripe.blocks.size()); i++)
       {
         if (t_stripe.blocks[i]->map2stripe == t_stripe_id)
         {
-          node_block.add_datanodeip(m_node_table[t_stripe.blocks[i]->map2node].node_ip);
-          node_block.add_datanodeport(m_node_table[t_stripe.blocks[i]->map2node].node_port);
+          node_block.add_datanodeip(m_node_table[t_stripe.blocks[i]->map2node].proxy_ip);
+          node_block.add_datanodeport(m_node_table[t_stripe.blocks[i]->map2node].proxy_port);
+          node_block.add_node_ids(t_stripe.blocks[i]->map2node);
+          node_block.add_owner_proxy_ips(m_node_table[t_stripe.blocks[i]->map2node].proxy_ip);
+          node_block.add_owner_proxy_ports(m_node_table[t_stripe.blocks[i]->map2node].proxy_port);
           node_block.add_blockkeys(t_stripe.blocks[i]->block_key);
-          t_cluster_set.insert(t_stripe.blocks[i]->map2cluster);
+          t_node_set.insert(t_stripe.blocks[i]->map2node);
         }
       }
       node_block.set_stripe_id(t_stripe_id);
       node_block.set_key("");
-      // randomly select a cluster
-      int idx = rand_num(int(t_cluster_set.size()));
-      int r_cluster_id = *(std::next(t_cluster_set.begin(), idx));
-      std::string chosen_proxy = m_cluster_table[r_cluster_id].proxy_ip + ":" + std::to_string(m_cluster_table[r_cluster_id].proxy_port);
+      // randomly select a node
+      int idx = rand_num(int(t_node_set.size()));
+      int r_node_id = *(std::next(t_node_set.begin(), idx));
+      std::string chosen_proxy = m_node_table[r_node_id].proxy_ip + ":" + std::to_string(m_node_table[r_node_id].proxy_port);
       status = m_proxy_ptrs[chosen_proxy]->deleteBlock(&context, node_block, &del_reply);
       delReplyClient->set_ifdeling(true);
       if (status.ok())
@@ -3824,16 +3822,16 @@ namespace ECProject
             {
               m_stripe_table.erase(stripe_id);
             }
-            std::map<int, Cluster>::iterator it2; // update cluster table
-            for (it2 = m_cluster_table.begin(); it2 != m_cluster_table.end(); it2++)
+            std::map<int, Node>::iterator it2; // update node table
+            for (it2 = m_node_table.begin(); it2 != m_node_table.end(); it2++)
             {
-              Cluster &t_cluster = it2->second;
-              for (it1 = t_cluster.blocks.begin(); it1 != t_cluster.blocks.end();)
+              Node &t_node = it2->second;
+              for (it1 = t_node.blocks.begin(); it1 != t_node.blocks.end();)
               {
                 if ((*it1)->map2key == key)
                 {
                   update_stripe_info_in_node(false, (*it1)->map2node, (*it1)->map2stripe); // update node table
-                  it1 = t_cluster.blocks.erase(it1);
+                  it1 = t_node.blocks.erase(it1);
                 }
                 else
                 {
@@ -3857,17 +3855,17 @@ namespace ECProject
             // update stripe table
             m_stripe_table.erase(stripe_id);
             std::unordered_set<std::string> object_keys_set;
-            // update cluster table
-            std::map<int, Cluster>::iterator it2;
-            for (it2 = m_cluster_table.begin(); it2 != m_cluster_table.end(); it2++)
+            // update node table
+            std::map<int, Node>::iterator it2;
+            for (it2 = m_node_table.begin(); it2 != m_node_table.end(); it2++)
             {
-              Cluster &t_cluster = it2->second;
-              for (auto it1 = t_cluster.blocks.begin(); it1 != t_cluster.blocks.end();)
+              Node &t_node = it2->second;
+              for (auto it1 = t_node.blocks.begin(); it1 != t_node.blocks.end();)
               {
                 if ((*it1)->map2stripe == stripe_id)
                 {
                   object_keys_set.insert((*it1)->map2key);
-                  it1 = t_cluster.blocks.erase(it1);
+                  it1 = t_node.blocks.erase(it1);
                 }
                 else
                 {
@@ -3899,13 +3897,13 @@ namespace ECProject
           // if (IF_DEBUG)
           // {
           //   std::cout << "[DEL] Data placement after delete:" << std::endl;
-          //   for (int i = 0; i < m_num_of_Clusters; i++)
+          //   for (int i = 0; i < m_num_of_Nodes; i++)
           //   {
-          //     Cluster &t_cluster = m_cluster_table[i];
-          //     if (int(t_cluster.blocks.size()) > 0)
+          //     Node &t_node = m_node_table[i];
+          //     if (int(t_node.blocks.size()) > 0)
           //     {
-          //       std::cout << "Cluster " << i << ": ";
-          //       for (auto it = t_cluster.blocks.begin(); it != t_cluster.blocks.end(); it++)
+          //       std::cout << "Node " << i << ": ";
+          //       for (auto it = t_node.blocks.begin(); it != t_node.blocks.end(); it++)
           //       {
           //         std::cout << "[" << (*it)->block_key << ":S" << (*it)->map2stripe << "G" << (*it)->map2group << "N" << (*it)->map2node << "] ";
           //       }
@@ -3968,10 +3966,10 @@ namespace ECProject
     return grpc::Status::OK;
   }
 
-  // Check the connnection to all proxies of all clusters
+  // Check the connnection to all proxies of all nodes
   bool CoordinatorImpl::init_proxyinfo()
   {
-    for (auto cur = m_cluster_table.begin(); cur != m_cluster_table.end(); cur++)
+    for (auto cur = m_node_table.begin(); cur != m_node_table.end(); cur++)
     {
       std::string proxy_ip_and_port = cur->second.proxy_ip + ":" + std::to_string(cur->second.proxy_port);
       auto _stub = proxy_proto::proxyService::NewStub(grpc::CreateChannel(proxy_ip_and_port, grpc::InsecureChannelCredentials()));
@@ -3993,68 +3991,38 @@ namespace ECProject
     }
     return true;
   }
-  bool CoordinatorImpl::init_clusterinfo(std::string m_clusterinfo_path)
+  bool CoordinatorImpl::init_nodeinfo(std::string nodeinfo_path)
   {
-    std::cout << "Cluster_information_path:" << m_clusterinfo_path << std::endl;
     tinyxml2::XMLDocument xml;
-    xml.LoadFile(m_clusterinfo_path.c_str());
+    if (xml.LoadFile(nodeinfo_path.c_str()) != tinyxml2::XML_SUCCESS) return false;
     tinyxml2::XMLElement *root = xml.RootElement();
-    int node_id = 0;
-    m_num_of_Clusters = 0;
-    for (tinyxml2::XMLElement *cluster = root->FirstChildElement(); cluster != nullptr; cluster = cluster->NextSiblingElement())
+    if (root == nullptr || std::string(root->Name()) != "nodes") return false;
+    m_node_table.clear();
+    for (auto *elem = root->FirstChildElement("node"); elem != nullptr; elem = elem->NextSiblingElement("node"))
     {
-      std::string cluster_id(cluster->Attribute("id"));
-      std::string proxy(cluster->Attribute("proxy"));
-      std::cout << "cluster_id: " << cluster_id << " , proxy: " << proxy << std::endl;
-      Cluster t_cluster;
-      m_cluster_table[std::stoi(cluster_id)] = t_cluster;
-      m_cluster_table[std::stoi(cluster_id)].cluster_id = std::stoi(cluster_id);
-      auto pos = proxy.find(':');
-      m_cluster_table[std::stoi(cluster_id)].proxy_ip = proxy.substr(0, pos);
-      m_cluster_table[std::stoi(cluster_id)].proxy_port = std::stoi(proxy.substr(pos + 1, proxy.size()));
-      for (tinyxml2::XMLElement *node = cluster->FirstChildElement()->FirstChildElement(); node != nullptr; node = node->NextSiblingElement())
-      {
-        std::string node_uri(node->Attribute("uri"));
-        std::cout << "____node: " << node_uri << std::endl;
-        m_cluster_table[std::stoi(cluster_id)].nodes.push_back(node_id);
-        m_node_table[node_id].node_id = node_id;
-        auto pos = node_uri.find(':');
-        m_node_table[node_id].node_ip = node_uri.substr(0, pos);
-        m_node_table[node_id].node_port = std::stoi(node_uri.substr(pos + 1, node_uri.size()));
-        m_node_table[node_id].cluster_id = std::stoi(cluster_id);
-        node_id++;
-      }
-      m_num_of_Clusters++;
+      int id = elem->IntAttribute("id", -1);
+      std::string proxy = elem->Attribute("proxy") ? elem->Attribute("proxy") : "";
+      std::string datanode = elem->Attribute("datanode") ? elem->Attribute("datanode") : "";
+      auto proxy_sep = proxy.rfind(':');
+      auto datanode_sep = datanode.rfind(':');
+      if (id < 0 || proxy_sep == std::string::npos || datanode_sep == std::string::npos) return false;
+      m_node_table.emplace(id, Node(id, proxy.substr(0, proxy_sep), std::stoi(proxy.substr(proxy_sep + 1)),
+                                    datanode.substr(0, datanode_sep), std::stoi(datanode.substr(datanode_sep + 1))));
     }
-    return true;
+    m_num_of_Nodes = static_cast<int>(m_node_table.size());
+    return m_num_of_Nodes > 0;
   }
 
-  int CoordinatorImpl::randomly_select_a_cluster(int stripe_id)
+  int CoordinatorImpl::randomly_select_a_node(int stripe_id)
   {
-    std::random_device rd;
-    std::mt19937 gen(rd());
-    std::uniform_int_distribution<int> dis_cluster(0, m_num_of_Clusters - 1);
-    int r_cluster_id = dis_cluster(gen);
-    while (m_cluster_table[r_cluster_id].stripes.find(stripe_id) != m_cluster_table[r_cluster_id].stripes.end())
+    if (m_node_table.empty()) throw std::runtime_error("no storage nodes configured");
+    int start = rand_num(m_num_of_Nodes);
+    for (int offset = 0; offset < m_num_of_Nodes; ++offset)
     {
-      r_cluster_id = dis_cluster(gen);
+      int id = (start + offset) % m_num_of_Nodes;
+      if (m_node_table.at(id).stripes.count(stripe_id) == 0) return id;
     }
-    return r_cluster_id;
-  }
-
-  // randomly select a node in the selected cluster
-  // with the constraint that the node has not been selected for the same stripe
-  int CoordinatorImpl::randomly_select_a_node(int cluster_id, int stripe_id)
-  {
-    std::random_device rd;
-    std::mt19937 gen(rd());
-    std::uniform_int_distribution<int> dis_node(0, m_cluster_table[cluster_id].nodes.size() - 1);
-    int r_node_id = m_cluster_table[cluster_id].nodes[dis_node(gen)];
-    while (m_node_table[r_node_id].stripes.find(stripe_id) != m_node_table[r_node_id].stripes.end())
-    {
-      r_node_id = m_cluster_table[cluster_id].nodes[dis_node(gen)];
-    }
-    return r_node_id;
+    throw std::runtime_error("NodeNum is too small for distinct-node stripe placement");
   }
 
   void CoordinatorImpl::update_stripe_info_in_node(int t_node_id, int stripe_id, int index)
@@ -4092,506 +4060,39 @@ namespace ECProject
 
   int CoordinatorImpl::generate_placement(int stripe_id, int block_size)
   {
-    Stripe &stripe_info = m_stripe_table[stripe_id];
-    int k = stripe_info.k;
-    int l = stripe_info.l;
-    int g_m = stripe_info.g_m;
-    int b = m_encode_parameters.b_datapergroup;
-    ECProject::EncodeType encode_type = m_encode_parameters.encodetype;
-    ECProject::SingleStripePlacementType s_placement_type = m_encode_parameters.s_stripe_placementtype;
-    ECProject::MultiStripesPlacementType m_placement_type = m_encode_parameters.m_stripe_placementtype;
-
-    // generate stripe information
-    int index = stripe_info.object_keys.size() - 1;
-    std::string object_key = stripe_info.object_keys[index];
-    Block *blocks_info = new Block[k + g_m + l];
-    for (int i = 0; i < k + g_m + l; i++)
+    Stripe &stripe = m_stripe_table.at(stripe_id);
+    int count = stripe.k + stripe.g_m + stripe.l;
+    if (count > m_num_of_Nodes) throw std::runtime_error("NodeNum is smaller than stripe width");
+    Block *blocks = new Block[count];
+    std::string object_key = stripe.object_keys.back();
+    for (int i = 0; i < count; ++i)
     {
-      blocks_info[i].block_size = block_size;
-      blocks_info[i].map2stripe = stripe_id;
-      blocks_info[i].map2key = object_key;
-      if (i < k)
-      {
-        std::string tmp = "_D";
-        if (i < 10)
-          tmp = "_D0";
-        blocks_info[i].block_key = object_key + tmp + std::to_string(i);
-        blocks_info[i].block_id = i;
-        blocks_info[i].block_type = 'D';
-        blocks_info[i].map2group = int(i / b);
-        stripe_info.blocks.push_back(&blocks_info[i]);
-      }
-      else if (i >= k && i < k + g_m)
-      {
-        blocks_info[i].block_key = "Stripe" + std::to_string(stripe_id) + "_G" + std::to_string(i - k);
-        blocks_info[i].block_id = i;
-        blocks_info[i].block_type = 'G';
-        blocks_info[i].map2group = l;
-        stripe_info.blocks.push_back(&blocks_info[i]);
-      }
-      else
-      {
-        blocks_info[i].block_key = "Stripe" + std::to_string(stripe_id) + "_L" + std::to_string(i - k - g_m);
-        blocks_info[i].block_id = i;
-        blocks_info[i].block_type = 'L';
-        blocks_info[i].map2group = i - k - g_m;
-        stripe_info.blocks.push_back(&blocks_info[i]);
-      }
+      Block &block = blocks[i];
+      block.block_id = i;
+      block.block_size = block_size;
+      block.map2stripe = stripe_id;
+      block.map2key = object_key;
+      block.map2group = i < stripe.k ? i / m_encode_parameters.b_datapergroup : stripe.l;
+      block.block_type = i < stripe.k ? 'D' : (i < stripe.k + stripe.g_m ? 'G' : 'L');
+      block.block_key = i < stripe.k ? object_key + "_D" + std::to_string(i)
+          : "Stripe" + std::to_string(stripe_id) + (block.block_type == 'G' ? "_G" : "_L")
+            + std::to_string(block.block_type == 'G' ? i - stripe.k : i - stripe.k - stripe.g_m);
+      block.map2node = (stripe_id + i) % m_num_of_Nodes;
+      Node &node = m_node_table.at(block.map2node);
+      node.blocks.push_back(&block);
+      node.stripes[stripe_id] = i;
+      stripe.blocks.push_back(&block);
+      stripe.place2nodes.insert(block.map2node);
     }
-
-    if (encode_type == Azure_LRC || encode_type == Optimal_Cauchy_LRC)
-    {
-      if (s_placement_type == Optimal)
-      {
-        if (m_placement_type == Ran)
-        {
-          int idx = m_merge_groups.size() - 1;
-          if (idx < 0 || int(m_merge_groups[idx].size()) == m_encode_parameters.x_stripepermergegroup)
-          {
-            std::vector<int> temp;
-            temp.push_back(stripe_id);
-            m_merge_groups.push_back(temp);
-          }
-          else
-          {
-            m_merge_groups[idx].push_back(stripe_id);
-          }
-
-          int g_cluster_id = -1;
-          for (int i = 0; i < l; i++)
-          {
-            for (int j = i * b; j < (i + 1) * b; j += g_m + 1)
-            {
-              bool flag = false;
-              if (j + g_m + 1 >= (i + 1) * b)
-                flag = true;
-              // randomly select a cluster
-              int t_cluster_id = randomly_select_a_cluster(stripe_id);
-              Cluster &t_cluster = m_cluster_table[t_cluster_id];
-              // place every g+1 data blocks from each group to a single cluster
-              for (int o = j; o < j + g_m + 1 && o < (i + 1) * b; o++)
-              {
-                // randomly select a node in the selected cluster
-                int t_node_id = randomly_select_a_node(t_cluster_id, stripe_id);
-                blocks_info[o].map2cluster = t_cluster_id;
-                blocks_info[o].map2node = t_node_id;
-                update_stripe_info_in_node(true, t_node_id, stripe_id);
-                t_cluster.blocks.push_back(&blocks_info[o]);
-                t_cluster.stripes.insert(stripe_id);
-                stripe_info.place2clusters.insert(t_cluster_id);
-              }
-              // place local parity blocks
-              if (flag)
-              {
-                if (j + g_m + 1 != (i + 1) * b) // b % (g + 1) != 0
-                {
-                  // randomly select a node in the selected cluster
-                  int t_node_id = randomly_select_a_node(t_cluster_id, stripe_id);
-                  blocks_info[k + g_m + i].map2cluster = t_cluster_id;
-                  blocks_info[k + g_m + i].map2node = t_node_id;
-                  update_stripe_info_in_node(true, t_node_id, stripe_id);
-                  t_cluster.blocks.push_back(&blocks_info[k + g_m + i]);
-                  t_cluster.stripes.insert(stripe_id);
-                  stripe_info.place2clusters.insert(t_cluster_id);
-                }
-                else // place the local parity blocks together with global ones
-                {
-                  if (g_cluster_id == -1) // randomly select a new cluster
-                  {
-                    g_cluster_id = randomly_select_a_cluster(stripe_id);
-                  }
-                  Cluster &g_cluster = m_cluster_table[g_cluster_id];
-                  int t_node_id = randomly_select_a_node(g_cluster_id, stripe_id);
-                  blocks_info[k + g_m + i].map2cluster = g_cluster_id;
-                  blocks_info[k + g_m + i].map2node = t_node_id;
-                  update_stripe_info_in_node(true, t_node_id, stripe_id);
-                  g_cluster.blocks.push_back(&blocks_info[k + g_m + i]);
-                  g_cluster.stripes.insert(stripe_id);
-                  stripe_info.place2clusters.insert(g_cluster_id);
-                }
-              }
-            }
-          }
-          if (g_cluster_id == -1) // randomly select a new cluster
-          {
-            g_cluster_id = randomly_select_a_cluster(stripe_id);
-          }
-          Cluster &g_cluster = m_cluster_table[g_cluster_id];
-          // place the global parity blocks to the selected cluster
-          for (int i = 0; i < g_m; i++)
-          {
-            int t_node_id = randomly_select_a_node(g_cluster_id, stripe_id);
-            blocks_info[k + i].map2cluster = g_cluster_id;
-            blocks_info[k + i].map2node = t_node_id;
-            update_stripe_info_in_node(true, t_node_id, stripe_id);
-            g_cluster.blocks.push_back(&blocks_info[k + i]);
-            g_cluster.stripes.insert(stripe_id);
-            stripe_info.place2clusters.insert(g_cluster_id);
-          }
-        }
-        else if (m_placement_type == DIS)
-        {
-          int required_cluster_num = ceil(b + 1, g_m + 1) * l + 1;
-          int idx = m_merge_groups.size() - 1;
-          if (b % (g_m + 1) == 0)
-            required_cluster_num -= l;
-          if (int(m_free_clusters.size()) < required_cluster_num || m_free_clusters.empty() || idx < 0 ||
-              int(m_merge_groups[idx].size()) == m_encode_parameters.x_stripepermergegroup)
-          {
-            m_free_clusters.clear();
-            m_free_clusters.shrink_to_fit();
-            for (int i = 0; i < m_num_of_Clusters; i++)
-            {
-              m_free_clusters.push_back(i);
-            }
-            std::vector<int> temp;
-            temp.push_back(stripe_id);
-            m_merge_groups.push_back(temp);
-          }
-          else
-          {
-            m_merge_groups[idx].push_back(stripe_id);
-          }
-
-          int g_cluster_id = -1;
-          for (int i = 0; i < l; i++)
-          {
-            for (int j = i * b; j < (i + 1) * b; j += g_m + 1)
-            {
-              bool flag = false;
-              if (j + g_m + 1 >= (i + 1) * b)
-                flag = true;
-              // randomly select a cluster
-              int t_cluster_id = m_free_clusters[rand_num(int(m_free_clusters.size()))];
-              auto iter = std::find(m_free_clusters.begin(), m_free_clusters.end(), t_cluster_id);
-              if (iter != m_free_clusters.end())
-              {
-                m_free_clusters.erase(iter);
-              } // remove the selected cluster from the free list
-              Cluster &t_cluster = m_cluster_table[t_cluster_id];
-              // place every g+1 data blocks from each group to a single cluster
-              for (int o = j; o < j + g_m + 1 && o < (i + 1) * b; o++)
-              {
-                // randomly select a node in the selected cluster
-                int t_node_id = randomly_select_a_node(t_cluster_id, stripe_id);
-                blocks_info[o].map2cluster = t_cluster_id;
-                blocks_info[o].map2node = t_node_id;
-                update_stripe_info_in_node(true, t_node_id, stripe_id);
-                t_cluster.blocks.push_back(&blocks_info[o]);
-                t_cluster.stripes.insert(stripe_id);
-                stripe_info.place2clusters.insert(t_cluster_id);
-              }
-              // place local parity blocks
-              if (flag)
-              {
-                if (j + g_m + 1 != (i + 1) * b) // b % (g + 1) != 0
-                {
-                  // randomly select a node in the selected cluster
-                  int t_node_id = randomly_select_a_node(t_cluster_id, stripe_id);
-                  blocks_info[k + g_m + i].map2cluster = t_cluster_id;
-                  blocks_info[k + g_m + i].map2node = t_node_id;
-                  update_stripe_info_in_node(true, t_node_id, stripe_id);
-                  t_cluster.blocks.push_back(&blocks_info[k + g_m + i]);
-                  t_cluster.stripes.insert(stripe_id);
-                  stripe_info.place2clusters.insert(t_cluster_id);
-                }
-                else // place the local parity blocks together with global ones
-                {
-                  if (g_cluster_id == -1) // randomly select a new cluster
-                  {
-                    g_cluster_id = m_free_clusters[rand_num(int(m_free_clusters.size()))];
-                    auto iter = std::find(m_free_clusters.begin(), m_free_clusters.end(), g_cluster_id);
-                    if (iter != m_free_clusters.end())
-                    {
-                      m_free_clusters.erase(iter);
-                    }
-                  }
-                  Cluster &g_cluster = m_cluster_table[g_cluster_id];
-                  int t_node_id = randomly_select_a_node(g_cluster_id, stripe_id);
-                  blocks_info[k + g_m + i].map2cluster = g_cluster_id;
-                  blocks_info[k + g_m + i].map2node = t_node_id;
-                  update_stripe_info_in_node(true, t_node_id, stripe_id);
-                  g_cluster.blocks.push_back(&blocks_info[k + g_m + i]);
-                  g_cluster.stripes.insert(stripe_id);
-                  stripe_info.place2clusters.insert(g_cluster_id);
-                }
-              }
-            }
-          }
-          if (g_cluster_id == -1) // randomly select a new cluster
-          {
-            g_cluster_id = m_free_clusters[rand_num(int(m_free_clusters.size()))];
-            auto iter = std::find(m_free_clusters.begin(), m_free_clusters.end(), g_cluster_id);
-            if (iter != m_free_clusters.end())
-            {
-              m_free_clusters.erase(iter);
-            }
-          }
-          Cluster &g_cluster = m_cluster_table[g_cluster_id];
-          // place the global parity blocks to the selected cluster
-          for (int i = 0; i < g_m; i++)
-          {
-            int t_node_id = randomly_select_a_node(g_cluster_id, stripe_id);
-            blocks_info[k + i].map2cluster = g_cluster_id;
-            blocks_info[k + i].map2node = t_node_id;
-            update_stripe_info_in_node(true, t_node_id, stripe_id);
-            g_cluster.blocks.push_back(&blocks_info[k + i]);
-            g_cluster.stripes.insert(stripe_id);
-            stripe_info.place2clusters.insert(g_cluster_id);
-          }
-        }
-        else if (m_placement_type == AGG)
-        {
-          int agg_clusters_num = ceil(b + 1, g_m + 1) * l + 1;
-          if (b % (g_m + 1) == 0)
-          {
-            agg_clusters_num -= l;
-          }
-          int idx = m_merge_groups.size() - 1;
-          if (idx < 0 || int(m_merge_groups[idx].size()) == m_encode_parameters.x_stripepermergegroup)
-          {
-            std::vector<int> temp;
-            temp.push_back(stripe_id);
-            m_merge_groups.push_back(temp);
-            m_agg_start_cid = rand_num(m_num_of_Clusters - agg_clusters_num);
-          }
-          else
-          {
-            m_merge_groups[idx].push_back(stripe_id);
-          }
-          int t_cluster_id = m_agg_start_cid - 1;
-          int g_cluster_id = -1;
-          for (int i = 0; i < l; i++)
-          {
-            for (int j = i * b; j < (i + 1) * b; j += g_m + 1)
-            {
-              bool flag = false;
-              if (j + g_m + 1 >= (i + 1) * b)
-                flag = true;
-              t_cluster_id += 1;
-              Cluster &t_cluster = m_cluster_table[t_cluster_id];
-              // place every g+1 data blocks from each group to a single cluster
-              for (int o = j; o < j + g_m + 1 && o < (i + 1) * b; o++)
-              {
-                // randomly select a node in the selected cluster
-                int t_node_id = randomly_select_a_node(t_cluster_id, stripe_id);
-                blocks_info[o].map2cluster = t_cluster_id;
-                blocks_info[o].map2node = t_node_id;
-                update_stripe_info_in_node(true, t_node_id, stripe_id);
-                t_cluster.blocks.push_back(&blocks_info[o]);
-                t_cluster.stripes.insert(stripe_id);
-                stripe_info.place2clusters.insert(t_cluster_id);
-              }
-              // place local parity blocks
-              if (flag)
-              {
-                if (j + g_m + 1 != (i + 1) * b) // b % (g + 1) != 0
-                {
-                  // randomly select a node in the selected cluster
-                  int t_node_id = randomly_select_a_node(t_cluster_id, stripe_id);
-                  blocks_info[k + g_m + i].map2cluster = t_cluster_id;
-                  blocks_info[k + g_m + i].map2node = t_node_id;
-                  update_stripe_info_in_node(true, t_node_id, stripe_id);
-                  t_cluster.blocks.push_back(&blocks_info[k + g_m + i]);
-                  t_cluster.stripes.insert(stripe_id);
-                  stripe_info.place2clusters.insert(t_cluster_id);
-                }
-                else // place the local parity blocks together with global ones
-                {
-                  if (g_cluster_id == -1)
-                  {
-                    g_cluster_id = t_cluster_id + 1;
-                    t_cluster_id++;
-                  }
-                  Cluster &g_cluster = m_cluster_table[g_cluster_id];
-                  int t_node_id = randomly_select_a_node(g_cluster_id, stripe_id);
-                  blocks_info[k + g_m + i].map2cluster = g_cluster_id;
-                  blocks_info[k + g_m + i].map2node = t_node_id;
-                  update_stripe_info_in_node(true, t_node_id, stripe_id);
-                  g_cluster.blocks.push_back(&blocks_info[k + g_m + i]);
-                  g_cluster.stripes.insert(stripe_id);
-                  stripe_info.place2clusters.insert(g_cluster_id);
-                }
-              }
-            }
-          }
-          if (g_cluster_id == -1)
-          {
-            g_cluster_id = t_cluster_id + 1;
-          }
-          Cluster &g_cluster = m_cluster_table[g_cluster_id];
-          // place the global parity blocks to the selected cluster
-          for (int i = 0; i < g_m; i++)
-          {
-            int t_node_id = randomly_select_a_node(g_cluster_id, stripe_id);
-            blocks_info[k + i].map2cluster = g_cluster_id;
-            blocks_info[k + i].map2node = t_node_id;
-            update_stripe_info_in_node(true, t_node_id, stripe_id);
-            g_cluster.blocks.push_back(&blocks_info[k + i]);
-            g_cluster.stripes.insert(stripe_id);
-            stripe_info.place2clusters.insert(g_cluster_id);
-          }
-        }
-        else if (m_placement_type == OPT)
-        {
-          int required_cluster_num = ceil(b + 1, g_m + 1) * l + 1;
-          int agg_clusters_num = l + 1;
-          if (b % (g_m + 1) == 0)
-          {
-            agg_clusters_num = 1;
-            required_cluster_num -= l;
-          }
-          int idx = m_merge_groups.size() - 1;
-          if (int(m_free_clusters.size()) < required_cluster_num - agg_clusters_num || m_free_clusters.empty() ||
-              idx < 0 || int(m_merge_groups[idx].size()) == m_encode_parameters.x_stripepermergegroup)
-          {
-            m_agg_start_cid = rand_num(m_num_of_Clusters - agg_clusters_num);
-            m_free_clusters.clear();
-            m_free_clusters.shrink_to_fit();
-            for (int i = 0; i < m_agg_start_cid; i++)
-            {
-              m_free_clusters.push_back(i);
-            }
-            for (int i = m_agg_start_cid + agg_clusters_num; i < m_num_of_Clusters; i++)
-            {
-              m_free_clusters.push_back(i);
-            }
-            std::vector<int> temp;
-            temp.push_back(stripe_id);
-            m_merge_groups.push_back(temp);
-          }
-          else
-          {
-            m_merge_groups[idx].push_back(stripe_id);
-          }
-
-          int agg_cluster_id = m_agg_start_cid - 1;
-          int t_cluster_id = -1;
-          int g_cluster_id = m_agg_start_cid + agg_clusters_num - 1;
-          for (int i = 0; i < l; i++)
-          {
-            for (int j = i * b; j < (i + 1) * b; j += g_m + 1)
-            {
-              bool flag = false;
-              if (j + g_m + 1 >= (i + 1) * b)
-                flag = true;
-              if (flag && j + g_m + 1 != (i + 1) * b)
-              {
-                t_cluster_id = ++agg_cluster_id;
-              }
-              else
-              {
-                t_cluster_id = m_free_clusters[rand_num(int(m_free_clusters.size()))];
-                auto iter = std::find(m_free_clusters.begin(), m_free_clusters.end(), t_cluster_id);
-                if (iter != m_free_clusters.end())
-                {
-                  m_free_clusters.erase(iter);
-                }
-              }
-              Cluster &t_cluster = m_cluster_table[t_cluster_id];
-              // place every g+1 data blocks from each group to a single cluster
-              for (int o = j; o < j + g_m + 1 && o < (i + 1) * b; o++)
-              {
-                // randomly select a node in the selected cluster
-                int t_node_id = randomly_select_a_node(t_cluster_id, stripe_id);
-                blocks_info[o].map2cluster = t_cluster_id;
-                blocks_info[o].map2node = t_node_id;
-                update_stripe_info_in_node(true, t_node_id, stripe_id);
-                t_cluster.blocks.push_back(&blocks_info[o]);
-                t_cluster.stripes.insert(stripe_id);
-                stripe_info.place2clusters.insert(t_cluster_id);
-              }
-              // place local parity blocks
-              if (flag)
-              {
-                if (j + g_m + 1 != (i + 1) * b) // b % (g + 1) != 0
-                {
-                  // randomly select a node in the selected cluster
-                  int t_node_id = randomly_select_a_node(t_cluster_id, stripe_id);
-                  blocks_info[k + g_m + i].map2cluster = t_cluster_id;
-                  blocks_info[k + g_m + i].map2node = t_node_id;
-                  update_stripe_info_in_node(true, t_node_id, stripe_id);
-                  t_cluster.blocks.push_back(&blocks_info[k + g_m + i]);
-                  t_cluster.stripes.insert(stripe_id);
-                  stripe_info.place2clusters.insert(t_cluster_id);
-                }
-                else // place the local parity blocks together with global ones
-                {
-                  Cluster &g_cluster = m_cluster_table[g_cluster_id];
-                  int t_node_id = randomly_select_a_node(g_cluster_id, stripe_id);
-                  blocks_info[k + g_m + i].map2cluster = g_cluster_id;
-                  blocks_info[k + g_m + i].map2node = t_node_id;
-                  update_stripe_info_in_node(true, t_node_id, stripe_id);
-                  g_cluster.blocks.push_back(&blocks_info[k + g_m + i]);
-                  g_cluster.stripes.insert(stripe_id);
-                  stripe_info.place2clusters.insert(g_cluster_id);
-                }
-              }
-            }
-          }
-          Cluster &g_cluster = m_cluster_table[g_cluster_id];
-          // place the global parity blocks to the selected cluster
-          for (int i = 0; i < g_m; i++)
-          {
-            int t_node_id = randomly_select_a_node(g_cluster_id, stripe_id);
-            blocks_info[k + i].map2cluster = g_cluster_id;
-            blocks_info[k + i].map2node = t_node_id;
-            update_stripe_info_in_node(true, t_node_id, stripe_id);
-            g_cluster.blocks.push_back(&blocks_info[k + i]);
-            g_cluster.stripes.insert(stripe_id);
-            stripe_info.place2clusters.insert(g_cluster_id);
-          }
-        }
-      }
-    }
-
-    if (IF_DEBUG)
-    {
-      std::cout << std::endl;
-      std::cout << "Data placement result:" << std::endl;
-      for (int i = 0; i < m_num_of_Clusters; i++)
-      {
-        Cluster &t_cluster = m_cluster_table[i];
-        if (int(t_cluster.blocks.size()) > 0)
-        {
-          std::cout << "Cluster " << i << ": ";
-          for (auto it = t_cluster.blocks.begin(); it != t_cluster.blocks.end(); it++)
-          {
-            std::cout << "[" << (*it)->block_key << ":S" << (*it)->map2stripe << "G" << (*it)->map2group << "N" << (*it)->map2node << "] ";
-          }
-          std::cout << std::endl;
-        }
-      }
-      std::cout << std::endl;
-      std::cout << "Merge Group: ";
-      for (auto it1 = m_merge_groups.begin(); it1 != m_merge_groups.end(); it1++)
-      {
-        std::cout << "[ ";
-        for (auto it2 = (*it1).begin(); it2 != (*it1).end(); it2++)
-        {
-          std::cout << (*it2) << " ";
-        }
-        std::cout << "] ";
-      }
-      std::cout << std::endl;
-    }
-
-    // randomly select a cluster
-    int r_idx = rand_num(int(stripe_info.place2clusters.size()));
-    int selected_cluster_id = *(std::next(stripe_info.place2clusters.begin(), r_idx));
-    if (IF_DEBUG)
-    {
-      std::cout << "[SET] Select the proxy in cluster " << selected_cluster_id << " to encode and set!" << std::endl;
-    }
-    return selected_cluster_id;
+    return blocks[0].map2node;
   }
 
-  void CoordinatorImpl::blocks_in_cluster(std::map<char, std::vector<ECProject::Block *>> &block_info, int cluster_id, int stripe_id)
+  void CoordinatorImpl::blocks_in_node(std::map<char, std::vector<ECProject::Block *>> &block_info, int node_id, int stripe_id)
   {
     std::vector<ECProject::Block *> tt, td, tl, tg;
-    Cluster &cluster = m_cluster_table[cluster_id];
+    Node &node = m_node_table[node_id];
     std::vector<Block *>::iterator it;
-    for (it = cluster.blocks.begin(); it != cluster.blocks.end(); it++)
+    for (it = node.blocks.begin(); it != node.blocks.end(); it++)
     {
       Block *block = *it;
       if (block->map2stripe == stripe_id)
@@ -4617,12 +4118,12 @@ namespace ECProject
     block_info['G'] = tg;
   }
 
-  void CoordinatorImpl::find_max_group(int &max_group_id, int &max_group_num, int cluster_id, int stripe_id)
+  void CoordinatorImpl::find_max_group(int &max_group_id, int &max_group_num, int node_id, int stripe_id)
   {
     int group_cnt[5] = {0};
-    Cluster &cluster = m_cluster_table[cluster_id];
+    Node &node = m_node_table[node_id];
     std::vector<Block *>::iterator it;
-    for (it = cluster.blocks.begin(); it != cluster.blocks.end(); it++)
+    for (it = node.blocks.begin(); it != node.blocks.end(); it++)
     {
       if ((*it)->map2stripe == stripe_id)
       {
@@ -4639,12 +4140,12 @@ namespace ECProject
     }
   }
 
-  int CoordinatorImpl::count_block_num(char type, int cluster_id, int stripe_id, int group_id)
+  int CoordinatorImpl::count_block_num(char type, int node_id, int stripe_id, int group_id)
   {
     int cnt = 0;
-    Cluster &cluster = m_cluster_table[cluster_id];
+    Node &node = m_node_table[node_id];
     std::vector<Block *>::iterator it;
-    for (it = cluster.blocks.begin(); it != cluster.blocks.end(); it++)
+    for (it = node.blocks.begin(); it != node.blocks.end(); it++)
     {
       Block *block = *it;
       if (block->map2stripe == stripe_id)
@@ -4675,17 +4176,17 @@ namespace ECProject
     }
     if (cnt == 0)
     {
-      cluster.stripes.erase(stripe_id);
+      node.stripes.erase(stripe_id);
     }
     return cnt;
   }
 
-  // find out if any specific type of block from the stripe exists in the cluster
-  bool CoordinatorImpl::find_block(char type, int cluster_id, int stripe_id)
+  // find out if any specific type of block from the stripe exists in the node
+  bool CoordinatorImpl::find_block(char type, int node_id, int stripe_id)
   {
-    Cluster &cluster = m_cluster_table[cluster_id];
+    Node &node = m_node_table[node_id];
     std::vector<Block *>::iterator it;
-    for (it = cluster.blocks.begin(); it != cluster.blocks.end(); it++)
+    for (it = node.blocks.begin(); it != node.blocks.end(); it++)
     {
       if (stripe_id != -1 && int((*it)->map2stripe) == stripe_id && (*it)->block_type == type)
       {

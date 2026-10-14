@@ -6,7 +6,8 @@
 namespace ECProject
 {
   const int DATANODE_PORT_SHIFT = 500;
-  const int PROXY_PORT_SHIFT = 50;
+  const int PROXY_PORT_SHIFT = 1000;
+  const int PROXY_PEER_PORT_SHIFT = 2000;
 
   class Config
   {
@@ -29,8 +30,7 @@ namespace ECProject
     int n = alpha * z * z + z;
     int k = alpha * z * z - alpha * z;
     int r = alpha * z;
-    int DatanodeNumPerCluster = 0;
-    int ClusterNum = 0;
+    int NodeNum = 0;
     std::string CoordinatorIP = "0.0.0.0";
     int CoordinatorPort = 55555;
     std::string AppendMode = "UNILRC_MODE";

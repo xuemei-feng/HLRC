@@ -133,10 +133,10 @@ namespace ECProject
     return false;
   }
 
-  int Client::get_append_slice_plans(std::string append_mode, const int curr_logical_offset, const int append_size, std::vector<std::vector<int>> *node_slice_sizes_per_cluster, std::vector<int> *modified_data_block_nums_per_cluster, std::vector<int> *data_ptr_size_array, int &parity_slice_size, int &parity_slice_offset)
+  int Client::get_append_slice_plans(std::string append_mode, const int curr_logical_offset, const int append_size, std::vector<std::vector<int>> *node_slice_sizes_per_node, std::vector<int> *modified_data_block_nums_per_node, std::vector<int> *data_ptr_size_array, int &parity_slice_size, int &parity_slice_offset)
   {
-    assert(node_slice_sizes_per_cluster->size() == m_sys_config->z);
-    assert(modified_data_block_nums_per_cluster->size() == m_sys_config->z);
+    assert(node_slice_sizes_per_node->size() == m_sys_config->z);
+    assert(modified_data_block_nums_per_node->size() == m_sys_config->z);
     assert(append_mode == "UNILRC_MODE" || append_mode == "CACHED_MODE");
 
     int unit_size = m_sys_config->UnitSize;
@@ -201,8 +201,8 @@ namespace ECProject
       {
         if (block_to_slice_sizes.find(j) != block_to_slice_sizes.end())
         {
-          node_slice_sizes_per_cluster->at(i).push_back(block_to_slice_sizes[j]);
-          modified_data_block_nums_per_cluster->at(i)++;
+          node_slice_sizes_per_node->at(i).push_back(block_to_slice_sizes[j]);
+          modified_data_block_nums_per_node->at(i)++;
           data_ptr_size_array->push_back(block_to_slice_sizes[j]);
         }
       }
@@ -210,31 +210,31 @@ namespace ECProject
       for (int j = m_sys_config->k + i * m_sys_config->r / m_sys_config->z;
            j < m_sys_config->k + (i + 1) * m_sys_config->r / m_sys_config->z; j++)
       {
-        node_slice_sizes_per_cluster->at(i).push_back(block_to_slice_sizes[j]);
+        node_slice_sizes_per_node->at(i).push_back(block_to_slice_sizes[j]);
       }
 
       for (int j = m_sys_config->k + m_sys_config->r + i * m_sys_config->z / m_sys_config->z;
            j < m_sys_config->k + m_sys_config->r + (i + 1) * m_sys_config->z / m_sys_config->z; j++)
       {
-        node_slice_sizes_per_cluster->at(i).push_back(block_to_slice_sizes[j]);
+        node_slice_sizes_per_node->at(i).push_back(block_to_slice_sizes[j]);
       }
     }
 
     return start_data_block_id;
   }
 
-  void Client::split_for_append_data_and_parity(const coordinator_proto::ReplyProxyIPsPorts *reply_proxy_ips_ports, const std::vector<char *> &cluster_slice_data, const std::vector<std::vector<int>> &node_slice_sizes_per_cluster, const std::vector<int> &modified_data_block_nums_per_cluster, std::vector<char *> &data_ptr_array, std::vector<char *> &global_parity_ptr_array, std::vector<char *> &local_parity_ptr_array)
+  void Client::split_for_append_data_and_parity(const coordinator_proto::ReplyProxyIPsPorts *reply_proxy_ips_ports, const std::vector<char *> &node_slice_data, const std::vector<std::vector<int>> &node_slice_sizes_per_node, const std::vector<int> &modified_data_block_nums_per_node, std::vector<char *> &data_ptr_array, std::vector<char *> &global_parity_ptr_array, std::vector<char *> &local_parity_ptr_array)
   {
-    for (int i = 0; i < cluster_slice_data.size(); i++)
+    for (int i = 0; i < node_slice_data.size(); i++)
     {
-      std::vector<size_t> node_slice_sizes(node_slice_sizes_per_cluster[i].begin(), node_slice_sizes_per_cluster[i].end());
-      std::vector<char *> node_slices = m_toolbox->splitCharPointer(cluster_slice_data[i], static_cast<size_t>(reply_proxy_ips_ports->cluster_slice_sizes(i)), node_slice_sizes);
-      if (modified_data_block_nums_per_cluster[i] > 0)
+      std::vector<size_t> node_slice_sizes(node_slice_sizes_per_node[i].begin(), node_slice_sizes_per_node[i].end());
+      std::vector<char *> node_slices = m_toolbox->splitCharPointer(node_slice_data[i], static_cast<size_t>(reply_proxy_ips_ports->node_slice_sizes(i)), node_slice_sizes);
+      if (modified_data_block_nums_per_node[i] > 0)
       {
-        data_ptr_array.insert(data_ptr_array.end(), node_slices.begin(), node_slices.begin() + modified_data_block_nums_per_cluster[i]);
+        data_ptr_array.insert(data_ptr_array.end(), node_slices.begin(), node_slices.begin() + modified_data_block_nums_per_node[i]);
       }
-      global_parity_ptr_array.insert(global_parity_ptr_array.end(), node_slices.begin() + modified_data_block_nums_per_cluster[i], node_slices.begin() + modified_data_block_nums_per_cluster[i] + (m_sys_config->r / m_sys_config->z));
-      local_parity_ptr_array.insert(local_parity_ptr_array.end(), node_slices.begin() + modified_data_block_nums_per_cluster[i] + (m_sys_config->r / m_sys_config->z), node_slices.end());
+      global_parity_ptr_array.insert(global_parity_ptr_array.end(), node_slices.begin() + modified_data_block_nums_per_node[i], node_slices.begin() + modified_data_block_nums_per_node[i] + (m_sys_config->r / m_sys_config->z));
+      local_parity_ptr_array.insert(local_parity_ptr_array.end(), node_slices.begin() + modified_data_block_nums_per_node[i] + (m_sys_config->r / m_sys_config->z), node_slices.end());
     }
   }
 
@@ -289,14 +289,14 @@ namespace ECProject
     else
     {
       std::vector<std::thread> threads;
-      std::vector<char *> cluster_slice_data = m_toolbox->splitCharPointer(m_pre_allocated_buffer, &reply);
+      std::vector<char *> node_slice_data = m_toolbox->splitCharPointer(m_pre_allocated_buffer, &reply);
       std::unique_ptr<bool[]> if_commit_arr(new bool[reply.append_keys_size()]);
       std::fill_n(if_commit_arr.get(), reply.append_keys_size(), false);
 
       for (int i = 0; i < reply.append_keys_size(); i++)
       {
         threads.push_back(std::thread(&Client::async_append_to_proxies,
-                                      this, cluster_slice_data[i], reply.append_keys(i), reply.cluster_slice_sizes(i), reply.proxyips(i), reply.proxyports(i), i, if_commit_arr.get()));
+                                      this, node_slice_data[i], reply.append_keys(i), reply.node_slice_sizes(i), reply.proxyips(i), reply.proxyports(i), i, if_commit_arr.get()));
       }
       for (auto &thread : threads)
       {
@@ -322,9 +322,9 @@ namespace ECProject
     return true;
   }*/
 
-  void Client::async_append_to_proxies(char *cluster_slice_data, std::string append_key, int cluster_slice_size, std::string proxy_ip, int proxy_port, int index, bool *if_commit_arr)
+  void Client::async_append_to_proxies(char *node_slice_data, std::string append_key, int node_slice_size, std::string proxy_ip, int proxy_port, int index, bool *if_commit_arr)
   {
-    // std::cout << "[Append174] Appending size " << cluster_slice_size << " to proxy_address:" << proxy_ip << ":" << proxy_port << std::endl;
+    // std::cout << "[Append174] Appending size " << node_slice_size << " to proxy_address:" << proxy_ip << ":" << proxy_port << std::endl;
     asio::io_context io_context;
     asio::error_code error;
     asio::ip::tcp::resolver resolver(io_context);
@@ -333,7 +333,7 @@ namespace ECProject
     asio::ip::tcp::socket sock_data(io_context);
     asio::connect(sock_data, endpoints);
 
-    asio::write(sock_data, asio::buffer(cluster_slice_data, cluster_slice_size), error);
+    asio::write(sock_data, asio::buffer(node_slice_data, node_slice_size), error);
     asio::error_code ignore_ec;
     sock_data.shutdown(asio::ip::tcp::socket::shutdown_send, ignore_ec);
     sock_data.close(ignore_ec);
@@ -355,12 +355,12 @@ namespace ECProject
       }
       else
       {
-        std::cout << "[APPEND205] " << append_key << " not commit!!!!!" << " cluster_slice_size: " << cluster_slice_size << " proxy_ip: " << proxy_ip << " proxy_port: " << proxy_port << std::endl;
+        std::cout << "[APPEND205] " << append_key << " not commit!!!!!" << " node_slice_size: " << node_slice_size << " proxy_ip: " << proxy_ip << " proxy_port: " << proxy_port << std::endl;
       }
     }
     else
     {
-      std::cout << "[APPEND210] " << append_key << " Fail to check!!!!!" << " cluster_slice_size: " << cluster_slice_size << " proxy_ip: " << proxy_ip << " proxy_port: " << proxy_port << std::endl;
+      std::cout << "[APPEND210] " << append_key << " Fail to check!!!!!" << " node_slice_size: " << node_slice_size << " proxy_ip: " << proxy_ip << " proxy_port: " << proxy_port << std::endl;
     }
   }
 
@@ -390,12 +390,12 @@ namespace ECProject
     }
   }
 
-  void Client::split_for_set_data_and_parity(const coordinator_proto::ReplyProxyIPsPorts *reply_proxy_ips_ports, const std::vector<char *> &cluster_slice_data, const std::vector<int> &data_block_num_per_group, const std::vector<int> &global_parity_block_num_per_group, const std::vector<int> &local_parity_block_num_per_group, std::vector<char *> &data_ptr_array, std::vector<char *> &global_parity_ptr_array, std::vector<char *> &local_parity_ptr_array)
+  void Client::split_for_set_data_and_parity(const coordinator_proto::ReplyProxyIPsPorts *reply_proxy_ips_ports, const std::vector<char *> &node_slice_data, const std::vector<int> &data_block_num_per_group, const std::vector<int> &global_parity_block_num_per_group, const std::vector<int> &local_parity_block_num_per_group, std::vector<char *> &data_ptr_array, std::vector<char *> &global_parity_ptr_array, std::vector<char *> &local_parity_ptr_array)
   {
-    for (int i = 0; i < cluster_slice_data.size(); i++)
+    for (int i = 0; i < node_slice_data.size(); i++)
     {
       std::vector<size_t> node_slice_sizes(data_block_num_per_group[i] + global_parity_block_num_per_group[i] + local_parity_block_num_per_group[i], m_sys_config->BlockSize);
-      std::vector<char *> node_slices = m_toolbox->splitCharPointer(cluster_slice_data[i], reply_proxy_ips_ports->cluster_slice_sizes(i), node_slice_sizes);
+      std::vector<char *> node_slices = m_toolbox->splitCharPointer(node_slice_data[i], reply_proxy_ips_ports->node_slice_sizes(i), node_slice_sizes);
       data_ptr_array.insert(data_ptr_array.end(), node_slices.begin(), node_slices.begin() + data_block_num_per_group[i]);
       global_parity_ptr_array.insert(global_parity_ptr_array.end(), node_slices.begin() + data_block_num_per_group[i], node_slices.begin() + data_block_num_per_group[i] + global_parity_block_num_per_group[i]);
       local_parity_ptr_array.insert(local_parity_ptr_array.end(), node_slices.begin() + data_block_num_per_group[i] + global_parity_block_num_per_group[i], node_slices.begin() + data_block_num_per_group[i] + global_parity_block_num_per_group[i] + local_parity_block_num_per_group[i]);
@@ -422,7 +422,7 @@ namespace ECProject
     {
       std::vector<std::thread> threads;
       assert((reply.sum_append_size() == static_cast<size_t>(m_sys_config->BlockSize) * static_cast<size_t>(m_sys_config->k + m_sys_config->r + m_sys_config->z)) && "sum_append_size is not equal to the block stripe size!");
-      std::vector<char *> cluster_slice_data = m_toolbox->splitCharPointer(m_pre_allocated_buffer, &reply);
+      std::vector<char *> node_slice_data = m_toolbox->splitCharPointer(m_pre_allocated_buffer, &reply);
       std::unique_ptr<bool[]> if_commit_arr(new bool[reply.append_keys_size()]);
       std::fill_n(if_commit_arr.get(), reply.append_keys_size(), false);
 
@@ -430,15 +430,15 @@ namespace ECProject
       std::vector<int> data_block_num_per_group = ECProject::get_data_block_num_per_group(m_sys_config->k, m_sys_config->r, m_sys_config->z, m_sys_config->CodeType);
       std::vector<int> global_parity_block_num_per_group = ECProject::get_global_parity_block_num_per_group(m_sys_config->k, m_sys_config->r, m_sys_config->z, m_sys_config->CodeType);
       std::vector<int> local_parity_block_num_per_group = ECProject::get_local_parity_block_num_per_group(m_sys_config->k, m_sys_config->r, m_sys_config->z, m_sys_config->CodeType);
-      // 对每个 group 检查：client 的 (data+global+local)*BlockSize 与 coordinator 下发的 cluster_slice_sizes(i) 一致
-      assert(static_cast<size_t>(reply.cluster_slice_sizes_size()) == data_block_num_per_group.size() && "group count mismatch");
+      // 对每个 group 检查：client 的 (data+global+local)*BlockSize 与 coordinator 下发的 node_slice_sizes(i) 一致
+      assert(static_cast<size_t>(reply.node_slice_sizes_size()) == data_block_num_per_group.size() && "group count mismatch");
       for (size_t i = 0; i < data_block_num_per_group.size(); i++) {
         size_t expected = static_cast<size_t>(data_block_num_per_group[i] + global_parity_block_num_per_group[i] + local_parity_block_num_per_group[i]) * static_cast<size_t>(m_sys_config->BlockSize);
-        size_t actual = static_cast<size_t>(reply.cluster_slice_sizes(static_cast<int>(i)));
+        size_t actual = static_cast<size_t>(reply.node_slice_sizes(static_cast<int>(i)));
         assert(expected == actual && "per-group slice size mismatch (client layout vs coordinator)");
       }
       std::vector<char *> data_ptr_array, global_parity_ptr_array, local_parity_ptr_array;
-      split_for_set_data_and_parity(&reply, cluster_slice_data, data_block_num_per_group, global_parity_block_num_per_group, local_parity_block_num_per_group, data_ptr_array, global_parity_ptr_array, local_parity_ptr_array);
+      split_for_set_data_and_parity(&reply, node_slice_data, data_block_num_per_group, global_parity_block_num_per_group, local_parity_block_num_per_group, data_ptr_array, global_parity_ptr_array, local_parity_ptr_array);
       std::vector<char *> parity_ptr_array;
       parity_ptr_array.insert(parity_ptr_array.end(), global_parity_ptr_array.begin(), global_parity_ptr_array.end());
       parity_ptr_array.insert(parity_ptr_array.end(), local_parity_ptr_array.begin(), local_parity_ptr_array.end());
@@ -466,7 +466,7 @@ namespace ECProject
       for (int i = 0; i < reply.append_keys_size(); i++)
       {
         threads.push_back(std::thread(&Client::async_append_to_proxies,
-                                      this, cluster_slice_data[i], reply.append_keys(i), reply.cluster_slice_sizes(i), reply.proxyips(i), reply.proxyports(i), i, if_commit_arr.get()));
+                                      this, node_slice_data[i], reply.append_keys(i), reply.node_slice_sizes(i), reply.proxyips(i), reply.proxyports(i), i, if_commit_arr.get()));
       }
       for (auto &thread : threads)
       {
@@ -510,7 +510,7 @@ namespace ECProject
     else
     {
       std::vector<std::thread> threads;
-      std::vector<char *> cluster_slice_data = m_toolbox->splitCharPointer(m_pre_allocated_buffer, &reply);
+      std::vector<char *> node_slice_data = m_toolbox->splitCharPointer(m_pre_allocated_buffer, &reply);
       std::unique_ptr<bool[]> if_commit_arr(new bool[reply.append_keys_size()]);
       std::fill_n(if_commit_arr.get(), reply.append_keys_size(), false);
 
@@ -528,16 +528,16 @@ namespace ECProject
       std::vector<int> local_parity_block_num_per_group = ECProject::get_local_parity_block_num_per_group(m_sys_config->k, m_sys_config->r, m_sys_config->z, m_sys_config->CodeType);
       m_toolbox->remove_common_zeros(data_block_num_per_group, global_parity_block_num_per_group, local_parity_block_num_per_group);
 
-      // 对每个 group 检查：client 的 (data+global+local)*BlockSize 与 coordinator 下发的 cluster_slice_sizes(i) 一致
-      assert(static_cast<size_t>(reply.cluster_slice_sizes_size()) == data_block_num_per_group.size() && "group count mismatch (sub_set)");
+      // 对每个 group 检查：client 的 (data+global+local)*BlockSize 与 coordinator 下发的 node_slice_sizes(i) 一致
+      assert(static_cast<size_t>(reply.node_slice_sizes_size()) == data_block_num_per_group.size() && "group count mismatch (sub_set)");
       for (size_t i = 0; i < data_block_num_per_group.size(); i++) {
         size_t expected = static_cast<size_t>(data_block_num_per_group[i] + global_parity_block_num_per_group[i] + local_parity_block_num_per_group[i]) * static_cast<size_t>(m_sys_config->BlockSize);
-        size_t actual = static_cast<size_t>(reply.cluster_slice_sizes(static_cast<int>(i)));
+        size_t actual = static_cast<size_t>(reply.node_slice_sizes(static_cast<int>(i)));
         assert(expected == actual && "per-group slice size mismatch (client layout vs coordinator, sub_set)");
       }
 
       std::vector<char *> data_ptr_array, global_parity_ptr_array, local_parity_ptr_array;
-      split_for_set_data_and_parity(&reply, cluster_slice_data, data_block_num_per_group, global_parity_block_num_per_group, local_parity_block_num_per_group, data_ptr_array, global_parity_ptr_array, local_parity_ptr_array);
+      split_for_set_data_and_parity(&reply, node_slice_data, data_block_num_per_group, global_parity_block_num_per_group, local_parity_block_num_per_group, data_ptr_array, global_parity_ptr_array, local_parity_ptr_array);
       std::vector<char *> parity_ptr_array;
       parity_ptr_array.insert(parity_ptr_array.end(), global_parity_ptr_array.begin(), global_parity_ptr_array.end());
       parity_ptr_array.insert(parity_ptr_array.end(), local_parity_ptr_array.begin(), local_parity_ptr_array.end());
@@ -564,7 +564,7 @@ namespace ECProject
       for (int i = 0; i < reply.append_keys_size(); i++)
       {
         threads.push_back(std::thread(&Client::async_append_to_proxies,
-                                      this, cluster_slice_data[i], reply.append_keys(i), reply.cluster_slice_sizes(i), reply.proxyips(i), reply.proxyports(i), i, if_commit_arr.get()));
+                                      this, node_slice_data[i], reply.append_keys(i), reply.node_slice_sizes(i), reply.proxyips(i), reply.proxyports(i), i, if_commit_arr.get()));
       }
       for (auto &thread : threads)
       {
@@ -1330,8 +1330,8 @@ namespace ECProject
 
     switch (mode) {
     case ECProject::TwoBlockRecoveryMode::TwoSingleBlock: {
-      int d0 = recovery_dest_cluster(stripe_id, f0);
-      int d1 = recovery_dest_cluster(stripe_id, f1);
+      int d0 = recovery_dest_node(stripe_id, f0);
+      int d1 = recovery_dest_node(stripe_id, f1);
       if (d0 >= 0 && d1 >= 0 && d0 != d1) {
         RecoveryBreakdownTimes t0, t1;
         bool ok0 = false, ok1 = false;
@@ -1409,7 +1409,7 @@ namespace ECProject
   }
 
   namespace {
-    // Placement group id of a block (cluster = (stripe_id + group_id) % ClusterNum).
+    // Placement group id of a block (node = (stripe_id + group_id) % NodeNum).
     // Returns -1 if unknown for this code type (caller then serializes, which is safe).
     int block_to_placement_group_id(const std::string &code, int k, int r, int z, int bid)
     {
@@ -1425,31 +1425,31 @@ namespace ECProject
     }
   } // namespace
 
-  std::set<int> Client::recovery_cluster_set(int stripe_id, int failed_block_id)
+  std::set<int> Client::recovery_node_set(int stripe_id, int failed_block_id)
   {
-    std::set<int> clusters;
+    std::set<int> nodes;
     const std::string &code = m_sys_config->CodeType;
     const int k = m_sys_config->k, r = m_sys_config->r, z = m_sys_config->z;
-    const int CN = m_sys_config->ClusterNum;
+    const int CN = m_sys_config->NodeNum;
     if (CN <= 0)
       return {}; // unknown -> serialize
-    // Dest cluster (where the failed block lives / is written back).
+    // Dest node (where the failed block lives / is written back).
     int fg = block_to_placement_group_id(code, k, r, z, failed_block_id);
     if (fg < 0)
-      return {}; // cannot determine dest cluster -> serialize (safe)
-    clusters.insert(((stripe_id + fg) % CN + CN) % CN);
-    // Source clusters: one per placement group in the recovery plan.
+      return {}; // cannot determine dest node -> serialize (safe)
+    nodes.insert(((stripe_id + fg) % CN + CN) % CN);
+    // Source nodes: one per placement group in the recovery plan.
     auto plan = ECProject::get_recovery_group_and_block_ids(code, k, r, z, failed_block_id);
     for (const auto &p : plan)
-      clusters.insert(((stripe_id + p.first) % CN + CN) % CN);
-    return clusters;
+      nodes.insert(((stripe_id + p.first) % CN + CN) % CN);
+    return nodes;
   }
 
-  int Client::recovery_dest_cluster(int stripe_id, int failed_block_id)
+  int Client::recovery_dest_node(int stripe_id, int failed_block_id)
   {
     const std::string &code = m_sys_config->CodeType;
     const int k = m_sys_config->k, r = m_sys_config->r, z = m_sys_config->z;
-    const int CN = m_sys_config->ClusterNum;
+    const int CN = m_sys_config->NodeNum;
     if (CN <= 0)
       return -1;
     int fg = block_to_placement_group_id(code, k, r, z, failed_block_id);
@@ -1480,15 +1480,15 @@ namespace ECProject
       // Relaxed Scheme B: the only real concurrency hazard is two recoveries sharing the
       // same DEST proxy, because each proxy receives partials on a single shared, unidentified
       // acceptor (interleaved connections would corrupt both results). Source proxies only
-      // connect outbound with per-call buffers, so sharing a read-only source cluster (e.g. the
+      // connect outbound with per-call buffers, so sharing a read-only source node (e.g. the
       // global-parity rack in OptimalLRC) is safe. => parallel iff the two write-back/dest
-      // clusters are distinct (and both determinable). Cannot-determine -> serial.
-      int d0 = recovery_dest_cluster(stripe_id, f0);
-      int d1 = recovery_dest_cluster(stripe_id, f1);
+      // nodes are distinct (and both determinable). Cannot-determine -> serial.
+      int d0 = recovery_dest_node(stripe_id, f0);
+      int d1 = recovery_dest_node(stripe_id, f1);
       if (d0 >= 0 && d1 >= 0 && d0 != d1) {
         std::cout << "[Client] two-block recovery: different local groups, PARALLEL "
-                     "(distinct dest clusters " << d0 << "," << d1
-                  << "; shared source clusters allowed)" << std::endl;
+                     "(distinct dest nodes " << d0 << "," << d1
+                  << "; shared source nodes allowed)" << std::endl;
         bool ok0 = false, ok1 = false;
         std::thread t0([&]() { ok0 = recovery(stripe_id, f0); });
         std::thread t1([&]() { ok1 = recovery(stripe_id, f1); });
@@ -1497,7 +1497,7 @@ namespace ECProject
         return ok0 && ok1;
       }
       std::cout << "[Client] two-block recovery: different local groups, SERIAL "
-                   "(same dest cluster or undeterminable: d0=" << d0 << ", d1=" << d1 << ")"
+                   "(same dest node or undeterminable: d0=" << d0 << ", d1=" << d1 << ")"
                 << std::endl;
       return recovery(stripe_id, f0) && recovery(stripe_id, f1);
     }

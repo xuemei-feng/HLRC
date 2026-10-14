@@ -41,9 +41,9 @@ namespace ECProject
   std::vector<char *> ToolBox::splitCharPointer(const char *str, const coordinator_proto::ReplyProxyIPsPorts *reply_proxy_ips_ports)
   {
     std::vector<size_t> sizes;
-    for (int i = 0; i < reply_proxy_ips_ports->cluster_slice_sizes_size(); i++)
+    for (int i = 0; i < reply_proxy_ips_ports->node_slice_sizes_size(); i++)
     {
-      sizes.push_back(reply_proxy_ips_ports->cluster_slice_sizes(i));
+      sizes.push_back(reply_proxy_ips_ports->node_slice_sizes(i));
     }
     return splitCharPointer(str, reply_proxy_ips_ports->sum_append_size(), sizes);
   }

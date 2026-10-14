@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.22)
 project(project)
 
+enable_testing()
+
 # 启用汇编语言支持（NASM）
 enable_language(ASM_NASM)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON CACHE INTERNAL "")
@@ -260,3 +262,27 @@ target_include_directories(asio_write_bench PRIVATE
 )
 target_compile_definitions(asio_write_bench PRIVATE ASIO_STANDALONE)
 target_link_libraries(asio_write_bench -lpthread)
+add_executable(proxy_gateway_integration
+    ${cn_proto_srcs} ${cn_grpc_srcs} ${pn_proto_srcs} ${pn_grpc_srcs} ${dn_proto_srcs} ${dn_grpc_srcs}
+    ${ASM_SOURCES}
+    ${CMAKE_CURRENT_SOURCE_DIR}/tests/proxy_gateway_integration.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/proxy.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/datanode.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/config.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/toolbox.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/tinyxml2.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/lrc.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/encoder.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/encoder_layout.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/recovery_strategy.cpp)
+target_link_libraries(proxy_gateway_integration ${_REFLECTION} ${_GRPC_GRPCPP} ${_PROTOBUF_LIBPROTOBUF} -lpthread -lJerasure -lgf_complete)
+
+add_test(NAME proxy_gateway_integration COMMAND proxy_gateway_integration)
+set_tests_properties(proxy_gateway_integration PROPERTIES TIMEOUT 20)
+
+add_test(NAME layout_test COMMAND layout_test)
+add_test(NAME lotus_2block_verify COMMAND lotus_2block_verify)
+add_test(NAME recovery_audit COMMAND recovery_audit)
+add_test(NAME maintenance_local_fill_verify COMMAND maintenance_local_fill_verify)
+set_tests_properties(layout_test lotus_2block_verify recovery_audit maintenance_local_fill_verify
+    PROPERTIES TIMEOUT 30)

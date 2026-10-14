@@ -33,39 +33,32 @@ namespace ECProject
 
   typedef struct Block
   {
-    int block_id;          // to denote the order of data blocks in a stripe
-    std::string block_key; // to distinct block, globally unique
+    int block_id;
+    std::string block_key;
     char block_type;
     int block_size;
-    int map2group, map2stripe, map2cluster, map2node;
-    // belong to which client
+    int map2group, map2stripe, map2node;
     std::string map2key;
-    Block(int block_id, const std::string block_key, char block_type, int block_size, int map2group,
-          int map2stripe, int map2cluster, int map2node, const std::string map2key)
-        : block_id(block_id), block_key(block_key), block_type(block_type), block_size(block_size), map2group(map2group), map2stripe(map2stripe), map2cluster(map2cluster), map2node(map2node), map2key(map2key) {}
+    Block(int block_id, const std::string &block_key, char block_type, int block_size,
+          int map2group, int map2stripe, int map2node, const std::string &map2key)
+        : block_id(block_id), block_key(block_key), block_type(block_type), block_size(block_size),
+          map2group(map2group), map2stripe(map2stripe), map2node(map2node), map2key(map2key) {}
     Block() = default;
   } Block;
-
-  typedef struct Cluster
-  {
-    int cluster_id;
-    std::string proxy_ip;
-    int proxy_port;
-    std::vector<int> nodes;
-    std::vector<Block *> blocks;
-    std::unordered_set<int> stripes;
-    Cluster(int cluster_id, const std::string &proxy_ip, int proxy_port) : cluster_id(cluster_id), proxy_ip(proxy_ip), proxy_port(proxy_port) {}
-    Cluster() = default;
-  } Cluster;
 
   typedef struct Node
   {
     int node_id;
+    std::string proxy_ip;
+    int proxy_port;
     std::string node_ip;
     int node_port;
-    int cluster_id;
+    std::vector<Block *> blocks;
     std::unordered_map<int, int> stripes;
-    Node(int node_id, const std::string node_ip, int node_port, int cluster_id) : node_id(node_id), node_ip(node_ip), node_port(node_port), cluster_id(cluster_id) {}
+    Node(int id, const std::string &proxy_host, int proxy_service_port,
+         const std::string &datanode_host, int datanode_service_port)
+        : node_id(id), proxy_ip(proxy_host), proxy_port(proxy_service_port),
+          node_ip(datanode_host), node_port(datanode_service_port) {}
     Node() = default;
   } Node;
 
@@ -76,8 +69,7 @@ namespace ECProject
     std::vector<std::string> object_keys;
     std::vector<int> object_sizes;
     std::vector<Block *> blocks;
-    std::unordered_set<int> place2clusters;
-
+    std::unordered_set<int> place2nodes;
     int n, r, z;
     int num_groups;
     std::map<int, std::vector<int>> group_to_blocks;

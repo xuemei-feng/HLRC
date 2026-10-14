@@ -35,12 +35,12 @@ int main(int argc, char **argv)
     } else {
         exe_dir = buff;
     }
-    std::string config_path = exe_dir + "/../../config/clusterInformation.xml";
+    std::string config_path = exe_dir + "/../../config/nodeInformation.xml";
     std::string sys_config_path = exe_dir + "/../../config/parameterConfiguration.xml";
 
-    // std::string config_path = "/home/GuanTian/lql/UniLRC/project/config/test_clusterInformation.xml";
+    // std::string config_path = "/home/GuanTian/lql/UniLRC/project/config/test_nodeInformation.xml";
     // std::string sys_config_path = "/home/GuanTian/lql/UniLRC/project/config/parameterConfiguration.xml";
-    std::cout << "Cluster config path: " << config_path << std::endl;
+    std::cout << "Node config path: " << config_path << std::endl;
     std::cout << "Sys config path: " << sys_config_path << std::endl;
 
     ECProject::Config *config = ECProject::Config::getInstance(sys_config_path);
