@@ -17,20 +17,6 @@ namespace ECProject
     Azure_LRC,
     Optimal_Cauchy_LRC
   };
-  enum SingleStripePlacementType
-  {
-    Random,
-    Flat,
-    Optimal
-  };
-  enum MultiStripesPlacementType
-  {
-    Ran,
-    DIS,
-    AGG,
-    OPT
-  };
-
   typedef struct Block
   {
     int block_id;
@@ -137,25 +123,6 @@ namespace ECProject
     }
   } ParitySlice;
 
-  typedef struct ECSchema
-  {
-    ECSchema() = default;
-    ECSchema(bool partial_decoding, EncodeType encodetype, SingleStripePlacementType s_stripe_placementtype,
-             MultiStripesPlacementType m_stripe_placementtype, int k_datablock, int l_localparityblock, int g_m_globalparityblock,
-             int b_datapergroup, int x_stripepermergegroup)
-        : partial_decoding(partial_decoding), encodetype(encodetype), s_stripe_placementtype(s_stripe_placementtype),
-          m_stripe_placementtype(m_stripe_placementtype), k_datablock(k_datablock), l_localparityblock(l_localparityblock),
-          g_m_globalparityblock(g_m_globalparityblock), b_datapergroup(b_datapergroup), x_stripepermergegroup(x_stripepermergegroup) {}
-    bool partial_decoding;
-    EncodeType encodetype;
-    SingleStripePlacementType s_stripe_placementtype;
-    MultiStripesPlacementType m_stripe_placementtype;
-    int k_datablock;
-    int l_localparityblock;
-    int g_m_globalparityblock;
-    int b_datapergroup;
-    int x_stripepermergegroup; // the product of xi
-  } ECSchema;
 } // namespace ECProject
 
 #endif // META_DEFINITION

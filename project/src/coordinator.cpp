@@ -32,48 +32,23 @@ inline int rand_num(int range)
   return num;
 };
 
+inline bool get_legacy_encode_type(const std::string &code_type, ECProject::EncodeType &encode_type)
+{
+  if (code_type == "AzureLRC")
+  {
+    encode_type = ECProject::Azure_LRC;
+    return true;
+  }
+  if (code_type == "OptimalLRC")
+  {
+    encode_type = ECProject::Optimal_Cauchy_LRC;
+    return true;
+  }
+  return false;
+}
+
 namespace ECProject
 {
-  grpc::Status CoordinatorImpl::setParameter(
-      grpc::ServerContext *context,
-      const coordinator_proto::Parameter *parameter,
-      coordinator_proto::RepIfSetParaSuccess *setParameterReply)
-  {
-    ECSchema system_metadata(parameter->partial_decoding(),
-                             (ECProject::EncodeType)parameter->encodetype(),
-                             (ECProject::SingleStripePlacementType)parameter->s_stripe_placementtype(),
-                             (ECProject::MultiStripesPlacementType)parameter->m_stripe_placementtype(),
-                             parameter->k_datablock(),
-                             parameter->l_localparityblock(),
-                             parameter->g_m_globalparityblock(),
-                             parameter->b_datapergroup(),
-                             parameter->x_stripepermergegroup());
-    m_encode_parameters = system_metadata;
-    setParameterReply->set_ifsetparameter(true);
-    m_cur_node_id = 0;
-    m_cur_stripe_id = 0;
-    m_object_commit_table.clear();
-    m_object_updating_table.clear();
-    m_stripe_deleting_table.clear();
-    for (auto it = m_node_table.begin(); it != m_node_table.end(); it++)
-    {
-      Node &t_node = it->second;
-      t_node.blocks.clear();
-      t_node.stripes.clear();
-    }
-    for (auto it = m_node_table.begin(); it != m_node_table.end(); it++)
-    {
-      Node &t_node = it->second;
-      t_node.stripes.clear();
-    }
-    m_stripe_table.clear();
-    m_merge_groups.clear();
-    m_free_nodes.clear();
-    m_agg_start_cid = 0;
-    std::cout << "setParameter success" << std::endl;
-    return grpc::Status::OK;
-  }
-
   grpc::Status CoordinatorImpl::sayHelloToCoordinator(
       grpc::ServerContext *context,
       const coordinator_proto::RequestToCoordinator *helloRequestToCoordinator,
@@ -90,6 +65,10 @@ namespace ECProject
       const coordinator_proto::RequestProxyIPPort *keyValueSize,
       coordinator_proto::ReplyProxyIPPort *proxyIPPort)
   {
+    EncodeType legacy_encode_type;
+    if (!get_legacy_encode_type(m_sys_config->CodeType, legacy_encode_type))
+      return grpc::Status(grpc::StatusCode::FAILED_PRECONDITION,
+                          "Legacy object API does not support code type " + m_sys_config->CodeType);
 
     std::string key = keyValueSize->key();
     m_mutex.lock();
@@ -99,10 +78,9 @@ namespace ECProject
 
     ObjectInfo new_object;
 
-    int k = m_encode_parameters.k_datablock;
-    int g_m = m_encode_parameters.g_m_globalparityblock;
-    int l = m_encode_parameters.l_localparityblock;
-    // int b = m_encode_parameters.b_datapergroup;
+    int k = m_sys_config->k;
+    int g_m = m_sys_config->r;
+    int l = m_sys_config->z;
     new_object.object_size = valuesizebytes;
     int block_size = ceil(valuesizebytes, k);
 
@@ -112,7 +90,7 @@ namespace ECProject
     object_placement.set_k(k);
     object_placement.set_g_m(g_m);
     object_placement.set_l(l);
-    object_placement.set_encode_type((int)m_encode_parameters.encodetype);
+    object_placement.set_encode_type((int)legacy_encode_type);
     object_placement.set_block_size(block_size);
 
     Stripe t_stripe;
@@ -1239,6 +1217,10 @@ namespace ECProject
   {
     try
     {
+      EncodeType legacy_encode_type;
+      if (!get_legacy_encode_type(m_sys_config->CodeType, legacy_encode_type))
+        return grpc::Status(grpc::StatusCode::FAILED_PRECONDITION,
+                            "Legacy object API does not support code type " + m_sys_config->CodeType);
       std::string key = keyClient->key();
       std::string client_ip = keyClient->clientip();
       int client_port = keyClient->clientport();
@@ -1246,10 +1228,9 @@ namespace ECProject
       m_mutex.lock();
       object_info = m_object_commit_table.at(key);
       m_mutex.unlock();
-      int k = m_encode_parameters.k_datablock;
-      int g_m = m_encode_parameters.g_m_globalparityblock;
-      int l = m_encode_parameters.l_localparityblock;
-      // int b = m_encode_parameters.b_datapergroup;
+      int k = m_sys_config->k;
+      int g_m = m_sys_config->r;
+      int l = m_sys_config->z;
 
       grpc::ClientContext decode_and_get;
       proxy_proto::ObjectAndPlacement object_placement;
@@ -1262,7 +1243,7 @@ namespace ECProject
       object_placement.set_l(l);
       object_placement.set_g_m(g_m);
       object_placement.set_stripe_id(object_info.map2stripe);
-      object_placement.set_encode_type(m_encode_parameters.encodetype);
+      object_placement.set_encode_type(legacy_encode_type);
       object_placement.set_clientip(client_ip);
       object_placement.set_clientport(client_port);
       Stripe &t_stripe = m_stripe_table[object_info.map2stripe];
@@ -1295,6 +1276,7 @@ namespace ECProject
     {
       std::cout << "getValue exception" << std::endl;
       std::cout << e.what() << std::endl;
+      return grpc::Status(grpc::StatusCode::INTERNAL, e.what());
     }
     return grpc::Status::OK;
   }
@@ -3997,20 +3979,37 @@ namespace ECProject
     if (xml.LoadFile(nodeinfo_path.c_str()) != tinyxml2::XML_SUCCESS) return false;
     tinyxml2::XMLElement *root = xml.RootElement();
     if (root == nullptr || std::string(root->Name()) != "nodes") return false;
+    if (m_sys_config == nullptr)
+      throw std::runtime_error("System configuration must be loaded before node topology");
     m_node_table.clear();
+    int element_count = 0;
     for (auto *elem = root->FirstChildElement("node"); elem != nullptr; elem = elem->NextSiblingElement("node"))
     {
+      ++element_count;
       int id = elem->IntAttribute("id", -1);
       std::string proxy = elem->Attribute("proxy") ? elem->Attribute("proxy") : "";
       std::string datanode = elem->Attribute("datanode") ? elem->Attribute("datanode") : "";
       auto proxy_sep = proxy.rfind(':');
       auto datanode_sep = datanode.rfind(':');
-      if (id < 0 || proxy_sep == std::string::npos || datanode_sep == std::string::npos) return false;
-      m_node_table.emplace(id, Node(id, proxy.substr(0, proxy_sep), std::stoi(proxy.substr(proxy_sep + 1)),
-                                    datanode.substr(0, datanode_sep), std::stoi(datanode.substr(datanode_sep + 1))));
+      if (id < 0 || proxy_sep == std::string::npos || datanode_sep == std::string::npos)
+        throw std::runtime_error("Invalid node topology entry at index " + std::to_string(element_count - 1));
+      auto inserted = m_node_table.emplace(id, Node(id, proxy.substr(0, proxy_sep), std::stoi(proxy.substr(proxy_sep + 1)),
+                                                   datanode.substr(0, datanode_sep), std::stoi(datanode.substr(datanode_sep + 1))));
+      if (!inserted.second)
+        throw std::runtime_error("Duplicate node id: " + std::to_string(id));
     }
     m_num_of_Nodes = static_cast<int>(m_node_table.size());
-    return m_num_of_Nodes > 0;
+    if (m_num_of_Nodes != element_count)
+      throw std::runtime_error("Node topology contains duplicate ids");
+    for (int id = 0; id < m_num_of_Nodes; ++id)
+      if (m_node_table.count(id) == 0)
+        throw std::runtime_error("Node ids must be continuous from zero; missing id=" + std::to_string(id));
+    if (m_num_of_Nodes != m_sys_config->NodeNum || m_num_of_Nodes < m_sys_config->n)
+      throw std::runtime_error("Node topology count mismatch for code type " + m_sys_config->CodeType +
+                               ": actual=" + std::to_string(m_num_of_Nodes) +
+                               ", required=" + std::to_string(m_sys_config->NodeNum) +
+                               " and at least stripe width " + std::to_string(m_sys_config->n));
+    return true;
   }
 
   int CoordinatorImpl::randomly_select_a_node(int stripe_id)
@@ -4064,6 +4063,13 @@ namespace ECProject
     int count = stripe.k + stripe.g_m + stripe.l;
     if (count > m_num_of_Nodes) throw std::runtime_error("NodeNum is smaller than stripe width");
     Block *blocks = new Block[count];
+    std::unordered_map<int, int> block_id_to_group_id;
+    if (m_sys_config->CodeType == "AzureLRC")
+      block_id_to_group_id = ECProject::get_azurelrc_block_id_to_group_id(stripe.k, stripe.g_m, stripe.l);
+    else if (m_sys_config->CodeType == "OptimalLRC")
+      block_id_to_group_id = ECProject::get_optimal_lrc_block_id_to_group_id(stripe.k, stripe.g_m, stripe.l);
+    else
+      throw std::runtime_error("Legacy object placement does not support code type " + m_sys_config->CodeType);
     std::string object_key = stripe.object_keys.back();
     for (int i = 0; i < count; ++i)
     {
@@ -4072,7 +4078,7 @@ namespace ECProject
       block.block_size = block_size;
       block.map2stripe = stripe_id;
       block.map2key = object_key;
-      block.map2group = i < stripe.k ? i / m_encode_parameters.b_datapergroup : stripe.l;
+      block.map2group = block_id_to_group_id.at(i);
       block.block_type = i < stripe.k ? 'D' : (i < stripe.k + stripe.g_m ? 'G' : 'L');
       block.block_key = i < stripe.k ? object_key + "_D" + std::to_string(i)
           : "Stripe" + std::to_string(stripe_id) + (block.block_type == 'G' ? "_G" : "_L")
@@ -4083,7 +4089,9 @@ namespace ECProject
       node.stripes[stripe_id] = i;
       stripe.blocks.push_back(&block);
       stripe.place2nodes.insert(block.map2node);
+      add_to_map(stripe.group_to_blocks, block.map2group, i);
     }
+    stripe.num_groups = static_cast<int>(stripe.group_to_blocks.size());
     return blocks[0].map2node;
   }
 
@@ -4120,7 +4128,7 @@ namespace ECProject
 
   void CoordinatorImpl::find_max_group(int &max_group_id, int &max_group_num, int node_id, int stripe_id)
   {
-    int group_cnt[5] = {0};
+    std::unordered_map<int, int> group_cnt;
     Node &node = m_node_table[node_id];
     std::vector<Block *>::iterator it;
     for (it = node.blocks.begin(); it != node.blocks.end(); it++)
@@ -4130,12 +4138,12 @@ namespace ECProject
         group_cnt[(*it)->map2group]++;
       }
     }
-    for (int i = 0; i <= m_encode_parameters.l_localparityblock; i++)
+    for (const auto &entry : group_cnt)
     {
-      if (group_cnt[i] > max_group_num)
+      if (entry.second > max_group_num)
       {
-        max_group_id = i;
-        max_group_num = group_cnt[i];
+        max_group_id = entry.first;
+        max_group_num = entry.second;
       }
     }
   }

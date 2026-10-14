@@ -85,7 +85,6 @@ namespace ECProject
     int recovery_full_node(int node_id);
     int recovery_two_nodes(int node_id_0, int node_id_1);
     bool set(std::string key, std::string value);
-    bool SetParameterByGrpc(ECSchema input_ecschema);
     std::shared_ptr<char[]> get(std::string key, size_t &data_size);
     // Maintenance-robust normal read: under single-rack failure, reconstruct the failed rack's
     // data blocks in memory (no disk write-back) using the single-rack N-1/N-2 split, then read

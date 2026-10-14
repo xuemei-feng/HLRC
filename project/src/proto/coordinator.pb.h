@@ -69,9 +69,6 @@ extern MaintenanceReadRequestDefaultTypeInternal _MaintenanceReadRequest_default
 class NodeIdFromClient;
 struct NodeIdFromClientDefaultTypeInternal;
 extern NodeIdFromClientDefaultTypeInternal _NodeIdFromClient_default_instance_;
-class Parameter;
-struct ParameterDefaultTypeInternal;
-extern ParameterDefaultTypeInternal _Parameter_default_instance_;
 class RecoveryReply;
 struct RecoveryReplyDefaultTypeInternal;
 extern RecoveryReplyDefaultTypeInternal _RecoveryReply_default_instance_;
@@ -84,9 +81,6 @@ extern RepIfDelingDefaultTypeInternal _RepIfDeling_default_instance_;
 class RepIfGetSuccess;
 struct RepIfGetSuccessDefaultTypeInternal;
 extern RepIfGetSuccessDefaultTypeInternal _RepIfGetSuccess_default_instance_;
-class RepIfSetParaSuccess;
-struct RepIfSetParaSuccessDefaultTypeInternal;
-extern RepIfSetParaSuccessDefaultTypeInternal _RepIfSetParaSuccess_default_instance_;
 class RepIfSuccess;
 struct RepIfSuccessDefaultTypeInternal;
 extern RepIfSuccessDefaultTypeInternal _RepIfSuccess_default_instance_;
@@ -127,12 +121,10 @@ template<> ::coordinator_proto::KeyAndClientIP* Arena::CreateMaybeMessage<::coor
 template<> ::coordinator_proto::KeyFromClient* Arena::CreateMaybeMessage<::coordinator_proto::KeyFromClient>(Arena*);
 template<> ::coordinator_proto::MaintenanceReadRequest* Arena::CreateMaybeMessage<::coordinator_proto::MaintenanceReadRequest>(Arena*);
 template<> ::coordinator_proto::NodeIdFromClient* Arena::CreateMaybeMessage<::coordinator_proto::NodeIdFromClient>(Arena*);
-template<> ::coordinator_proto::Parameter* Arena::CreateMaybeMessage<::coordinator_proto::Parameter>(Arena*);
 template<> ::coordinator_proto::RecoveryReply* Arena::CreateMaybeMessage<::coordinator_proto::RecoveryReply>(Arena*);
 template<> ::coordinator_proto::RepBlockNum* Arena::CreateMaybeMessage<::coordinator_proto::RepBlockNum>(Arena*);
 template<> ::coordinator_proto::RepIfDeling* Arena::CreateMaybeMessage<::coordinator_proto::RepIfDeling>(Arena*);
 template<> ::coordinator_proto::RepIfGetSuccess* Arena::CreateMaybeMessage<::coordinator_proto::RepIfGetSuccess>(Arena*);
-template<> ::coordinator_proto::RepIfSetParaSuccess* Arena::CreateMaybeMessage<::coordinator_proto::RepIfSetParaSuccess>(Arena*);
 template<> ::coordinator_proto::RepIfSuccess* Arena::CreateMaybeMessage<::coordinator_proto::RepIfSuccess>(Arena*);
 template<> ::coordinator_proto::RepStripeIds* Arena::CreateMaybeMessage<::coordinator_proto::RepStripeIds>(Arena*);
 template<> ::coordinator_proto::ReplyFromCoordinator* Arena::CreateMaybeMessage<::coordinator_proto::ReplyFromCoordinator>(Arena*);
@@ -147,390 +139,6 @@ PROTOBUF_NAMESPACE_CLOSE
 namespace coordinator_proto {
 
 // ===================================================================
-
-class Parameter final :
-    public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:coordinator_proto.Parameter) */ {
- public:
-  inline Parameter() : Parameter(nullptr) {}
-  ~Parameter() override;
-  explicit PROTOBUF_CONSTEXPR Parameter(::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized);
-
-  Parameter(const Parameter& from);
-  Parameter(Parameter&& from) noexcept
-    : Parameter() {
-    *this = ::std::move(from);
-  }
-
-  inline Parameter& operator=(const Parameter& from) {
-    CopyFrom(from);
-    return *this;
-  }
-  inline Parameter& operator=(Parameter&& from) noexcept {
-    if (this == &from) return *this;
-    if (GetOwningArena() == from.GetOwningArena()
-  #ifdef PROTOBUF_FORCE_COPY_IN_MOVE
-        && GetOwningArena() != nullptr
-  #endif  // !PROTOBUF_FORCE_COPY_IN_MOVE
-    ) {
-      InternalSwap(&from);
-    } else {
-      CopyFrom(from);
-    }
-    return *this;
-  }
-
-  static const ::PROTOBUF_NAMESPACE_ID::Descriptor* descriptor() {
-    return GetDescriptor();
-  }
-  static const ::PROTOBUF_NAMESPACE_ID::Descriptor* GetDescriptor() {
-    return default_instance().GetMetadata().descriptor;
-  }
-  static const ::PROTOBUF_NAMESPACE_ID::Reflection* GetReflection() {
-    return default_instance().GetMetadata().reflection;
-  }
-  static const Parameter& default_instance() {
-    return *internal_default_instance();
-  }
-  static inline const Parameter* internal_default_instance() {
-    return reinterpret_cast<const Parameter*>(
-               &_Parameter_default_instance_);
-  }
-  static constexpr int kIndexInFileMessages =
-    0;
-
-  friend void swap(Parameter& a, Parameter& b) {
-    a.Swap(&b);
-  }
-  inline void Swap(Parameter* other) {
-    if (other == this) return;
-  #ifdef PROTOBUF_FORCE_COPY_IN_SWAP
-    if (GetOwningArena() != nullptr &&
-        GetOwningArena() == other->GetOwningArena()) {
-   #else  // PROTOBUF_FORCE_COPY_IN_SWAP
-    if (GetOwningArena() == other->GetOwningArena()) {
-  #endif  // !PROTOBUF_FORCE_COPY_IN_SWAP
-      InternalSwap(other);
-    } else {
-      ::PROTOBUF_NAMESPACE_ID::internal::GenericSwap(this, other);
-    }
-  }
-  void UnsafeArenaSwap(Parameter* other) {
-    if (other == this) return;
-    GOOGLE_DCHECK(GetOwningArena() == other->GetOwningArena());
-    InternalSwap(other);
-  }
-
-  // implements Message ----------------------------------------------
-
-  Parameter* New(::PROTOBUF_NAMESPACE_ID::Arena* arena = nullptr) const final {
-    return CreateMaybeMessage<Parameter>(arena);
-  }
-  using ::PROTOBUF_NAMESPACE_ID::Message::CopyFrom;
-  void CopyFrom(const Parameter& from);
-  using ::PROTOBUF_NAMESPACE_ID::Message::MergeFrom;
-  void MergeFrom( const Parameter& from) {
-    Parameter::MergeImpl(*this, from);
-  }
-  private:
-  static void MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg);
-  public:
-  PROTOBUF_ATTRIBUTE_REINITIALIZES void Clear() final;
-  bool IsInitialized() const final;
-
-  size_t ByteSizeLong() const final;
-  const char* _InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) final;
-  uint8_t* _InternalSerialize(
-      uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const final;
-  int GetCachedSize() const final { return _impl_._cached_size_.Get(); }
-
-  private:
-  void SharedCtor(::PROTOBUF_NAMESPACE_ID::Arena* arena, bool is_message_owned);
-  void SharedDtor();
-  void SetCachedSize(int size) const final;
-  void InternalSwap(Parameter* other);
-
-  private:
-  friend class ::PROTOBUF_NAMESPACE_ID::internal::AnyMetadata;
-  static ::PROTOBUF_NAMESPACE_ID::StringPiece FullMessageName() {
-    return "coordinator_proto.Parameter";
-  }
-  protected:
-  explicit Parameter(::PROTOBUF_NAMESPACE_ID::Arena* arena,
-                       bool is_message_owned = false);
-  public:
-
-  static const ClassData _class_data_;
-  const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*GetClassData() const final;
-
-  ::PROTOBUF_NAMESPACE_ID::Metadata GetMetadata() const final;
-
-  // nested types ----------------------------------------------------
-
-  // accessors -------------------------------------------------------
-
-  enum : int {
-    kPartialDecodingFieldNumber = 1,
-    kEncodetypeFieldNumber = 2,
-    kSStripePlacementtypeFieldNumber = 3,
-    kMStripePlacementtypeFieldNumber = 4,
-    kKDatablockFieldNumber = 5,
-    kLLocalparityblockFieldNumber = 6,
-    kGMGlobalparityblockFieldNumber = 7,
-    kBDatapergroupFieldNumber = 8,
-    kXStripepermergegroupFieldNumber = 9,
-  };
-  // bool partial_decoding = 1;
-  void clear_partial_decoding();
-  bool partial_decoding() const;
-  void set_partial_decoding(bool value);
-  private:
-  bool _internal_partial_decoding() const;
-  void _internal_set_partial_decoding(bool value);
-  public:
-
-  // int32 encodetype = 2;
-  void clear_encodetype();
-  int32_t encodetype() const;
-  void set_encodetype(int32_t value);
-  private:
-  int32_t _internal_encodetype() const;
-  void _internal_set_encodetype(int32_t value);
-  public:
-
-  // int32 s_stripe_placementtype = 3;
-  void clear_s_stripe_placementtype();
-  int32_t s_stripe_placementtype() const;
-  void set_s_stripe_placementtype(int32_t value);
-  private:
-  int32_t _internal_s_stripe_placementtype() const;
-  void _internal_set_s_stripe_placementtype(int32_t value);
-  public:
-
-  // int32 m_stripe_placementtype = 4;
-  void clear_m_stripe_placementtype();
-  int32_t m_stripe_placementtype() const;
-  void set_m_stripe_placementtype(int32_t value);
-  private:
-  int32_t _internal_m_stripe_placementtype() const;
-  void _internal_set_m_stripe_placementtype(int32_t value);
-  public:
-
-  // int32 k_datablock = 5;
-  void clear_k_datablock();
-  int32_t k_datablock() const;
-  void set_k_datablock(int32_t value);
-  private:
-  int32_t _internal_k_datablock() const;
-  void _internal_set_k_datablock(int32_t value);
-  public:
-
-  // int32 l_localparityblock = 6;
-  void clear_l_localparityblock();
-  int32_t l_localparityblock() const;
-  void set_l_localparityblock(int32_t value);
-  private:
-  int32_t _internal_l_localparityblock() const;
-  void _internal_set_l_localparityblock(int32_t value);
-  public:
-
-  // int32 g_m_globalparityblock = 7;
-  void clear_g_m_globalparityblock();
-  int32_t g_m_globalparityblock() const;
-  void set_g_m_globalparityblock(int32_t value);
-  private:
-  int32_t _internal_g_m_globalparityblock() const;
-  void _internal_set_g_m_globalparityblock(int32_t value);
-  public:
-
-  // int32 b_datapergroup = 8;
-  void clear_b_datapergroup();
-  int32_t b_datapergroup() const;
-  void set_b_datapergroup(int32_t value);
-  private:
-  int32_t _internal_b_datapergroup() const;
-  void _internal_set_b_datapergroup(int32_t value);
-  public:
-
-  // int32 x_stripepermergegroup = 9;
-  void clear_x_stripepermergegroup();
-  int32_t x_stripepermergegroup() const;
-  void set_x_stripepermergegroup(int32_t value);
-  private:
-  int32_t _internal_x_stripepermergegroup() const;
-  void _internal_set_x_stripepermergegroup(int32_t value);
-  public:
-
-  // @@protoc_insertion_point(class_scope:coordinator_proto.Parameter)
- private:
-  class _Internal;
-
-  template <typename T> friend class ::PROTOBUF_NAMESPACE_ID::Arena::InternalHelper;
-  typedef void InternalArenaConstructable_;
-  typedef void DestructorSkippable_;
-  struct Impl_ {
-    bool partial_decoding_;
-    int32_t encodetype_;
-    int32_t s_stripe_placementtype_;
-    int32_t m_stripe_placementtype_;
-    int32_t k_datablock_;
-    int32_t l_localparityblock_;
-    int32_t g_m_globalparityblock_;
-    int32_t b_datapergroup_;
-    int32_t x_stripepermergegroup_;
-    mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
-  };
-  union { Impl_ _impl_; };
-  friend struct ::TableStruct_coordinator_2eproto;
-};
-// -------------------------------------------------------------------
-
-class RepIfSetParaSuccess final :
-    public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:coordinator_proto.RepIfSetParaSuccess) */ {
- public:
-  inline RepIfSetParaSuccess() : RepIfSetParaSuccess(nullptr) {}
-  ~RepIfSetParaSuccess() override;
-  explicit PROTOBUF_CONSTEXPR RepIfSetParaSuccess(::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized);
-
-  RepIfSetParaSuccess(const RepIfSetParaSuccess& from);
-  RepIfSetParaSuccess(RepIfSetParaSuccess&& from) noexcept
-    : RepIfSetParaSuccess() {
-    *this = ::std::move(from);
-  }
-
-  inline RepIfSetParaSuccess& operator=(const RepIfSetParaSuccess& from) {
-    CopyFrom(from);
-    return *this;
-  }
-  inline RepIfSetParaSuccess& operator=(RepIfSetParaSuccess&& from) noexcept {
-    if (this == &from) return *this;
-    if (GetOwningArena() == from.GetOwningArena()
-  #ifdef PROTOBUF_FORCE_COPY_IN_MOVE
-        && GetOwningArena() != nullptr
-  #endif  // !PROTOBUF_FORCE_COPY_IN_MOVE
-    ) {
-      InternalSwap(&from);
-    } else {
-      CopyFrom(from);
-    }
-    return *this;
-  }
-
-  static const ::PROTOBUF_NAMESPACE_ID::Descriptor* descriptor() {
-    return GetDescriptor();
-  }
-  static const ::PROTOBUF_NAMESPACE_ID::Descriptor* GetDescriptor() {
-    return default_instance().GetMetadata().descriptor;
-  }
-  static const ::PROTOBUF_NAMESPACE_ID::Reflection* GetReflection() {
-    return default_instance().GetMetadata().reflection;
-  }
-  static const RepIfSetParaSuccess& default_instance() {
-    return *internal_default_instance();
-  }
-  static inline const RepIfSetParaSuccess* internal_default_instance() {
-    return reinterpret_cast<const RepIfSetParaSuccess*>(
-               &_RepIfSetParaSuccess_default_instance_);
-  }
-  static constexpr int kIndexInFileMessages =
-    1;
-
-  friend void swap(RepIfSetParaSuccess& a, RepIfSetParaSuccess& b) {
-    a.Swap(&b);
-  }
-  inline void Swap(RepIfSetParaSuccess* other) {
-    if (other == this) return;
-  #ifdef PROTOBUF_FORCE_COPY_IN_SWAP
-    if (GetOwningArena() != nullptr &&
-        GetOwningArena() == other->GetOwningArena()) {
-   #else  // PROTOBUF_FORCE_COPY_IN_SWAP
-    if (GetOwningArena() == other->GetOwningArena()) {
-  #endif  // !PROTOBUF_FORCE_COPY_IN_SWAP
-      InternalSwap(other);
-    } else {
-      ::PROTOBUF_NAMESPACE_ID::internal::GenericSwap(this, other);
-    }
-  }
-  void UnsafeArenaSwap(RepIfSetParaSuccess* other) {
-    if (other == this) return;
-    GOOGLE_DCHECK(GetOwningArena() == other->GetOwningArena());
-    InternalSwap(other);
-  }
-
-  // implements Message ----------------------------------------------
-
-  RepIfSetParaSuccess* New(::PROTOBUF_NAMESPACE_ID::Arena* arena = nullptr) const final {
-    return CreateMaybeMessage<RepIfSetParaSuccess>(arena);
-  }
-  using ::PROTOBUF_NAMESPACE_ID::Message::CopyFrom;
-  void CopyFrom(const RepIfSetParaSuccess& from);
-  using ::PROTOBUF_NAMESPACE_ID::Message::MergeFrom;
-  void MergeFrom( const RepIfSetParaSuccess& from) {
-    RepIfSetParaSuccess::MergeImpl(*this, from);
-  }
-  private:
-  static void MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg);
-  public:
-  PROTOBUF_ATTRIBUTE_REINITIALIZES void Clear() final;
-  bool IsInitialized() const final;
-
-  size_t ByteSizeLong() const final;
-  const char* _InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) final;
-  uint8_t* _InternalSerialize(
-      uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const final;
-  int GetCachedSize() const final { return _impl_._cached_size_.Get(); }
-
-  private:
-  void SharedCtor(::PROTOBUF_NAMESPACE_ID::Arena* arena, bool is_message_owned);
-  void SharedDtor();
-  void SetCachedSize(int size) const final;
-  void InternalSwap(RepIfSetParaSuccess* other);
-
-  private:
-  friend class ::PROTOBUF_NAMESPACE_ID::internal::AnyMetadata;
-  static ::PROTOBUF_NAMESPACE_ID::StringPiece FullMessageName() {
-    return "coordinator_proto.RepIfSetParaSuccess";
-  }
-  protected:
-  explicit RepIfSetParaSuccess(::PROTOBUF_NAMESPACE_ID::Arena* arena,
-                       bool is_message_owned = false);
-  public:
-
-  static const ClassData _class_data_;
-  const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*GetClassData() const final;
-
-  ::PROTOBUF_NAMESPACE_ID::Metadata GetMetadata() const final;
-
-  // nested types ----------------------------------------------------
-
-  // accessors -------------------------------------------------------
-
-  enum : int {
-    kIfsetparameterFieldNumber = 1,
-  };
-  // bool ifsetparameter = 1;
-  void clear_ifsetparameter();
-  bool ifsetparameter() const;
-  void set_ifsetparameter(bool value);
-  private:
-  bool _internal_ifsetparameter() const;
-  void _internal_set_ifsetparameter(bool value);
-  public:
-
-  // @@protoc_insertion_point(class_scope:coordinator_proto.RepIfSetParaSuccess)
- private:
-  class _Internal;
-
-  template <typename T> friend class ::PROTOBUF_NAMESPACE_ID::Arena::InternalHelper;
-  typedef void InternalArenaConstructable_;
-  typedef void DestructorSkippable_;
-  struct Impl_ {
-    bool ifsetparameter_;
-    mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
-  };
-  union { Impl_ _impl_; };
-  friend struct ::TableStruct_coordinator_2eproto;
-};
-// -------------------------------------------------------------------
 
 class RequestToCoordinator final :
     public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:coordinator_proto.RequestToCoordinator) */ {
@@ -580,7 +188,7 @@ class RequestToCoordinator final :
                &_RequestToCoordinator_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    2;
+    0;
 
   friend void swap(RequestToCoordinator& a, RequestToCoordinator& b) {
     a.Swap(&b);
@@ -733,7 +341,7 @@ class ReplyFromCoordinator final :
                &_ReplyFromCoordinator_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    3;
+    1;
 
   friend void swap(ReplyFromCoordinator& a, ReplyFromCoordinator& b) {
     a.Swap(&b);
@@ -886,7 +494,7 @@ class RequestProxyIPPort final :
                &_RequestProxyIPPort_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    4;
+    2;
 
   friend void swap(RequestProxyIPPort& a, RequestProxyIPPort& b) {
     a.Swap(&b);
@@ -1066,7 +674,7 @@ class ReplyProxyIPPort final :
                &_ReplyProxyIPPort_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    5;
+    3;
 
   friend void swap(ReplyProxyIPPort& a, ReplyProxyIPPort& b) {
     a.Swap(&b);
@@ -1230,7 +838,7 @@ class CommitAbortKey final :
                &_CommitAbortKey_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    6;
+    4;
 
   friend void swap(CommitAbortKey& a, CommitAbortKey& b) {
     a.Swap(&b);
@@ -1416,7 +1024,7 @@ class ReplyProxyIPsPorts final :
                &_ReplyProxyIPsPorts_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    7;
+    5;
 
   friend void swap(ReplyProxyIPsPorts& a, ReplyProxyIPsPorts& b) {
     a.Swap(&b);
@@ -1691,7 +1299,7 @@ class AskIfSuccess final :
                &_AskIfSuccess_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    8;
+    6;
 
   friend void swap(AskIfSuccess& a, AskIfSuccess& b) {
     a.Swap(&b);
@@ -1866,7 +1474,7 @@ class RepIfSuccess final :
                &_RepIfSuccess_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    9;
+    7;
 
   friend void swap(RepIfSuccess& a, RepIfSuccess& b) {
     a.Swap(&b);
@@ -2014,7 +1622,7 @@ class KeyAndClientIP final :
                &_KeyAndClientIP_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    10;
+    8;
 
   friend void swap(KeyAndClientIP& a, KeyAndClientIP& b) {
     a.Swap(&b);
@@ -2194,7 +1802,7 @@ class RepIfGetSuccess final :
                &_RepIfGetSuccess_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    11;
+    9;
 
   friend void swap(RepIfGetSuccess& a, RepIfGetSuccess& b) {
     a.Swap(&b);
@@ -2353,7 +1961,7 @@ class BlockIDsAndClientIP final :
                &_BlockIDsAndClientIP_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    12;
+    10;
 
   friend void swap(BlockIDsAndClientIP& a, BlockIDsAndClientIP& b) {
     a.Swap(&b);
@@ -2550,7 +2158,7 @@ class KeyFromClient final :
                &_KeyFromClient_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    13;
+    11;
 
   friend void swap(KeyFromClient& a, KeyFromClient& b) {
     a.Swap(&b);
@@ -2703,7 +2311,7 @@ class StripeIdFromClient final :
                &_StripeIdFromClient_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    14;
+    12;
 
   friend void swap(StripeIdFromClient& a, StripeIdFromClient& b) {
     a.Swap(&b);
@@ -2851,7 +2459,7 @@ class StripeIdAndBlockIDsFromClient final :
                &_StripeIdAndBlockIDsFromClient_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    15;
+    13;
 
   friend void swap(StripeIdAndBlockIDsFromClient& a, StripeIdAndBlockIDsFromClient& b) {
     a.Swap(&b);
@@ -3049,7 +2657,7 @@ class MaintenanceReadRequest final :
                &_MaintenanceReadRequest_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    16;
+    14;
 
   friend void swap(MaintenanceReadRequest& a, MaintenanceReadRequest& b) {
     a.Swap(&b);
@@ -3274,7 +2882,7 @@ class NodeIdFromClient final :
                &_NodeIdFromClient_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    17;
+    15;
 
   friend void swap(NodeIdFromClient& a, NodeIdFromClient& b) {
     a.Swap(&b);
@@ -3422,7 +3030,7 @@ class TwoNodeIdsFromClient final :
                &_TwoNodeIdsFromClient_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    18;
+    16;
 
   friend void swap(TwoNodeIdsFromClient& a, TwoNodeIdsFromClient& b) {
     a.Swap(&b);
@@ -3581,7 +3189,7 @@ class RepIfDeling final :
                &_RepIfDeling_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    19;
+    17;
 
   friend void swap(RepIfDeling& a, RepIfDeling& b) {
     a.Swap(&b);
@@ -3729,7 +3337,7 @@ class RepStripeIds final :
                &_RepStripeIds_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    20;
+    18;
 
   friend void swap(RepStripeIds& a, RepStripeIds& b) {
     a.Swap(&b);
@@ -3891,7 +3499,7 @@ class RepBlockNum final :
                &_RepBlockNum_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    21;
+    19;
 
   friend void swap(RepBlockNum& a, RepBlockNum& b) {
     a.Swap(&b);
@@ -4039,7 +3647,7 @@ class DegradedReadReply final :
                &_DegradedReadReply_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    22;
+    20;
 
   friend void swap(DegradedReadReply& a, DegradedReadReply& b) {
     a.Swap(&b);
@@ -4220,7 +3828,7 @@ class RecoveryReply final :
                &_RecoveryReply_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    23;
+    21;
 
   friend void swap(RecoveryReply& a, RecoveryReply& b) {
     a.Swap(&b);
@@ -4398,214 +4006,6 @@ class RecoveryReply final :
   #pragma GCC diagnostic push
   #pragma GCC diagnostic ignored "-Wstrict-aliasing"
 #endif  // __GNUC__
-// Parameter
-
-// bool partial_decoding = 1;
-inline void Parameter::clear_partial_decoding() {
-  _impl_.partial_decoding_ = false;
-}
-inline bool Parameter::_internal_partial_decoding() const {
-  return _impl_.partial_decoding_;
-}
-inline bool Parameter::partial_decoding() const {
-  // @@protoc_insertion_point(field_get:coordinator_proto.Parameter.partial_decoding)
-  return _internal_partial_decoding();
-}
-inline void Parameter::_internal_set_partial_decoding(bool value) {
-  
-  _impl_.partial_decoding_ = value;
-}
-inline void Parameter::set_partial_decoding(bool value) {
-  _internal_set_partial_decoding(value);
-  // @@protoc_insertion_point(field_set:coordinator_proto.Parameter.partial_decoding)
-}
-
-// int32 encodetype = 2;
-inline void Parameter::clear_encodetype() {
-  _impl_.encodetype_ = 0;
-}
-inline int32_t Parameter::_internal_encodetype() const {
-  return _impl_.encodetype_;
-}
-inline int32_t Parameter::encodetype() const {
-  // @@protoc_insertion_point(field_get:coordinator_proto.Parameter.encodetype)
-  return _internal_encodetype();
-}
-inline void Parameter::_internal_set_encodetype(int32_t value) {
-  
-  _impl_.encodetype_ = value;
-}
-inline void Parameter::set_encodetype(int32_t value) {
-  _internal_set_encodetype(value);
-  // @@protoc_insertion_point(field_set:coordinator_proto.Parameter.encodetype)
-}
-
-// int32 s_stripe_placementtype = 3;
-inline void Parameter::clear_s_stripe_placementtype() {
-  _impl_.s_stripe_placementtype_ = 0;
-}
-inline int32_t Parameter::_internal_s_stripe_placementtype() const {
-  return _impl_.s_stripe_placementtype_;
-}
-inline int32_t Parameter::s_stripe_placementtype() const {
-  // @@protoc_insertion_point(field_get:coordinator_proto.Parameter.s_stripe_placementtype)
-  return _internal_s_stripe_placementtype();
-}
-inline void Parameter::_internal_set_s_stripe_placementtype(int32_t value) {
-  
-  _impl_.s_stripe_placementtype_ = value;
-}
-inline void Parameter::set_s_stripe_placementtype(int32_t value) {
-  _internal_set_s_stripe_placementtype(value);
-  // @@protoc_insertion_point(field_set:coordinator_proto.Parameter.s_stripe_placementtype)
-}
-
-// int32 m_stripe_placementtype = 4;
-inline void Parameter::clear_m_stripe_placementtype() {
-  _impl_.m_stripe_placementtype_ = 0;
-}
-inline int32_t Parameter::_internal_m_stripe_placementtype() const {
-  return _impl_.m_stripe_placementtype_;
-}
-inline int32_t Parameter::m_stripe_placementtype() const {
-  // @@protoc_insertion_point(field_get:coordinator_proto.Parameter.m_stripe_placementtype)
-  return _internal_m_stripe_placementtype();
-}
-inline void Parameter::_internal_set_m_stripe_placementtype(int32_t value) {
-  
-  _impl_.m_stripe_placementtype_ = value;
-}
-inline void Parameter::set_m_stripe_placementtype(int32_t value) {
-  _internal_set_m_stripe_placementtype(value);
-  // @@protoc_insertion_point(field_set:coordinator_proto.Parameter.m_stripe_placementtype)
-}
-
-// int32 k_datablock = 5;
-inline void Parameter::clear_k_datablock() {
-  _impl_.k_datablock_ = 0;
-}
-inline int32_t Parameter::_internal_k_datablock() const {
-  return _impl_.k_datablock_;
-}
-inline int32_t Parameter::k_datablock() const {
-  // @@protoc_insertion_point(field_get:coordinator_proto.Parameter.k_datablock)
-  return _internal_k_datablock();
-}
-inline void Parameter::_internal_set_k_datablock(int32_t value) {
-  
-  _impl_.k_datablock_ = value;
-}
-inline void Parameter::set_k_datablock(int32_t value) {
-  _internal_set_k_datablock(value);
-  // @@protoc_insertion_point(field_set:coordinator_proto.Parameter.k_datablock)
-}
-
-// int32 l_localparityblock = 6;
-inline void Parameter::clear_l_localparityblock() {
-  _impl_.l_localparityblock_ = 0;
-}
-inline int32_t Parameter::_internal_l_localparityblock() const {
-  return _impl_.l_localparityblock_;
-}
-inline int32_t Parameter::l_localparityblock() const {
-  // @@protoc_insertion_point(field_get:coordinator_proto.Parameter.l_localparityblock)
-  return _internal_l_localparityblock();
-}
-inline void Parameter::_internal_set_l_localparityblock(int32_t value) {
-  
-  _impl_.l_localparityblock_ = value;
-}
-inline void Parameter::set_l_localparityblock(int32_t value) {
-  _internal_set_l_localparityblock(value);
-  // @@protoc_insertion_point(field_set:coordinator_proto.Parameter.l_localparityblock)
-}
-
-// int32 g_m_globalparityblock = 7;
-inline void Parameter::clear_g_m_globalparityblock() {
-  _impl_.g_m_globalparityblock_ = 0;
-}
-inline int32_t Parameter::_internal_g_m_globalparityblock() const {
-  return _impl_.g_m_globalparityblock_;
-}
-inline int32_t Parameter::g_m_globalparityblock() const {
-  // @@protoc_insertion_point(field_get:coordinator_proto.Parameter.g_m_globalparityblock)
-  return _internal_g_m_globalparityblock();
-}
-inline void Parameter::_internal_set_g_m_globalparityblock(int32_t value) {
-  
-  _impl_.g_m_globalparityblock_ = value;
-}
-inline void Parameter::set_g_m_globalparityblock(int32_t value) {
-  _internal_set_g_m_globalparityblock(value);
-  // @@protoc_insertion_point(field_set:coordinator_proto.Parameter.g_m_globalparityblock)
-}
-
-// int32 b_datapergroup = 8;
-inline void Parameter::clear_b_datapergroup() {
-  _impl_.b_datapergroup_ = 0;
-}
-inline int32_t Parameter::_internal_b_datapergroup() const {
-  return _impl_.b_datapergroup_;
-}
-inline int32_t Parameter::b_datapergroup() const {
-  // @@protoc_insertion_point(field_get:coordinator_proto.Parameter.b_datapergroup)
-  return _internal_b_datapergroup();
-}
-inline void Parameter::_internal_set_b_datapergroup(int32_t value) {
-  
-  _impl_.b_datapergroup_ = value;
-}
-inline void Parameter::set_b_datapergroup(int32_t value) {
-  _internal_set_b_datapergroup(value);
-  // @@protoc_insertion_point(field_set:coordinator_proto.Parameter.b_datapergroup)
-}
-
-// int32 x_stripepermergegroup = 9;
-inline void Parameter::clear_x_stripepermergegroup() {
-  _impl_.x_stripepermergegroup_ = 0;
-}
-inline int32_t Parameter::_internal_x_stripepermergegroup() const {
-  return _impl_.x_stripepermergegroup_;
-}
-inline int32_t Parameter::x_stripepermergegroup() const {
-  // @@protoc_insertion_point(field_get:coordinator_proto.Parameter.x_stripepermergegroup)
-  return _internal_x_stripepermergegroup();
-}
-inline void Parameter::_internal_set_x_stripepermergegroup(int32_t value) {
-  
-  _impl_.x_stripepermergegroup_ = value;
-}
-inline void Parameter::set_x_stripepermergegroup(int32_t value) {
-  _internal_set_x_stripepermergegroup(value);
-  // @@protoc_insertion_point(field_set:coordinator_proto.Parameter.x_stripepermergegroup)
-}
-
-// -------------------------------------------------------------------
-
-// RepIfSetParaSuccess
-
-// bool ifsetparameter = 1;
-inline void RepIfSetParaSuccess::clear_ifsetparameter() {
-  _impl_.ifsetparameter_ = false;
-}
-inline bool RepIfSetParaSuccess::_internal_ifsetparameter() const {
-  return _impl_.ifsetparameter_;
-}
-inline bool RepIfSetParaSuccess::ifsetparameter() const {
-  // @@protoc_insertion_point(field_get:coordinator_proto.RepIfSetParaSuccess.ifsetparameter)
-  return _internal_ifsetparameter();
-}
-inline void RepIfSetParaSuccess::_internal_set_ifsetparameter(bool value) {
-  
-  _impl_.ifsetparameter_ = value;
-}
-inline void RepIfSetParaSuccess::set_ifsetparameter(bool value) {
-  _internal_set_ifsetparameter(value);
-  // @@protoc_insertion_point(field_set:coordinator_proto.RepIfSetParaSuccess.ifsetparameter)
-}
-
-// -------------------------------------------------------------------
-
 // RequestToCoordinator
 
 // string name = 1;
@@ -6571,10 +5971,6 @@ inline void RecoveryReply::set_allocated_maintenance_note(std::string* maintenan
 #ifdef __GNUC__
   #pragma GCC diagnostic pop
 #endif  // __GNUC__
-// -------------------------------------------------------------------
-
-// -------------------------------------------------------------------
-
 // -------------------------------------------------------------------
 
 // -------------------------------------------------------------------

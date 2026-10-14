@@ -22,9 +22,6 @@ service coordinatorService {
   rpc sayHelloToCoordinator (RequestToCoordinator) returns (ReplyFromCoordinator) {};
   rpc checkalive (RequestToCoordinator) returns (ReplyFromCoordinator) {};
 
-  // set parameters of metadata
-  rpc setParameter(Parameter) returns (RepIfSetParaSuccess) {};
-
   // set
   rpc uploadOriginKeyValue (RequestProxyIPPort) returns (ReplyProxyIPPort) {};
   rpc reportCommitAbort (CommitAbortKey) returns (ReplyFromCoordinator) {}; //from proxy
@@ -63,22 +60,6 @@ service coordinatorService {
   //other
   rpc listStripes(RequestToCoordinator) returns (RepStripeIds) {};
   rpc decodeTest(KeyAndClientIP) returns (DegradedReadReply) {};
-}
-
-message Parameter {
-  bool partial_decoding = 1;
-  int32 encodetype = 2;
-  int32 s_stripe_placementtype = 3;
-  int32 m_stripe_placementtype = 4;
-  int32 k_datablock = 5;
-  int32 l_localparityblock = 6;
-  int32 g_m_globalparityblock = 7;
-  int32 b_datapergroup = 8;
-  int32 x_stripepermergegroup = 9;
-}
-
-message RepIfSetParaSuccess {
-  bool ifsetparameter = 1;
 }
 
 // The request message containing the user's name.

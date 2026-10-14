@@ -21,40 +21,6 @@ namespace _pb = ::PROTOBUF_NAMESPACE_ID;
 namespace _pbi = _pb::internal;
 
 namespace coordinator_proto {
-PROTOBUF_CONSTEXPR Parameter::Parameter(
-    ::_pbi::ConstantInitialized): _impl_{
-    /*decltype(_impl_.partial_decoding_)*/false
-  , /*decltype(_impl_.encodetype_)*/0
-  , /*decltype(_impl_.s_stripe_placementtype_)*/0
-  , /*decltype(_impl_.m_stripe_placementtype_)*/0
-  , /*decltype(_impl_.k_datablock_)*/0
-  , /*decltype(_impl_.l_localparityblock_)*/0
-  , /*decltype(_impl_.g_m_globalparityblock_)*/0
-  , /*decltype(_impl_.b_datapergroup_)*/0
-  , /*decltype(_impl_.x_stripepermergegroup_)*/0
-  , /*decltype(_impl_._cached_size_)*/{}} {}
-struct ParameterDefaultTypeInternal {
-  PROTOBUF_CONSTEXPR ParameterDefaultTypeInternal()
-      : _instance(::_pbi::ConstantInitialized{}) {}
-  ~ParameterDefaultTypeInternal() {}
-  union {
-    Parameter _instance;
-  };
-};
-PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 ParameterDefaultTypeInternal _Parameter_default_instance_;
-PROTOBUF_CONSTEXPR RepIfSetParaSuccess::RepIfSetParaSuccess(
-    ::_pbi::ConstantInitialized): _impl_{
-    /*decltype(_impl_.ifsetparameter_)*/false
-  , /*decltype(_impl_._cached_size_)*/{}} {}
-struct RepIfSetParaSuccessDefaultTypeInternal {
-  PROTOBUF_CONSTEXPR RepIfSetParaSuccessDefaultTypeInternal()
-      : _instance(::_pbi::ConstantInitialized{}) {}
-  ~RepIfSetParaSuccessDefaultTypeInternal() {}
-  union {
-    RepIfSetParaSuccess _instance;
-  };
-};
-PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 RepIfSetParaSuccessDefaultTypeInternal _RepIfSetParaSuccess_default_instance_;
 PROTOBUF_CONSTEXPR RequestToCoordinator::RequestToCoordinator(
     ::_pbi::ConstantInitialized): _impl_{
     /*decltype(_impl_.name_)*/{&::_pbi::fixed_address_empty_string, ::_pbi::ConstantInitialized{}}
@@ -386,33 +352,11 @@ struct RecoveryReplyDefaultTypeInternal {
 };
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 RecoveryReplyDefaultTypeInternal _RecoveryReply_default_instance_;
 }  // namespace coordinator_proto
-static ::_pb::Metadata file_level_metadata_coordinator_2eproto[24];
+static ::_pb::Metadata file_level_metadata_coordinator_2eproto[22];
 static constexpr ::_pb::EnumDescriptor const** file_level_enum_descriptors_coordinator_2eproto = nullptr;
 static constexpr ::_pb::ServiceDescriptor const** file_level_service_descriptors_coordinator_2eproto = nullptr;
 
 const uint32_t TableStruct_coordinator_2eproto::offsets[] PROTOBUF_SECTION_VARIABLE(protodesc_cold) = {
-  ~0u,  // no _has_bits_
-  PROTOBUF_FIELD_OFFSET(::coordinator_proto::Parameter, _internal_metadata_),
-  ~0u,  // no _extensions_
-  ~0u,  // no _oneof_case_
-  ~0u,  // no _weak_field_map_
-  ~0u,  // no _inlined_string_donated_
-  PROTOBUF_FIELD_OFFSET(::coordinator_proto::Parameter, _impl_.partial_decoding_),
-  PROTOBUF_FIELD_OFFSET(::coordinator_proto::Parameter, _impl_.encodetype_),
-  PROTOBUF_FIELD_OFFSET(::coordinator_proto::Parameter, _impl_.s_stripe_placementtype_),
-  PROTOBUF_FIELD_OFFSET(::coordinator_proto::Parameter, _impl_.m_stripe_placementtype_),
-  PROTOBUF_FIELD_OFFSET(::coordinator_proto::Parameter, _impl_.k_datablock_),
-  PROTOBUF_FIELD_OFFSET(::coordinator_proto::Parameter, _impl_.l_localparityblock_),
-  PROTOBUF_FIELD_OFFSET(::coordinator_proto::Parameter, _impl_.g_m_globalparityblock_),
-  PROTOBUF_FIELD_OFFSET(::coordinator_proto::Parameter, _impl_.b_datapergroup_),
-  PROTOBUF_FIELD_OFFSET(::coordinator_proto::Parameter, _impl_.x_stripepermergegroup_),
-  ~0u,  // no _has_bits_
-  PROTOBUF_FIELD_OFFSET(::coordinator_proto::RepIfSetParaSuccess, _internal_metadata_),
-  ~0u,  // no _extensions_
-  ~0u,  // no _oneof_case_
-  ~0u,  // no _weak_field_map_
-  ~0u,  // no _inlined_string_donated_
-  PROTOBUF_FIELD_OFFSET(::coordinator_proto::RepIfSetParaSuccess, _impl_.ifsetparameter_),
   ~0u,  // no _has_bits_
   PROTOBUF_FIELD_OFFSET(::coordinator_proto::RequestToCoordinator, _internal_metadata_),
   ~0u,  // no _extensions_
@@ -605,35 +549,31 @@ const uint32_t TableStruct_coordinator_2eproto::offsets[] PROTOBUF_SECTION_VARIA
   PROTOBUF_FIELD_OFFSET(::coordinator_proto::RecoveryReply, _impl_.maintenance_note_),
 };
 static const ::_pbi::MigrationSchema schemas[] PROTOBUF_SECTION_VARIABLE(protodesc_cold) = {
-  { 0, -1, -1, sizeof(::coordinator_proto::Parameter)},
-  { 15, -1, -1, sizeof(::coordinator_proto::RepIfSetParaSuccess)},
-  { 22, -1, -1, sizeof(::coordinator_proto::RequestToCoordinator)},
-  { 29, -1, -1, sizeof(::coordinator_proto::ReplyFromCoordinator)},
-  { 36, -1, -1, sizeof(::coordinator_proto::RequestProxyIPPort)},
-  { 45, -1, -1, sizeof(::coordinator_proto::ReplyProxyIPPort)},
-  { 53, -1, -1, sizeof(::coordinator_proto::CommitAbortKey)},
-  { 63, -1, -1, sizeof(::coordinator_proto::ReplyProxyIPsPorts)},
-  { 75, -1, -1, sizeof(::coordinator_proto::AskIfSuccess)},
-  { 84, -1, -1, sizeof(::coordinator_proto::RepIfSuccess)},
-  { 91, -1, -1, sizeof(::coordinator_proto::KeyAndClientIP)},
-  { 100, -1, -1, sizeof(::coordinator_proto::RepIfGetSuccess)},
-  { 108, -1, -1, sizeof(::coordinator_proto::BlockIDsAndClientIP)},
-  { 119, -1, -1, sizeof(::coordinator_proto::KeyFromClient)},
-  { 126, -1, -1, sizeof(::coordinator_proto::StripeIdFromClient)},
-  { 133, -1, -1, sizeof(::coordinator_proto::StripeIdAndBlockIDsFromClient)},
-  { 142, -1, -1, sizeof(::coordinator_proto::MaintenanceReadRequest)},
-  { 153, -1, -1, sizeof(::coordinator_proto::NodeIdFromClient)},
-  { 160, -1, -1, sizeof(::coordinator_proto::TwoNodeIdsFromClient)},
-  { 168, -1, -1, sizeof(::coordinator_proto::RepIfDeling)},
-  { 175, -1, -1, sizeof(::coordinator_proto::RepStripeIds)},
-  { 182, -1, -1, sizeof(::coordinator_proto::RepBlockNum)},
-  { 189, -1, -1, sizeof(::coordinator_proto::DegradedReadReply)},
-  { 199, -1, -1, sizeof(::coordinator_proto::RecoveryReply)},
+  { 0, -1, -1, sizeof(::coordinator_proto::RequestToCoordinator)},
+  { 7, -1, -1, sizeof(::coordinator_proto::ReplyFromCoordinator)},
+  { 14, -1, -1, sizeof(::coordinator_proto::RequestProxyIPPort)},
+  { 23, -1, -1, sizeof(::coordinator_proto::ReplyProxyIPPort)},
+  { 31, -1, -1, sizeof(::coordinator_proto::CommitAbortKey)},
+  { 41, -1, -1, sizeof(::coordinator_proto::ReplyProxyIPsPorts)},
+  { 53, -1, -1, sizeof(::coordinator_proto::AskIfSuccess)},
+  { 62, -1, -1, sizeof(::coordinator_proto::RepIfSuccess)},
+  { 69, -1, -1, sizeof(::coordinator_proto::KeyAndClientIP)},
+  { 78, -1, -1, sizeof(::coordinator_proto::RepIfGetSuccess)},
+  { 86, -1, -1, sizeof(::coordinator_proto::BlockIDsAndClientIP)},
+  { 97, -1, -1, sizeof(::coordinator_proto::KeyFromClient)},
+  { 104, -1, -1, sizeof(::coordinator_proto::StripeIdFromClient)},
+  { 111, -1, -1, sizeof(::coordinator_proto::StripeIdAndBlockIDsFromClient)},
+  { 120, -1, -1, sizeof(::coordinator_proto::MaintenanceReadRequest)},
+  { 131, -1, -1, sizeof(::coordinator_proto::NodeIdFromClient)},
+  { 138, -1, -1, sizeof(::coordinator_proto::TwoNodeIdsFromClient)},
+  { 146, -1, -1, sizeof(::coordinator_proto::RepIfDeling)},
+  { 153, -1, -1, sizeof(::coordinator_proto::RepStripeIds)},
+  { 160, -1, -1, sizeof(::coordinator_proto::RepBlockNum)},
+  { 167, -1, -1, sizeof(::coordinator_proto::DegradedReadReply)},
+  { 177, -1, -1, sizeof(::coordinator_proto::RecoveryReply)},
 };
 
 static const ::_pb::Message* const file_default_instances[] = {
-  &::coordinator_proto::_Parameter_default_instance_._instance,
-  &::coordinator_proto::_RepIfSetParaSuccess_default_instance_._instance,
   &::coordinator_proto::_RequestToCoordinator_default_instance_._instance,
   &::coordinator_proto::_ReplyFromCoordinator_default_instance_._instance,
   &::coordinator_proto::_RequestProxyIPPort_default_instance_._instance,
@@ -659,125 +599,116 @@ static const ::_pb::Message* const file_default_instances[] = {
 };
 
 const char descriptor_table_protodef_coordinator_2eproto[] PROTOBUF_SECTION_VARIABLE(protodesc_cold) =
-  "\n\021coordinator.proto\022\021coordinator_proto\"\200"
-  "\002\n\tParameter\022\030\n\020partial_decoding\030\001 \001(\010\022\022"
-  "\n\nencodetype\030\002 \001(\005\022\036\n\026s_stripe_placement"
-  "type\030\003 \001(\005\022\036\n\026m_stripe_placementtype\030\004 \001"
-  "(\005\022\023\n\013k_datablock\030\005 \001(\005\022\032\n\022l_localparity"
-  "block\030\006 \001(\005\022\035\n\025g_m_globalparityblock\030\007 \001"
-  "(\005\022\026\n\016b_datapergroup\030\010 \001(\005\022\035\n\025x_stripepe"
-  "rmergegroup\030\t \001(\005\"-\n\023RepIfSetParaSuccess"
-  "\022\026\n\016ifsetparameter\030\001 \001(\010\"$\n\024RequestToCoo"
-  "rdinator\022\014\n\004name\030\001 \001(\t\"\'\n\024ReplyFromCoord"
-  "inator\022\017\n\007message\030\001 \001(\t\"N\n\022RequestProxyI"
-  "PPort\022\013\n\003key\030\001 \001(\t\022\026\n\016valuesizebytes\030\002 \001"
-  "(\004\022\023\n\013append_mode\030\003 \001(\t\"6\n\020ReplyProxyIPP"
-  "ort\022\017\n\007proxyip\030\001 \001(\t\022\021\n\tproxyport\030\002 \001(\005\""
-  "W\n\016CommitAbortKey\022\013\n\003key\030\001 \001(\t\022\030\n\020ifcomm"
-  "itmetadata\030\002 \001(\010\022\013\n\003opp\030\003 \001(\005\022\021\n\tstripe_"
-  "id\030\004 \001(\005\"\225\001\n\022ReplyProxyIPsPorts\022\027\n\017sum_a"
-  "ppend_size\030\001 \001(\004\022\023\n\013append_keys\030\002 \003(\t\022\020\n"
-  "\010proxyips\030\003 \003(\t\022\022\n\nproxyports\030\004 \003(\005\022\030\n\020n"
-  "ode_slice_sizes\030\005 \003(\004\022\021\n\tgroup_ids\030\006 \003(\005"
-  "\";\n\014AskIfSuccess\022\013\n\003key\030\001 \001(\t\022\013\n\003opp\030\002 \001"
-  "(\005\022\021\n\tstripe_id\030\003 \001(\005\" \n\014RepIfSuccess\022\020\n"
-  "\010ifcommit\030\001 \001(\010\"C\n\016KeyAndClientIP\022\013\n\003key"
-  "\030\001 \001(\t\022\020\n\010clientip\030\002 \001(\t\022\022\n\nclientport\030\003"
-  " \001(\005\"\?\n\017RepIfGetSuccess\022\024\n\014ifgetsuccess\030"
-  "\001 \001(\010\022\026\n\016valuesizebytes\030\002 \001(\005\"\202\001\n\023BlockI"
-  "DsAndClientIP\022\026\n\016start_block_id\030\001 \001(\005\022\024\n"
-  "\014end_block_id\030\002 \001(\005\022\020\n\010clientip\030\003 \001(\t\022\022\n"
-  "\nclientport\030\004 \001(\005\022\027\n\017failed_block_id\030\005 \001"
-  "(\005\"\034\n\rKeyFromClient\022\013\n\003key\030\001 \001(\t\"\'\n\022Stri"
-  "peIdFromClient\022\021\n\tstripe_id\030\001 \001(\005\"a\n\035Str"
-  "ipeIdAndBlockIDsFromClient\022\021\n\tstripe_id\030"
-  "\001 \001(\005\022\021\n\tblock_ids\030\002 \003(\005\022\032\n\022recovery_blo"
-  "ck_ids\030\003 \003(\005\"\220\001\n\026MaintenanceReadRequest\022"
-  "\021\n\tstripe_id\030\001 \001(\005\022\035\n\025failed_data_block_"
-  "ids\030\002 \003(\005\022\036\n\026global_batch_block_ids\030\003 \003("
-  "\005\022\020\n\010clientip\030\004 \001(\t\022\022\n\nclientport\030\005 \001(\005\""
-  "#\n\020NodeIdFromClient\022\017\n\007node_id\030\001 \001(\005\"<\n\024"
-  "TwoNodeIdsFromClient\022\021\n\tnode_id_0\030\001 \001(\005\022"
-  "\021\n\tnode_id_1\030\002 \001(\005\"\037\n\013RepIfDeling\022\020\n\010ifd"
-  "eling\030\001 \001(\010\"\"\n\014RepStripeIds\022\022\n\nstripe_id"
-  "s\030\001 \003(\005\" \n\013RepBlockNum\022\021\n\tblock_num\030\001 \001("
-  "\005\"m\n\021DegradedReadReply\022\024\n\014disk_io_time\030\001"
-  " \001(\001\022\024\n\014network_time\030\002 \001(\001\022\023\n\013decode_tim"
-  "e\030\003 \001(\001\022\027\n\017grpc_start_time\030\004 \001(\001\"\275\001\n\rRec"
-  "overyReply\022\026\n\016disk_read_time\030\001 \001(\001\022\024\n\014ne"
-  "twork_time\030\002 \001(\001\022\023\n\013decode_time\030\003 \001(\001\022\027\n"
-  "\017disk_write_time\030\004 \001(\001\022\027\n\017grpc_start_tim"
-  "e\030\005 \001(\001\022\035\n\025maintenance_fell_back\030\006 \001(\010\022\030"
-  "\n\020maintenance_note\030\007 \001(\t2\330\023\n\022coordinator"
-  "Service\022k\n\025sayHelloToCoordinator\022\'.coord"
-  "inator_proto.RequestToCoordinator\032\'.coor"
-  "dinator_proto.ReplyFromCoordinator\"\000\022`\n\n"
-  "checkalive\022\'.coordinator_proto.RequestTo"
-  "Coordinator\032\'.coordinator_proto.ReplyFro"
-  "mCoordinator\"\000\022V\n\014setParameter\022\034.coordin"
-  "ator_proto.Parameter\032&.coordinator_proto"
-  ".RepIfSetParaSuccess\"\000\022d\n\024uploadOriginKe"
-  "yValue\022%.coordinator_proto.RequestProxyI"
-  "PPort\032#.coordinator_proto.ReplyProxyIPPo"
-  "rt\"\000\022a\n\021reportCommitAbort\022!.coordinator_"
-  "proto.CommitAbortKey\032\'.coordinator_proto"
-  ".ReplyFromCoordinator\"\000\022V\n\020checkCommitAb"
-  "ort\022\037.coordinator_proto.AskIfSuccess\032\037.c"
-  "oordinator_proto.RepIfSuccess\"\000\022`\n\016uploa"
-  "dSetValue\022%.coordinator_proto.RequestPro"
-  "xyIPPort\032%.coordinator_proto.ReplyProxyI"
-  "PsPorts\"\000\022c\n\021uploadSubsetValue\022%.coordin"
-  "ator_proto.RequestProxyIPPort\032%.coordina"
-  "tor_proto.ReplyProxyIPsPorts\"\000\022c\n\021upload"
-  "AppendValue\022%.coordinator_proto.RequestP"
-  "roxyIPPort\032%.coordinator_proto.ReplyProx"
-  "yIPsPorts\"\000\022S\n\010getValue\022!.coordinator_pr"
-  "oto.KeyAndClientIP\032\".coordinator_proto.R"
-  "epIfGetSuccess\"\000\022W\n\tgetStripe\022!.coordina"
-  "tor_proto.KeyAndClientIP\032%.coordinator_p"
-  "roto.ReplyProxyIPsPorts\"\000\022\\\n\tgetBlocks\022&"
-  ".coordinator_proto.BlockIDsAndClientIP\032%"
-  ".coordinator_proto.ReplyProxyIPsPorts\"\000\022"
-  "h\n\025getDegradedReadBlocks\022&.coordinator_p"
-  "roto.BlockIDsAndClientIP\032%.coordinator_p"
-  "roto.ReplyProxyIPsPorts\"\000\022a\n\024getDegraded"
-  "ReadBlock\022!.coordinator_proto.KeyAndClie"
-  "ntIP\032$.coordinator_proto.DegradedReadRep"
-  "ly\"\000\022j\n\035getDegradedReadBlockBreakdown\022!."
-  "coordinator_proto.KeyAndClientIP\032$.coord"
-  "inator_proto.DegradedReadReply\"\000\022T\n\013getR"
-  "ecovery\022!.coordinator_proto.KeyAndClient"
-  "IP\032 .coordinator_proto.RecoveryReply\"\000\022]"
-  "\n\024getRecoveryBreakdown\022!.coordinator_pro"
-  "to.KeyAndClientIP\032 .coordinator_proto.Re"
-  "coveryReply\"\000\022Y\n\020fullNodeRecovery\022#.coor"
-  "dinator_proto.NodeIdFromClient\032\036.coordin"
-  "ator_proto.RepBlockNum\"\000\022\\\n\017twoNodeRecov"
-  "ery\022\'.coordinator_proto.TwoNodeIdsFromCl"
-  "ient\032\036.coordinator_proto.RepBlockNum\"\000\022f"
-  "\n\016globalRecovery\0220.coordinator_proto.Str"
-  "ipeIdAndBlockIDsFromClient\032 .coordinator"
-  "_proto.RecoveryReply\"\000\022o\n\027globalRecovery"
-  "Breakdown\0220.coordinator_proto.StripeIdAn"
-  "dBlockIDsFromClient\032 .coordinator_proto."
-  "RecoveryReply\"\000\022f\n\025maintenanceReadStripe"
-  "\022).coordinator_proto.MaintenanceReadRequ"
-  "est\032 .coordinator_proto.RecoveryReply\"\000\022"
-  "N\n\010delByKey\022 .coordinator_proto.KeyFromC"
-  "lient\032\036.coordinator_proto.RepIfDeling\"\000\022"
-  "V\n\013delByStripe\022%.coordinator_proto.Strip"
-  "eIdFromClient\032\036.coordinator_proto.RepIfD"
-  "eling\"\000\022Y\n\013listStripes\022\'.coordinator_pro"
-  "to.RequestToCoordinator\032\037.coordinator_pr"
-  "oto.RepStripeIds\"\000\022W\n\ndecodeTest\022!.coord"
-  "inator_proto.KeyAndClientIP\032$.coordinato"
-  "r_proto.DegradedReadReply\"\000b\006proto3"
+  "\n\021coordinator.proto\022\021coordinator_proto\"$"
+  "\n\024RequestToCoordinator\022\014\n\004name\030\001 \001(\t\"\'\n\024"
+  "ReplyFromCoordinator\022\017\n\007message\030\001 \001(\t\"N\n"
+  "\022RequestProxyIPPort\022\013\n\003key\030\001 \001(\t\022\026\n\016valu"
+  "esizebytes\030\002 \001(\004\022\023\n\013append_mode\030\003 \001(\t\"6\n"
+  "\020ReplyProxyIPPort\022\017\n\007proxyip\030\001 \001(\t\022\021\n\tpr"
+  "oxyport\030\002 \001(\005\"W\n\016CommitAbortKey\022\013\n\003key\030\001"
+  " \001(\t\022\030\n\020ifcommitmetadata\030\002 \001(\010\022\013\n\003opp\030\003 "
+  "\001(\005\022\021\n\tstripe_id\030\004 \001(\005\"\225\001\n\022ReplyProxyIPs"
+  "Ports\022\027\n\017sum_append_size\030\001 \001(\004\022\023\n\013append"
+  "_keys\030\002 \003(\t\022\020\n\010proxyips\030\003 \003(\t\022\022\n\nproxypo"
+  "rts\030\004 \003(\005\022\030\n\020node_slice_sizes\030\005 \003(\004\022\021\n\tg"
+  "roup_ids\030\006 \003(\005\";\n\014AskIfSuccess\022\013\n\003key\030\001 "
+  "\001(\t\022\013\n\003opp\030\002 \001(\005\022\021\n\tstripe_id\030\003 \001(\005\" \n\014R"
+  "epIfSuccess\022\020\n\010ifcommit\030\001 \001(\010\"C\n\016KeyAndC"
+  "lientIP\022\013\n\003key\030\001 \001(\t\022\020\n\010clientip\030\002 \001(\t\022\022"
+  "\n\nclientport\030\003 \001(\005\"\?\n\017RepIfGetSuccess\022\024\n"
+  "\014ifgetsuccess\030\001 \001(\010\022\026\n\016valuesizebytes\030\002 "
+  "\001(\005\"\202\001\n\023BlockIDsAndClientIP\022\026\n\016start_blo"
+  "ck_id\030\001 \001(\005\022\024\n\014end_block_id\030\002 \001(\005\022\020\n\010cli"
+  "entip\030\003 \001(\t\022\022\n\nclientport\030\004 \001(\005\022\027\n\017faile"
+  "d_block_id\030\005 \001(\005\"\034\n\rKeyFromClient\022\013\n\003key"
+  "\030\001 \001(\t\"\'\n\022StripeIdFromClient\022\021\n\tstripe_i"
+  "d\030\001 \001(\005\"a\n\035StripeIdAndBlockIDsFromClient"
+  "\022\021\n\tstripe_id\030\001 \001(\005\022\021\n\tblock_ids\030\002 \003(\005\022\032"
+  "\n\022recovery_block_ids\030\003 \003(\005\"\220\001\n\026Maintenan"
+  "ceReadRequest\022\021\n\tstripe_id\030\001 \001(\005\022\035\n\025fail"
+  "ed_data_block_ids\030\002 \003(\005\022\036\n\026global_batch_"
+  "block_ids\030\003 \003(\005\022\020\n\010clientip\030\004 \001(\t\022\022\n\ncli"
+  "entport\030\005 \001(\005\"#\n\020NodeIdFromClient\022\017\n\007nod"
+  "e_id\030\001 \001(\005\"<\n\024TwoNodeIdsFromClient\022\021\n\tno"
+  "de_id_0\030\001 \001(\005\022\021\n\tnode_id_1\030\002 \001(\005\"\037\n\013RepI"
+  "fDeling\022\020\n\010ifdeling\030\001 \001(\010\"\"\n\014RepStripeId"
+  "s\022\022\n\nstripe_ids\030\001 \003(\005\" \n\013RepBlockNum\022\021\n\t"
+  "block_num\030\001 \001(\005\"m\n\021DegradedReadReply\022\024\n\014"
+  "disk_io_time\030\001 \001(\001\022\024\n\014network_time\030\002 \001(\001"
+  "\022\023\n\013decode_time\030\003 \001(\001\022\027\n\017grpc_start_time"
+  "\030\004 \001(\001\"\275\001\n\rRecoveryReply\022\026\n\016disk_read_ti"
+  "me\030\001 \001(\001\022\024\n\014network_time\030\002 \001(\001\022\023\n\013decode"
+  "_time\030\003 \001(\001\022\027\n\017disk_write_time\030\004 \001(\001\022\027\n\017"
+  "grpc_start_time\030\005 \001(\001\022\035\n\025maintenance_fel"
+  "l_back\030\006 \001(\010\022\030\n\020maintenance_note\030\007 \001(\t2\200"
+  "\023\n\022coordinatorService\022k\n\025sayHelloToCoord"
+  "inator\022\'.coordinator_proto.RequestToCoor"
+  "dinator\032\'.coordinator_proto.ReplyFromCoo"
+  "rdinator\"\000\022`\n\ncheckalive\022\'.coordinator_p"
+  "roto.RequestToCoordinator\032\'.coordinator_"
+  "proto.ReplyFromCoordinator\"\000\022d\n\024uploadOr"
+  "iginKeyValue\022%.coordinator_proto.Request"
+  "ProxyIPPort\032#.coordinator_proto.ReplyPro"
+  "xyIPPort\"\000\022a\n\021reportCommitAbort\022!.coordi"
+  "nator_proto.CommitAbortKey\032\'.coordinator"
+  "_proto.ReplyFromCoordinator\"\000\022V\n\020checkCo"
+  "mmitAbort\022\037.coordinator_proto.AskIfSucce"
+  "ss\032\037.coordinator_proto.RepIfSuccess\"\000\022`\n"
+  "\016uploadSetValue\022%.coordinator_proto.Requ"
+  "estProxyIPPort\032%.coordinator_proto.Reply"
+  "ProxyIPsPorts\"\000\022c\n\021uploadSubsetValue\022%.c"
+  "oordinator_proto.RequestProxyIPPort\032%.co"
+  "ordinator_proto.ReplyProxyIPsPorts\"\000\022c\n\021"
+  "uploadAppendValue\022%.coordinator_proto.Re"
+  "questProxyIPPort\032%.coordinator_proto.Rep"
+  "lyProxyIPsPorts\"\000\022S\n\010getValue\022!.coordina"
+  "tor_proto.KeyAndClientIP\032\".coordinator_p"
+  "roto.RepIfGetSuccess\"\000\022W\n\tgetStripe\022!.co"
+  "ordinator_proto.KeyAndClientIP\032%.coordin"
+  "ator_proto.ReplyProxyIPsPorts\"\000\022\\\n\tgetBl"
+  "ocks\022&.coordinator_proto.BlockIDsAndClie"
+  "ntIP\032%.coordinator_proto.ReplyProxyIPsPo"
+  "rts\"\000\022h\n\025getDegradedReadBlocks\022&.coordin"
+  "ator_proto.BlockIDsAndClientIP\032%.coordin"
+  "ator_proto.ReplyProxyIPsPorts\"\000\022a\n\024getDe"
+  "gradedReadBlock\022!.coordinator_proto.KeyA"
+  "ndClientIP\032$.coordinator_proto.DegradedR"
+  "eadReply\"\000\022j\n\035getDegradedReadBlockBreakd"
+  "own\022!.coordinator_proto.KeyAndClientIP\032$"
+  ".coordinator_proto.DegradedReadReply\"\000\022T"
+  "\n\013getRecovery\022!.coordinator_proto.KeyAnd"
+  "ClientIP\032 .coordinator_proto.RecoveryRep"
+  "ly\"\000\022]\n\024getRecoveryBreakdown\022!.coordinat"
+  "or_proto.KeyAndClientIP\032 .coordinator_pr"
+  "oto.RecoveryReply\"\000\022Y\n\020fullNodeRecovery\022"
+  "#.coordinator_proto.NodeIdFromClient\032\036.c"
+  "oordinator_proto.RepBlockNum\"\000\022\\\n\017twoNod"
+  "eRecovery\022\'.coordinator_proto.TwoNodeIds"
+  "FromClient\032\036.coordinator_proto.RepBlockN"
+  "um\"\000\022f\n\016globalRecovery\0220.coordinator_pro"
+  "to.StripeIdAndBlockIDsFromClient\032 .coord"
+  "inator_proto.RecoveryReply\"\000\022o\n\027globalRe"
+  "coveryBreakdown\0220.coordinator_proto.Stri"
+  "peIdAndBlockIDsFromClient\032 .coordinator_"
+  "proto.RecoveryReply\"\000\022f\n\025maintenanceRead"
+  "Stripe\022).coordinator_proto.MaintenanceRe"
+  "adRequest\032 .coordinator_proto.RecoveryRe"
+  "ply\"\000\022N\n\010delByKey\022 .coordinator_proto.Ke"
+  "yFromClient\032\036.coordinator_proto.RepIfDel"
+  "ing\"\000\022V\n\013delByStripe\022%.coordinator_proto"
+  ".StripeIdFromClient\032\036.coordinator_proto."
+  "RepIfDeling\"\000\022Y\n\013listStripes\022\'.coordinat"
+  "or_proto.RequestToCoordinator\032\037.coordina"
+  "tor_proto.RepStripeIds\"\000\022W\n\ndecodeTest\022!"
+  ".coordinator_proto.KeyAndClientIP\032$.coor"
+  "dinator_proto.DegradedReadReply\"\000b\006proto"
+  "3"
   ;
 static ::_pbi::once_flag descriptor_table_coordinator_2eproto_once;
 const ::_pbi::DescriptorTable descriptor_table_coordinator_2eproto = {
-    false, false, 4515, descriptor_table_protodef_coordinator_2eproto,
+    false, false, 4121, descriptor_table_protodef_coordinator_2eproto,
     "coordinator.proto",
-    &descriptor_table_coordinator_2eproto_once, nullptr, 0, 24,
+    &descriptor_table_coordinator_2eproto_once, nullptr, 0, 22,
     schemas, file_default_instances, TableStruct_coordinator_2eproto::offsets,
     file_level_metadata_coordinator_2eproto, file_level_enum_descriptors_coordinator_2eproto,
     file_level_service_descriptors_coordinator_2eproto,
@@ -789,563 +720,6 @@ PROTOBUF_ATTRIBUTE_WEAK const ::_pbi::DescriptorTable* descriptor_table_coordina
 // Force running AddDescriptors() at dynamic initialization time.
 PROTOBUF_ATTRIBUTE_INIT_PRIORITY2 static ::_pbi::AddDescriptorsRunner dynamic_init_dummy_coordinator_2eproto(&descriptor_table_coordinator_2eproto);
 namespace coordinator_proto {
-
-// ===================================================================
-
-class Parameter::_Internal {
- public:
-};
-
-Parameter::Parameter(::PROTOBUF_NAMESPACE_ID::Arena* arena,
-                         bool is_message_owned)
-  : ::PROTOBUF_NAMESPACE_ID::Message(arena, is_message_owned) {
-  SharedCtor(arena, is_message_owned);
-  // @@protoc_insertion_point(arena_constructor:coordinator_proto.Parameter)
-}
-Parameter::Parameter(const Parameter& from)
-  : ::PROTOBUF_NAMESPACE_ID::Message() {
-  Parameter* const _this = this; (void)_this;
-  new (&_impl_) Impl_{
-      decltype(_impl_.partial_decoding_){}
-    , decltype(_impl_.encodetype_){}
-    , decltype(_impl_.s_stripe_placementtype_){}
-    , decltype(_impl_.m_stripe_placementtype_){}
-    , decltype(_impl_.k_datablock_){}
-    , decltype(_impl_.l_localparityblock_){}
-    , decltype(_impl_.g_m_globalparityblock_){}
-    , decltype(_impl_.b_datapergroup_){}
-    , decltype(_impl_.x_stripepermergegroup_){}
-    , /*decltype(_impl_._cached_size_)*/{}};
-
-  _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
-  ::memcpy(&_impl_.partial_decoding_, &from._impl_.partial_decoding_,
-    static_cast<size_t>(reinterpret_cast<char*>(&_impl_.x_stripepermergegroup_) -
-    reinterpret_cast<char*>(&_impl_.partial_decoding_)) + sizeof(_impl_.x_stripepermergegroup_));
-  // @@protoc_insertion_point(copy_constructor:coordinator_proto.Parameter)
-}
-
-inline void Parameter::SharedCtor(
-    ::_pb::Arena* arena, bool is_message_owned) {
-  (void)arena;
-  (void)is_message_owned;
-  new (&_impl_) Impl_{
-      decltype(_impl_.partial_decoding_){false}
-    , decltype(_impl_.encodetype_){0}
-    , decltype(_impl_.s_stripe_placementtype_){0}
-    , decltype(_impl_.m_stripe_placementtype_){0}
-    , decltype(_impl_.k_datablock_){0}
-    , decltype(_impl_.l_localparityblock_){0}
-    , decltype(_impl_.g_m_globalparityblock_){0}
-    , decltype(_impl_.b_datapergroup_){0}
-    , decltype(_impl_.x_stripepermergegroup_){0}
-    , /*decltype(_impl_._cached_size_)*/{}
-  };
-}
-
-Parameter::~Parameter() {
-  // @@protoc_insertion_point(destructor:coordinator_proto.Parameter)
-  if (auto *arena = _internal_metadata_.DeleteReturnArena<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>()) {
-  (void)arena;
-    return;
-  }
-  SharedDtor();
-}
-
-inline void Parameter::SharedDtor() {
-  GOOGLE_DCHECK(GetArenaForAllocation() == nullptr);
-}
-
-void Parameter::SetCachedSize(int size) const {
-  _impl_._cached_size_.Set(size);
-}
-
-void Parameter::Clear() {
-// @@protoc_insertion_point(message_clear_start:coordinator_proto.Parameter)
-  uint32_t cached_has_bits = 0;
-  // Prevent compiler warnings about cached_has_bits being unused
-  (void) cached_has_bits;
-
-  ::memset(&_impl_.partial_decoding_, 0, static_cast<size_t>(
-      reinterpret_cast<char*>(&_impl_.x_stripepermergegroup_) -
-      reinterpret_cast<char*>(&_impl_.partial_decoding_)) + sizeof(_impl_.x_stripepermergegroup_));
-  _internal_metadata_.Clear<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>();
-}
-
-const char* Parameter::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) {
-#define CHK_(x) if (PROTOBUF_PREDICT_FALSE(!(x))) goto failure
-  while (!ctx->Done(&ptr)) {
-    uint32_t tag;
-    ptr = ::_pbi::ReadTag(ptr, &tag);
-    switch (tag >> 3) {
-      // bool partial_decoding = 1;
-      case 1:
-        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 8)) {
-          _impl_.partial_decoding_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
-          CHK_(ptr);
-        } else
-          goto handle_unusual;
-        continue;
-      // int32 encodetype = 2;
-      case 2:
-        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 16)) {
-          _impl_.encodetype_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint32(&ptr);
-          CHK_(ptr);
-        } else
-          goto handle_unusual;
-        continue;
-      // int32 s_stripe_placementtype = 3;
-      case 3:
-        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 24)) {
-          _impl_.s_stripe_placementtype_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint32(&ptr);
-          CHK_(ptr);
-        } else
-          goto handle_unusual;
-        continue;
-      // int32 m_stripe_placementtype = 4;
-      case 4:
-        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 32)) {
-          _impl_.m_stripe_placementtype_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint32(&ptr);
-          CHK_(ptr);
-        } else
-          goto handle_unusual;
-        continue;
-      // int32 k_datablock = 5;
-      case 5:
-        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 40)) {
-          _impl_.k_datablock_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint32(&ptr);
-          CHK_(ptr);
-        } else
-          goto handle_unusual;
-        continue;
-      // int32 l_localparityblock = 6;
-      case 6:
-        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 48)) {
-          _impl_.l_localparityblock_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint32(&ptr);
-          CHK_(ptr);
-        } else
-          goto handle_unusual;
-        continue;
-      // int32 g_m_globalparityblock = 7;
-      case 7:
-        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 56)) {
-          _impl_.g_m_globalparityblock_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint32(&ptr);
-          CHK_(ptr);
-        } else
-          goto handle_unusual;
-        continue;
-      // int32 b_datapergroup = 8;
-      case 8:
-        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 64)) {
-          _impl_.b_datapergroup_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint32(&ptr);
-          CHK_(ptr);
-        } else
-          goto handle_unusual;
-        continue;
-      // int32 x_stripepermergegroup = 9;
-      case 9:
-        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 72)) {
-          _impl_.x_stripepermergegroup_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint32(&ptr);
-          CHK_(ptr);
-        } else
-          goto handle_unusual;
-        continue;
-      default:
-        goto handle_unusual;
-    }  // switch
-  handle_unusual:
-    if ((tag == 0) || ((tag & 7) == 4)) {
-      CHK_(ptr);
-      ctx->SetLastTag(tag);
-      goto message_done;
-    }
-    ptr = UnknownFieldParse(
-        tag,
-        _internal_metadata_.mutable_unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(),
-        ptr, ctx);
-    CHK_(ptr != nullptr);
-  }  // while
-message_done:
-  return ptr;
-failure:
-  ptr = nullptr;
-  goto message_done;
-#undef CHK_
-}
-
-uint8_t* Parameter::_InternalSerialize(
-    uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
-  // @@protoc_insertion_point(serialize_to_array_start:coordinator_proto.Parameter)
-  uint32_t cached_has_bits = 0;
-  (void) cached_has_bits;
-
-  // bool partial_decoding = 1;
-  if (this->_internal_partial_decoding() != 0) {
-    target = stream->EnsureSpace(target);
-    target = ::_pbi::WireFormatLite::WriteBoolToArray(1, this->_internal_partial_decoding(), target);
-  }
-
-  // int32 encodetype = 2;
-  if (this->_internal_encodetype() != 0) {
-    target = stream->EnsureSpace(target);
-    target = ::_pbi::WireFormatLite::WriteInt32ToArray(2, this->_internal_encodetype(), target);
-  }
-
-  // int32 s_stripe_placementtype = 3;
-  if (this->_internal_s_stripe_placementtype() != 0) {
-    target = stream->EnsureSpace(target);
-    target = ::_pbi::WireFormatLite::WriteInt32ToArray(3, this->_internal_s_stripe_placementtype(), target);
-  }
-
-  // int32 m_stripe_placementtype = 4;
-  if (this->_internal_m_stripe_placementtype() != 0) {
-    target = stream->EnsureSpace(target);
-    target = ::_pbi::WireFormatLite::WriteInt32ToArray(4, this->_internal_m_stripe_placementtype(), target);
-  }
-
-  // int32 k_datablock = 5;
-  if (this->_internal_k_datablock() != 0) {
-    target = stream->EnsureSpace(target);
-    target = ::_pbi::WireFormatLite::WriteInt32ToArray(5, this->_internal_k_datablock(), target);
-  }
-
-  // int32 l_localparityblock = 6;
-  if (this->_internal_l_localparityblock() != 0) {
-    target = stream->EnsureSpace(target);
-    target = ::_pbi::WireFormatLite::WriteInt32ToArray(6, this->_internal_l_localparityblock(), target);
-  }
-
-  // int32 g_m_globalparityblock = 7;
-  if (this->_internal_g_m_globalparityblock() != 0) {
-    target = stream->EnsureSpace(target);
-    target = ::_pbi::WireFormatLite::WriteInt32ToArray(7, this->_internal_g_m_globalparityblock(), target);
-  }
-
-  // int32 b_datapergroup = 8;
-  if (this->_internal_b_datapergroup() != 0) {
-    target = stream->EnsureSpace(target);
-    target = ::_pbi::WireFormatLite::WriteInt32ToArray(8, this->_internal_b_datapergroup(), target);
-  }
-
-  // int32 x_stripepermergegroup = 9;
-  if (this->_internal_x_stripepermergegroup() != 0) {
-    target = stream->EnsureSpace(target);
-    target = ::_pbi::WireFormatLite::WriteInt32ToArray(9, this->_internal_x_stripepermergegroup(), target);
-  }
-
-  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
-    target = ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
-        _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
-  }
-  // @@protoc_insertion_point(serialize_to_array_end:coordinator_proto.Parameter)
-  return target;
-}
-
-size_t Parameter::ByteSizeLong() const {
-// @@protoc_insertion_point(message_byte_size_start:coordinator_proto.Parameter)
-  size_t total_size = 0;
-
-  uint32_t cached_has_bits = 0;
-  // Prevent compiler warnings about cached_has_bits being unused
-  (void) cached_has_bits;
-
-  // bool partial_decoding = 1;
-  if (this->_internal_partial_decoding() != 0) {
-    total_size += 1 + 1;
-  }
-
-  // int32 encodetype = 2;
-  if (this->_internal_encodetype() != 0) {
-    total_size += ::_pbi::WireFormatLite::Int32SizePlusOne(this->_internal_encodetype());
-  }
-
-  // int32 s_stripe_placementtype = 3;
-  if (this->_internal_s_stripe_placementtype() != 0) {
-    total_size += ::_pbi::WireFormatLite::Int32SizePlusOne(this->_internal_s_stripe_placementtype());
-  }
-
-  // int32 m_stripe_placementtype = 4;
-  if (this->_internal_m_stripe_placementtype() != 0) {
-    total_size += ::_pbi::WireFormatLite::Int32SizePlusOne(this->_internal_m_stripe_placementtype());
-  }
-
-  // int32 k_datablock = 5;
-  if (this->_internal_k_datablock() != 0) {
-    total_size += ::_pbi::WireFormatLite::Int32SizePlusOne(this->_internal_k_datablock());
-  }
-
-  // int32 l_localparityblock = 6;
-  if (this->_internal_l_localparityblock() != 0) {
-    total_size += ::_pbi::WireFormatLite::Int32SizePlusOne(this->_internal_l_localparityblock());
-  }
-
-  // int32 g_m_globalparityblock = 7;
-  if (this->_internal_g_m_globalparityblock() != 0) {
-    total_size += ::_pbi::WireFormatLite::Int32SizePlusOne(this->_internal_g_m_globalparityblock());
-  }
-
-  // int32 b_datapergroup = 8;
-  if (this->_internal_b_datapergroup() != 0) {
-    total_size += ::_pbi::WireFormatLite::Int32SizePlusOne(this->_internal_b_datapergroup());
-  }
-
-  // int32 x_stripepermergegroup = 9;
-  if (this->_internal_x_stripepermergegroup() != 0) {
-    total_size += ::_pbi::WireFormatLite::Int32SizePlusOne(this->_internal_x_stripepermergegroup());
-  }
-
-  return MaybeComputeUnknownFieldsSize(total_size, &_impl_._cached_size_);
-}
-
-const ::PROTOBUF_NAMESPACE_ID::Message::ClassData Parameter::_class_data_ = {
-    ::PROTOBUF_NAMESPACE_ID::Message::CopyWithSourceCheck,
-    Parameter::MergeImpl
-};
-const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*Parameter::GetClassData() const { return &_class_data_; }
-
-
-void Parameter::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg) {
-  auto* const _this = static_cast<Parameter*>(&to_msg);
-  auto& from = static_cast<const Parameter&>(from_msg);
-  // @@protoc_insertion_point(class_specific_merge_from_start:coordinator_proto.Parameter)
-  GOOGLE_DCHECK_NE(&from, _this);
-  uint32_t cached_has_bits = 0;
-  (void) cached_has_bits;
-
-  if (from._internal_partial_decoding() != 0) {
-    _this->_internal_set_partial_decoding(from._internal_partial_decoding());
-  }
-  if (from._internal_encodetype() != 0) {
-    _this->_internal_set_encodetype(from._internal_encodetype());
-  }
-  if (from._internal_s_stripe_placementtype() != 0) {
-    _this->_internal_set_s_stripe_placementtype(from._internal_s_stripe_placementtype());
-  }
-  if (from._internal_m_stripe_placementtype() != 0) {
-    _this->_internal_set_m_stripe_placementtype(from._internal_m_stripe_placementtype());
-  }
-  if (from._internal_k_datablock() != 0) {
-    _this->_internal_set_k_datablock(from._internal_k_datablock());
-  }
-  if (from._internal_l_localparityblock() != 0) {
-    _this->_internal_set_l_localparityblock(from._internal_l_localparityblock());
-  }
-  if (from._internal_g_m_globalparityblock() != 0) {
-    _this->_internal_set_g_m_globalparityblock(from._internal_g_m_globalparityblock());
-  }
-  if (from._internal_b_datapergroup() != 0) {
-    _this->_internal_set_b_datapergroup(from._internal_b_datapergroup());
-  }
-  if (from._internal_x_stripepermergegroup() != 0) {
-    _this->_internal_set_x_stripepermergegroup(from._internal_x_stripepermergegroup());
-  }
-  _this->_internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
-}
-
-void Parameter::CopyFrom(const Parameter& from) {
-// @@protoc_insertion_point(class_specific_copy_from_start:coordinator_proto.Parameter)
-  if (&from == this) return;
-  Clear();
-  MergeFrom(from);
-}
-
-bool Parameter::IsInitialized() const {
-  return true;
-}
-
-void Parameter::InternalSwap(Parameter* other) {
-  using std::swap;
-  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
-  ::PROTOBUF_NAMESPACE_ID::internal::memswap<
-      PROTOBUF_FIELD_OFFSET(Parameter, _impl_.x_stripepermergegroup_)
-      + sizeof(Parameter::_impl_.x_stripepermergegroup_)
-      - PROTOBUF_FIELD_OFFSET(Parameter, _impl_.partial_decoding_)>(
-          reinterpret_cast<char*>(&_impl_.partial_decoding_),
-          reinterpret_cast<char*>(&other->_impl_.partial_decoding_));
-}
-
-::PROTOBUF_NAMESPACE_ID::Metadata Parameter::GetMetadata() const {
-  return ::_pbi::AssignDescriptors(
-      &descriptor_table_coordinator_2eproto_getter, &descriptor_table_coordinator_2eproto_once,
-      file_level_metadata_coordinator_2eproto[0]);
-}
-
-// ===================================================================
-
-class RepIfSetParaSuccess::_Internal {
- public:
-};
-
-RepIfSetParaSuccess::RepIfSetParaSuccess(::PROTOBUF_NAMESPACE_ID::Arena* arena,
-                         bool is_message_owned)
-  : ::PROTOBUF_NAMESPACE_ID::Message(arena, is_message_owned) {
-  SharedCtor(arena, is_message_owned);
-  // @@protoc_insertion_point(arena_constructor:coordinator_proto.RepIfSetParaSuccess)
-}
-RepIfSetParaSuccess::RepIfSetParaSuccess(const RepIfSetParaSuccess& from)
-  : ::PROTOBUF_NAMESPACE_ID::Message() {
-  RepIfSetParaSuccess* const _this = this; (void)_this;
-  new (&_impl_) Impl_{
-      decltype(_impl_.ifsetparameter_){}
-    , /*decltype(_impl_._cached_size_)*/{}};
-
-  _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
-  _this->_impl_.ifsetparameter_ = from._impl_.ifsetparameter_;
-  // @@protoc_insertion_point(copy_constructor:coordinator_proto.RepIfSetParaSuccess)
-}
-
-inline void RepIfSetParaSuccess::SharedCtor(
-    ::_pb::Arena* arena, bool is_message_owned) {
-  (void)arena;
-  (void)is_message_owned;
-  new (&_impl_) Impl_{
-      decltype(_impl_.ifsetparameter_){false}
-    , /*decltype(_impl_._cached_size_)*/{}
-  };
-}
-
-RepIfSetParaSuccess::~RepIfSetParaSuccess() {
-  // @@protoc_insertion_point(destructor:coordinator_proto.RepIfSetParaSuccess)
-  if (auto *arena = _internal_metadata_.DeleteReturnArena<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>()) {
-  (void)arena;
-    return;
-  }
-  SharedDtor();
-}
-
-inline void RepIfSetParaSuccess::SharedDtor() {
-  GOOGLE_DCHECK(GetArenaForAllocation() == nullptr);
-}
-
-void RepIfSetParaSuccess::SetCachedSize(int size) const {
-  _impl_._cached_size_.Set(size);
-}
-
-void RepIfSetParaSuccess::Clear() {
-// @@protoc_insertion_point(message_clear_start:coordinator_proto.RepIfSetParaSuccess)
-  uint32_t cached_has_bits = 0;
-  // Prevent compiler warnings about cached_has_bits being unused
-  (void) cached_has_bits;
-
-  _impl_.ifsetparameter_ = false;
-  _internal_metadata_.Clear<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>();
-}
-
-const char* RepIfSetParaSuccess::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) {
-#define CHK_(x) if (PROTOBUF_PREDICT_FALSE(!(x))) goto failure
-  while (!ctx->Done(&ptr)) {
-    uint32_t tag;
-    ptr = ::_pbi::ReadTag(ptr, &tag);
-    switch (tag >> 3) {
-      // bool ifsetparameter = 1;
-      case 1:
-        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 8)) {
-          _impl_.ifsetparameter_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
-          CHK_(ptr);
-        } else
-          goto handle_unusual;
-        continue;
-      default:
-        goto handle_unusual;
-    }  // switch
-  handle_unusual:
-    if ((tag == 0) || ((tag & 7) == 4)) {
-      CHK_(ptr);
-      ctx->SetLastTag(tag);
-      goto message_done;
-    }
-    ptr = UnknownFieldParse(
-        tag,
-        _internal_metadata_.mutable_unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(),
-        ptr, ctx);
-    CHK_(ptr != nullptr);
-  }  // while
-message_done:
-  return ptr;
-failure:
-  ptr = nullptr;
-  goto message_done;
-#undef CHK_
-}
-
-uint8_t* RepIfSetParaSuccess::_InternalSerialize(
-    uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
-  // @@protoc_insertion_point(serialize_to_array_start:coordinator_proto.RepIfSetParaSuccess)
-  uint32_t cached_has_bits = 0;
-  (void) cached_has_bits;
-
-  // bool ifsetparameter = 1;
-  if (this->_internal_ifsetparameter() != 0) {
-    target = stream->EnsureSpace(target);
-    target = ::_pbi::WireFormatLite::WriteBoolToArray(1, this->_internal_ifsetparameter(), target);
-  }
-
-  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
-    target = ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
-        _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
-  }
-  // @@protoc_insertion_point(serialize_to_array_end:coordinator_proto.RepIfSetParaSuccess)
-  return target;
-}
-
-size_t RepIfSetParaSuccess::ByteSizeLong() const {
-// @@protoc_insertion_point(message_byte_size_start:coordinator_proto.RepIfSetParaSuccess)
-  size_t total_size = 0;
-
-  uint32_t cached_has_bits = 0;
-  // Prevent compiler warnings about cached_has_bits being unused
-  (void) cached_has_bits;
-
-  // bool ifsetparameter = 1;
-  if (this->_internal_ifsetparameter() != 0) {
-    total_size += 1 + 1;
-  }
-
-  return MaybeComputeUnknownFieldsSize(total_size, &_impl_._cached_size_);
-}
-
-const ::PROTOBUF_NAMESPACE_ID::Message::ClassData RepIfSetParaSuccess::_class_data_ = {
-    ::PROTOBUF_NAMESPACE_ID::Message::CopyWithSourceCheck,
-    RepIfSetParaSuccess::MergeImpl
-};
-const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*RepIfSetParaSuccess::GetClassData() const { return &_class_data_; }
-
-
-void RepIfSetParaSuccess::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg) {
-  auto* const _this = static_cast<RepIfSetParaSuccess*>(&to_msg);
-  auto& from = static_cast<const RepIfSetParaSuccess&>(from_msg);
-  // @@protoc_insertion_point(class_specific_merge_from_start:coordinator_proto.RepIfSetParaSuccess)
-  GOOGLE_DCHECK_NE(&from, _this);
-  uint32_t cached_has_bits = 0;
-  (void) cached_has_bits;
-
-  if (from._internal_ifsetparameter() != 0) {
-    _this->_internal_set_ifsetparameter(from._internal_ifsetparameter());
-  }
-  _this->_internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
-}
-
-void RepIfSetParaSuccess::CopyFrom(const RepIfSetParaSuccess& from) {
-// @@protoc_insertion_point(class_specific_copy_from_start:coordinator_proto.RepIfSetParaSuccess)
-  if (&from == this) return;
-  Clear();
-  MergeFrom(from);
-}
-
-bool RepIfSetParaSuccess::IsInitialized() const {
-  return true;
-}
-
-void RepIfSetParaSuccess::InternalSwap(RepIfSetParaSuccess* other) {
-  using std::swap;
-  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
-  swap(_impl_.ifsetparameter_, other->_impl_.ifsetparameter_);
-}
-
-::PROTOBUF_NAMESPACE_ID::Metadata RepIfSetParaSuccess::GetMetadata() const {
-  return ::_pbi::AssignDescriptors(
-      &descriptor_table_coordinator_2eproto_getter, &descriptor_table_coordinator_2eproto_once,
-      file_level_metadata_coordinator_2eproto[1]);
-}
 
 // ===================================================================
 
@@ -1547,7 +921,7 @@ void RequestToCoordinator::InternalSwap(RequestToCoordinator* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata RequestToCoordinator::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_coordinator_2eproto_getter, &descriptor_table_coordinator_2eproto_once,
-      file_level_metadata_coordinator_2eproto[2]);
+      file_level_metadata_coordinator_2eproto[0]);
 }
 
 // ===================================================================
@@ -1750,7 +1124,7 @@ void ReplyFromCoordinator::InternalSwap(ReplyFromCoordinator* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata ReplyFromCoordinator::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_coordinator_2eproto_getter, &descriptor_table_coordinator_2eproto_once,
-      file_level_metadata_coordinator_2eproto[3]);
+      file_level_metadata_coordinator_2eproto[1]);
 }
 
 // ===================================================================
@@ -2030,7 +1404,7 @@ void RequestProxyIPPort::InternalSwap(RequestProxyIPPort* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata RequestProxyIPPort::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_coordinator_2eproto_getter, &descriptor_table_coordinator_2eproto_once,
-      file_level_metadata_coordinator_2eproto[4]);
+      file_level_metadata_coordinator_2eproto[2]);
 }
 
 // ===================================================================
@@ -2260,7 +1634,7 @@ void ReplyProxyIPPort::InternalSwap(ReplyProxyIPPort* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata ReplyProxyIPPort::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_coordinator_2eproto_getter, &descriptor_table_coordinator_2eproto_once,
-      file_level_metadata_coordinator_2eproto[5]);
+      file_level_metadata_coordinator_2eproto[3]);
 }
 
 // ===================================================================
@@ -2547,7 +1921,7 @@ void CommitAbortKey::InternalSwap(CommitAbortKey* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata CommitAbortKey::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_coordinator_2eproto_getter, &descriptor_table_coordinator_2eproto_once,
-      file_level_metadata_coordinator_2eproto[6]);
+      file_level_metadata_coordinator_2eproto[4]);
 }
 
 // ===================================================================
@@ -2929,7 +2303,7 @@ void ReplyProxyIPsPorts::InternalSwap(ReplyProxyIPsPorts* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata ReplyProxyIPsPorts::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_coordinator_2eproto_getter, &descriptor_table_coordinator_2eproto_once,
-      file_level_metadata_coordinator_2eproto[7]);
+      file_level_metadata_coordinator_2eproto[5]);
 }
 
 // ===================================================================
@@ -3192,7 +2566,7 @@ void AskIfSuccess::InternalSwap(AskIfSuccess* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata AskIfSuccess::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_coordinator_2eproto_getter, &descriptor_table_coordinator_2eproto_once,
-      file_level_metadata_coordinator_2eproto[8]);
+      file_level_metadata_coordinator_2eproto[6]);
 }
 
 // ===================================================================
@@ -3370,7 +2744,7 @@ void RepIfSuccess::InternalSwap(RepIfSuccess* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata RepIfSuccess::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_coordinator_2eproto_getter, &descriptor_table_coordinator_2eproto_once,
-      file_level_metadata_coordinator_2eproto[9]);
+      file_level_metadata_coordinator_2eproto[7]);
 }
 
 // ===================================================================
@@ -3650,7 +3024,7 @@ void KeyAndClientIP::InternalSwap(KeyAndClientIP* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata KeyAndClientIP::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_coordinator_2eproto_getter, &descriptor_table_coordinator_2eproto_once,
-      file_level_metadata_coordinator_2eproto[10]);
+      file_level_metadata_coordinator_2eproto[8]);
 }
 
 // ===================================================================
@@ -3861,7 +3235,7 @@ void RepIfGetSuccess::InternalSwap(RepIfGetSuccess* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata RepIfGetSuccess::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_coordinator_2eproto_getter, &descriptor_table_coordinator_2eproto_once,
-      file_level_metadata_coordinator_2eproto[11]);
+      file_level_metadata_coordinator_2eproto[9]);
 }
 
 // ===================================================================
@@ -4172,7 +3546,7 @@ void BlockIDsAndClientIP::InternalSwap(BlockIDsAndClientIP* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata BlockIDsAndClientIP::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_coordinator_2eproto_getter, &descriptor_table_coordinator_2eproto_once,
-      file_level_metadata_coordinator_2eproto[12]);
+      file_level_metadata_coordinator_2eproto[10]);
 }
 
 // ===================================================================
@@ -4375,7 +3749,7 @@ void KeyFromClient::InternalSwap(KeyFromClient* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata KeyFromClient::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_coordinator_2eproto_getter, &descriptor_table_coordinator_2eproto_once,
-      file_level_metadata_coordinator_2eproto[13]);
+      file_level_metadata_coordinator_2eproto[11]);
 }
 
 // ===================================================================
@@ -4553,7 +3927,7 @@ void StripeIdFromClient::InternalSwap(StripeIdFromClient* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata StripeIdFromClient::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_coordinator_2eproto_getter, &descriptor_table_coordinator_2eproto_once,
-      file_level_metadata_coordinator_2eproto[14]);
+      file_level_metadata_coordinator_2eproto[12]);
 }
 
 // ===================================================================
@@ -4815,7 +4189,7 @@ void StripeIdAndBlockIDsFromClient::InternalSwap(StripeIdAndBlockIDsFromClient* 
 ::PROTOBUF_NAMESPACE_ID::Metadata StripeIdAndBlockIDsFromClient::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_coordinator_2eproto_getter, &descriptor_table_coordinator_2eproto_once,
-      file_level_metadata_coordinator_2eproto[15]);
+      file_level_metadata_coordinator_2eproto[13]);
 }
 
 // ===================================================================
@@ -5162,7 +4536,7 @@ void MaintenanceReadRequest::InternalSwap(MaintenanceReadRequest* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata MaintenanceReadRequest::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_coordinator_2eproto_getter, &descriptor_table_coordinator_2eproto_once,
-      file_level_metadata_coordinator_2eproto[16]);
+      file_level_metadata_coordinator_2eproto[14]);
 }
 
 // ===================================================================
@@ -5340,7 +4714,7 @@ void NodeIdFromClient::InternalSwap(NodeIdFromClient* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata NodeIdFromClient::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_coordinator_2eproto_getter, &descriptor_table_coordinator_2eproto_once,
-      file_level_metadata_coordinator_2eproto[17]);
+      file_level_metadata_coordinator_2eproto[15]);
 }
 
 // ===================================================================
@@ -5551,7 +4925,7 @@ void TwoNodeIdsFromClient::InternalSwap(TwoNodeIdsFromClient* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata TwoNodeIdsFromClient::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_coordinator_2eproto_getter, &descriptor_table_coordinator_2eproto_once,
-      file_level_metadata_coordinator_2eproto[18]);
+      file_level_metadata_coordinator_2eproto[16]);
 }
 
 // ===================================================================
@@ -5729,7 +5103,7 @@ void RepIfDeling::InternalSwap(RepIfDeling* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata RepIfDeling::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_coordinator_2eproto_getter, &descriptor_table_coordinator_2eproto_once,
-      file_level_metadata_coordinator_2eproto[19]);
+      file_level_metadata_coordinator_2eproto[17]);
 }
 
 // ===================================================================
@@ -5922,7 +5296,7 @@ void RepStripeIds::InternalSwap(RepStripeIds* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata RepStripeIds::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_coordinator_2eproto_getter, &descriptor_table_coordinator_2eproto_once,
-      file_level_metadata_coordinator_2eproto[20]);
+      file_level_metadata_coordinator_2eproto[18]);
 }
 
 // ===================================================================
@@ -6100,7 +5474,7 @@ void RepBlockNum::InternalSwap(RepBlockNum* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata RepBlockNum::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_coordinator_2eproto_getter, &descriptor_table_coordinator_2eproto_once,
-      file_level_metadata_coordinator_2eproto[21]);
+      file_level_metadata_coordinator_2eproto[19]);
 }
 
 // ===================================================================
@@ -6407,7 +5781,7 @@ void DegradedReadReply::InternalSwap(DegradedReadReply* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata DegradedReadReply::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_coordinator_2eproto_getter, &descriptor_table_coordinator_2eproto_once,
-      file_level_metadata_coordinator_2eproto[22]);
+      file_level_metadata_coordinator_2eproto[20]);
 }
 
 // ===================================================================
@@ -6826,20 +6200,12 @@ void RecoveryReply::InternalSwap(RecoveryReply* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata RecoveryReply::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_coordinator_2eproto_getter, &descriptor_table_coordinator_2eproto_once,
-      file_level_metadata_coordinator_2eproto[23]);
+      file_level_metadata_coordinator_2eproto[21]);
 }
 
 // @@protoc_insertion_point(namespace_scope)
 }  // namespace coordinator_proto
 PROTOBUF_NAMESPACE_OPEN
-template<> PROTOBUF_NOINLINE ::coordinator_proto::Parameter*
-Arena::CreateMaybeMessage< ::coordinator_proto::Parameter >(Arena* arena) {
-  return Arena::CreateMessageInternal< ::coordinator_proto::Parameter >(arena);
-}
-template<> PROTOBUF_NOINLINE ::coordinator_proto::RepIfSetParaSuccess*
-Arena::CreateMaybeMessage< ::coordinator_proto::RepIfSetParaSuccess >(Arena* arena) {
-  return Arena::CreateMessageInternal< ::coordinator_proto::RepIfSetParaSuccess >(arena);
-}
 template<> PROTOBUF_NOINLINE ::coordinator_proto::RequestToCoordinator*
 Arena::CreateMaybeMessage< ::coordinator_proto::RequestToCoordinator >(Arena* arena) {
   return Arena::CreateMessageInternal< ::coordinator_proto::RequestToCoordinator >(arena);

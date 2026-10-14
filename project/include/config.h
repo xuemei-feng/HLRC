@@ -21,20 +21,19 @@ namespace ECProject
     void printConfigs() const;
     void validateConfig() const;
 
-    int AlignedSize = 4096;
-    int UnitSize = 8 * 1024;
-    unsigned int BlockSize = 1024 * 1024;
-    int alpha = 2;
-    int z = 2;
-    // TODO: need to modify configs to support directly setting k,r,z
-    int n = alpha * z * z + z;
-    int k = alpha * z * z - alpha * z;
-    int r = alpha * z;
-    int NodeNum = 0;
-    std::string CoordinatorIP = "0.0.0.0";
-    int CoordinatorPort = 55555;
-    std::string AppendMode = "UNILRC_MODE";
-    std::string CodeType = "UniLRC";
+    int AlignedSize;
+    int UnitSize;
+    unsigned int BlockSize;
+    int alpha = 0;
+    int z;
+    int n;
+    int k;
+    int r;
+    int NodeNum;
+    std::string CoordinatorIP;
+    int CoordinatorPort;
+    std::string AppendMode;
+    std::string CodeType;
   };
 }
 

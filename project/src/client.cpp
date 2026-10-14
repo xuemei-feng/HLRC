@@ -27,43 +27,6 @@ namespace ECProject
       return "RPC failed";
     }
   }
-  // grpc, set the parameters stored in the variable of m_encode_parameters in coordinator
-  bool Client::SetParameterByGrpc(ECSchema input_ecschema)
-  {
-    int k = input_ecschema.k_datablock;
-    int l = input_ecschema.l_localparityblock;
-    int g_m = input_ecschema.g_m_globalparityblock;
-    int b = input_ecschema.b_datapergroup;
-    EncodeType encodetype = input_ecschema.encodetype;
-    int m = b % (g_m + 1);
-    if (b != k / l || (m != 0 && encodetype == Azure_LRC && g_m % m != 0))
-    {
-      std::cout << "Set parameters failed! Illegal parameters!" << std::endl;
-      exit(0);
-    }
-    coordinator_proto::Parameter parameter;
-    parameter.set_partial_decoding((int)input_ecschema.partial_decoding);
-    parameter.set_encodetype(encodetype);
-    parameter.set_s_stripe_placementtype(input_ecschema.s_stripe_placementtype);
-    parameter.set_m_stripe_placementtype(input_ecschema.m_stripe_placementtype);
-    parameter.set_k_datablock(k);
-    parameter.set_l_localparityblock(l);
-    parameter.set_g_m_globalparityblock(g_m);
-    parameter.set_b_datapergroup(b);
-    parameter.set_x_stripepermergegroup(input_ecschema.x_stripepermergegroup);
-    grpc::ClientContext context;
-    coordinator_proto::RepIfSetParaSuccess reply;
-    grpc::Status status = m_coordinator_ptr->setParameter(&context, parameter, &reply);
-    if (status.ok())
-    {
-      return reply.ifsetparameter();
-    }
-    else
-    {
-      std::cout << status.error_code() << ": " << status.error_message() << std::endl;
-      return false;
-    }
-  }
   /*
     Function: set
     1. send the set request including the information of key and valuesize to the coordinator

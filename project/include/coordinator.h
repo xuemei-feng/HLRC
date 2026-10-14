@@ -27,10 +27,6 @@ namespace ECProject
       m_cur_stripe_id = 0;
     }
     ~CoordinatorImpl() {};
-    grpc::Status setParameter(
-        grpc::ServerContext *context,
-        const coordinator_proto::Parameter *parameter,
-        coordinator_proto::RepIfSetParaSuccess *setParameterReply) override;
     grpc::Status sayHelloToCoordinator(
         grpc::ServerContext *context,
         const coordinator_proto::RequestToCoordinator *helloRequestToCoordinator,
@@ -220,8 +216,8 @@ namespace ECProject
       std::vector<double> &grpc_notify_time, std::vector<double> &grpc_start_time, std::vector<double> &data_node_grpc_notify_time, std::vector<double> &data_node_grpc_start_time);
     bool degraded_read_one_block(int stripe_id, int failed_block_id, std::string client_ip, int client_port);
     bool degraded_read_one_block_for_workload(int stripe_id, int failed_block_id, std::string client_ip, int client_port, int block_id_to_send);
-    ECProject::Config *m_sys_config;
-    ECProject::ToolBox *m_toolbox;
+    ECProject::Config *m_sys_config = nullptr;
+    ECProject::ToolBox *m_toolbox = nullptr;
     int m_cur_node_id = 0;
     int m_cur_stripe_id = 0;
     std::unordered_map<std::string, ObjectInfo> m_object_commit_table;
@@ -236,7 +232,6 @@ namespace ECProject
     std::condition_variable cv;
     std::map<std::string, std::unique_ptr<proxy_proto::proxyService::Stub>>
         m_proxy_ptrs;
-    ECSchema m_encode_parameters;
     std::vector<int> m_stripe_deleting_table;
     int m_num_of_Nodes;
     // merge groups, for DIS and OPT, the stripes from the same group object to the selected placement scheme
@@ -263,10 +258,11 @@ namespace ECProject
         : m_coordinator_ip_port{m_coordinator_ip_port},
           m_nodeinfo_path{m_nodeinfo_path}
     {
-      m_coordinatorImpl.init_nodeinfo(m_nodeinfo_path);
-      m_coordinatorImpl.init_proxyinfo();
       m_coordinatorImpl.m_sys_config = ECProject::Config::getInstance(sys_config_path);
       m_coordinatorImpl.m_toolbox = ECProject::ToolBox::getInstance();
+      if (!m_coordinatorImpl.init_nodeinfo(m_nodeinfo_path))
+        throw std::runtime_error("Failed to initialize node topology from " + m_nodeinfo_path);
+      m_coordinatorImpl.init_proxyinfo();
 
       // initializing
       m_coordinatorImpl.m_cur_node_id = 0;
