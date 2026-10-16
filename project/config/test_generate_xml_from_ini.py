@@ -34,6 +34,18 @@ class ParameterConfigurationTest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "required divisible"):
             self.parse("<CodeType>AL</CodeType><k>10</k><r>2</r><z>7</z>")
 
+    def test_ol_valid_non_divisible(self):
+        self.assertEqual(self.parse("<CodeType>OL</CodeType><k>17</k><r>4</r><z>7</z>"),
+                         ("OL", 17, 4, 7, 28))
+
+    def test_ol_even_z_fails(self):
+        with self.assertRaisesRegex(ValueError, "positive odd"):
+            self.parse("<CodeType>OL</CodeType><k>8</k><r>2</r><z>4</z>")
+
+    def test_ol_member_limit_fails(self):
+        with self.assertRaisesRegex(ValueError, "required<=255"):
+            self.parse("<CodeType>OL</CodeType><k>507</k><r>3</r><z>3</z>")
+
     def test_uni_derivation(self):
         self.assertEqual(self.parse("<CodeType>UniLRC</CodeType><alpha>2</alpha><z>4</z>"),
                          ("UniLRC", 24, 8, 4, 36))

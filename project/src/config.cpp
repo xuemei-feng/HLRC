@@ -43,7 +43,7 @@ namespace ECProject
   void Config::validateConfig() const
   {
     static const std::set<std::string> supported = {
-        "AL", "AzureLRC", "OptimalLRC", "UniformLRC", "LotusLRC", "UniLRC"};
+        "AL", "OL", "AzureLRC", "OptimalLRC", "UniformLRC", "LotusLRC", "UniLRC"};
     if (supported.count(CodeType) == 0)
       throw std::runtime_error("Unsupported CodeType: actual=" + CodeType);
     if (AlignedSize <= 0 || UnitSize <= 0 || BlockSize == 0 || CoordinatorPort <= 0 ||
@@ -63,6 +63,15 @@ namespace ECProject
                                  ", groups=" + std::to_string(groupNum));
       if (k + r > 255)
         throw std::runtime_error("Invalid AL parameters: k + r must be <= 255 to avoid GF(256) index wrap");
+    }
+    if (CodeType == "OL")
+    {
+      const int groupNum = (z + 1) / 2;
+      if (z % 2 == 0)
+        throw std::runtime_error("Invalid OL z: required=positive odd integer, actual=" + std::to_string(z));
+      const int maxDataCount = k / groupNum + (k % groupNum != 0 ? 1 : 0);
+      if (maxDataCount + r > 255)
+        throw std::runtime_error("Invalid OL parameters: maximum dual-LP member count must be <= 255");
     }
     if (CodeType == "UniLRC" && alpha <= 0)
       throw std::runtime_error("Invalid alpha for UniLRC: actual=" + std::to_string(alpha) +

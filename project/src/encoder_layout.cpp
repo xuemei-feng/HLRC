@@ -16,6 +16,8 @@ namespace ECProject
   {
     if (code_type == "AL")
       return get_data_block_num_per_group_al(k, r, z);
+    if (code_type == "OL")
+      return get_data_block_num_per_group_ol(k, r, z);
     if (code_type == "AzureLRC")
       return get_data_block_num_per_group_azurelrc(k, r, z);
     if (code_type == "OptimalLRC")
@@ -33,6 +35,8 @@ namespace ECProject
   {
     if (code_type == "AL")
       return get_global_parity_block_num_per_group_al(k, r, z);
+    if (code_type == "OL")
+      return get_global_parity_block_num_per_group_ol(k, r, z);
     if (code_type == "AzureLRC")
       return get_global_parity_block_num_per_group_azurelrc(k, r, z);
     if (code_type == "OptimalLRC")
@@ -50,6 +54,8 @@ namespace ECProject
   {
     if (code_type == "AL")
       return get_local_parity_block_num_per_group_al(k, r, z);
+    if (code_type == "OL")
+      return get_local_parity_block_num_per_group_ol(k, r, z);
     if (code_type == "AzureLRC")
       return get_local_parity_block_num_per_group_azurelrc(k, r, z);
     if (code_type == "OptimalLRC")
@@ -144,6 +150,99 @@ namespace ECProject
       return -1;
     const int local_id = block_id - k - r;
     return local_id / 2;
+  }
+
+  /* ----- OL ----- */
+  namespace
+  {
+    void validate_ol_layout_parameters(int k, int r, int z)
+    {
+      if (z <= 0 || z % 2 == 0)
+        throw std::invalid_argument("OL requires a positive odd z");
+      if (k <= 0 || r <= 0)
+        throw std::invalid_argument("OL requires positive k and r");
+      const int group_num = (z + 1) / 2;
+      const int max_data_count = k / group_num + (k % group_num != 0 ? 1 : 0);
+      if (max_data_count + r > 255)
+        throw std::invalid_argument("OL dual-local-parity group member count must be <= 255");
+    }
+  }
+
+  std::vector<int> get_data_block_num_per_group_ol(int k, int r, int z)
+  {
+    validate_ol_layout_parameters(k, r, z);
+    const int group_num = (z + 1) / 2;
+    std::vector<int> counts(group_num, k / group_num);
+    for (int group = 0; group < k % group_num; ++group)
+      ++counts[group];
+    counts.push_back(0);
+    return counts;
+  }
+
+  std::vector<int> get_global_parity_block_num_per_group_ol(int k, int r, int z)
+  {
+    validate_ol_layout_parameters(k, r, z);
+    std::vector<int> counts((z + 1) / 2 + 1, 0);
+    counts.back() = r;
+    return counts;
+  }
+
+  std::vector<int> get_local_parity_block_num_per_group_ol(int k, int r, int z)
+  {
+    validate_ol_layout_parameters(k, r, z);
+    const int group_num = (z + 1) / 2;
+    std::vector<int> counts(group_num, 2);
+    counts.back() = 1;
+    counts.push_back(0);
+    return counts;
+  }
+
+  std::unordered_map<int, std::vector<int>> get_ol_group_id_to_block_ids(int k, int r, int z)
+  {
+    const auto data_counts = get_data_block_num_per_group_ol(k, r, z);
+    const auto global_counts = get_global_parity_block_num_per_group_ol(k, r, z);
+    const auto local_counts = get_local_parity_block_num_per_group_ol(k, r, z);
+    std::unordered_map<int, std::vector<int>> groups;
+    int data_id = 0;
+    int global_id = k;
+    int local_id = k + r;
+    for (size_t group = 0; group < data_counts.size(); ++group)
+    {
+      auto &blocks = groups[static_cast<int>(group)];
+      for (int i = 0; i < data_counts[group]; ++i) blocks.push_back(data_id++);
+      for (int i = 0; i < global_counts[group]; ++i) blocks.push_back(global_id++);
+      for (int i = 0; i < local_counts[group]; ++i) blocks.push_back(local_id++);
+    }
+    return groups;
+  }
+
+  std::unordered_map<int, int> get_ol_block_id_to_group_id(int k, int r, int z)
+  {
+    std::unordered_map<int, int> result;
+    const auto groups = get_ol_group_id_to_block_ids(k, r, z);
+    for (const auto &entry : groups)
+      for (int block_id : entry.second) result[block_id] = entry.first;
+    return result;
+  }
+
+  int get_ol_block_id_to_local_group_id(int k, int r, int z, int block_id)
+  {
+    validate_ol_layout_parameters(k, r, z);
+    if (block_id < 0 || block_id >= k + r + z)
+      throw std::out_of_range("OL block id is out of range");
+    if (block_id < k)
+    {
+      const auto counts = get_data_block_num_per_group_ol(k, r, z);
+      int start = 0;
+      for (int group = 0; group < (z + 1) / 2; ++group)
+      {
+        if (block_id < start + counts[group]) return group;
+        start += counts[group];
+      }
+    }
+    if (block_id < k + r)
+      return -1;
+    return (block_id - k - r) / 2;
   }
 
   /* ----- AzureLRC ----- */

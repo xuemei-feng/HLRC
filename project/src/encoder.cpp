@@ -237,6 +237,15 @@ void ECProject::encode_al(int k, int r, int z, unsigned char **data_ptrs, unsign
     ec_encode_data_avx2(block_size, k, r + z, g_tbls.data(), data_ptrs, parity_ptrs);
 }
 
+void ECProject::encode_ol(int k, int r, int z, unsigned char **data_ptrs, unsigned char **parity_ptrs, int block_size)
+{
+    std::vector<unsigned char> encode_matrix(static_cast<size_t>(k + r + z) * k);
+    gen_ol_matrix(encode_matrix.data(), k, r, z);
+    std::vector<unsigned char> g_tbls(static_cast<size_t>(k) * (r + z) * 32);
+    ec_init_tables(k, r + z, encode_matrix.data() + static_cast<size_t>(k) * k, g_tbls.data());
+    ec_encode_data_avx2(block_size, k, r + z, g_tbls.data(), data_ptrs, parity_ptrs);
+}
+
 void ECProject::partial_encode_azure_lrc(int k, int r, int z, int data_block_num, unsigned char **data_ptrs, unsigned char **parity_ptrs, int block_size)
 {
     for(int i = 0; i < r + z; i++){
@@ -424,6 +433,56 @@ void ECProject::gen_al_matrix(unsigned char *encode_matrix, int k, int r, int z)
                 throw std::invalid_argument("AL local Cauchy coefficient must be nonzero");
             encode_matrix[static_cast<size_t>(m + first_local_row + 1) * k + data_index] = coefficient;
         }
+    }
+}
+
+void ECProject::gen_ol_matrix(unsigned char *encode_matrix, int k, int r, int z)
+{
+    if (z <= 0 || z % 2 == 0)
+        throw std::invalid_argument("OL requires a positive odd z");
+    if (k <= 0 || r <= 0)
+        throw std::invalid_argument("OL requires positive k and r");
+    const int group_num = (z + 1) / 2;
+    const int base = k / group_num;
+    const int remainder = k % group_num;
+    if (base + (remainder > 0 ? 1 : 0) + r > 255)
+        throw std::invalid_argument("OL dual-local-parity group member count must be <= 255");
+
+    const int m = k + r;
+    memset(encode_matrix, 0, static_cast<size_t>(m + z) * k);
+    gf_gen_cauchy_matrix1(encode_matrix, m, k);
+    int data_start = 0;
+    for (int group = 0; group < group_num; ++group)
+    {
+        const int data_count = base + (group < remainder ? 1 : 0);
+        const int first_local = 2 * group;
+        unsigned char *first_row = encode_matrix + static_cast<size_t>(m + first_local) * k;
+        for (int offset = 0; offset < data_count; ++offset)
+        {
+            const int data_index = data_start + offset;
+            first_row[data_index] = gf_inv(static_cast<unsigned char>(data_index ^ m));
+        }
+        for (int global = 0; global < r; ++global)
+            for (int col = 0; col < k; ++col)
+                first_row[col] ^= encode_matrix[static_cast<size_t>(k + global) * k + col];
+
+        if (group != group_num - 1)
+        {
+            unsigned char *second_row = encode_matrix + static_cast<size_t>(m + first_local + 1) * k;
+            for (int offset = 0; offset < data_count; ++offset)
+            {
+                const int data_index = data_start + offset;
+                const unsigned char a = gf_inv(static_cast<unsigned char>(data_index ^ m));
+                second_row[data_index] = gf_mul(a, gff_base[offset]);
+            }
+            for (int global = 0; global < r; ++global)
+            {
+                const unsigned char b = gff_base[data_count + global];
+                for (int col = 0; col < k; ++col)
+                    second_row[col] ^= gf_mul(b, encode_matrix[static_cast<size_t>(k + global) * k + col]);
+            }
+        }
+        data_start += data_count;
     }
 }
 

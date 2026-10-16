@@ -24,6 +24,10 @@ int block_id_to_group(const std::string &code_type, int k, int r, int z, int blo
     {
         return ECProject::get_al_block_id_to_group_id(k, r, z).at(block_id);
     }
+    if (code_type == "OL")
+    {
+        return ECProject::get_ol_block_id_to_group_id(k, r, z).at(block_id);
+    }
     if (code_type == "LotusLRC")
     {
         auto m = ECProject::get_lotuslrc_block_id_to_group_id(k, r, z);
@@ -269,6 +273,9 @@ int main(int argc, char **argv)
     if(parameters[4] == 5){
         code_type = "AL";
     }
+    else if(parameters[4] == 6){
+        code_type = "OL";
+    }
     else if(parameters[4] == 0){
         code_type = "AzureLRC";
     }
@@ -307,9 +314,9 @@ int main(int argc, char **argv)
     std::mt19937 rng(std::random_device{}());
     sleep(5);
 
-    if (code_type == "AL")
+    if (code_type == "AL" || code_type == "OL")
     {
-        std::cout << "AL recovery and degraded-read experiments are not supported; skipping them." << std::endl;
+        std::cout << code_type << " recovery and degraded-read experiments are not supported; skipping them." << std::endl;
         return 0;
     }
 

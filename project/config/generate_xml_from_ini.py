@@ -12,7 +12,7 @@ INI_PATH = CONFIG_DIR / "cluster.ini"
 NODE_XML_PATH = CONFIG_DIR / "nodeInformation.xml"
 PARAM_XML_PATH = CONFIG_DIR / "parameterConfiguration.xml"
 MAIN_CLIENT_CPP = CONFIG_DIR.parent / "run_cpp" / "main_client.cpp"
-SUPPORTED_CODE_TYPES = {"AL", "AzureLRC", "OptimalLRC", "UniformLRC", "LotusLRC", "UniLRC"}
+SUPPORTED_CODE_TYPES = {"AL", "OL", "AzureLRC", "OptimalLRC", "UniformLRC", "LotusLRC", "UniLRC"}
 
 
 def _positive_int(root: ET.Element, name: str, code_type: str) -> int:
@@ -55,6 +55,15 @@ def parse_code_parameters(xml_path: Path) -> Tuple[str, int, int, int, int]:
                 raise ValueError(f"invalid k for code type AL: required divisible by {group_num}, actual={k}")
             if k + r > 255:
                 raise ValueError(f"invalid parameters for code type AL: k+r={k + r}, required<=255")
+        if code_type == "OL":
+            if z % 2 == 0:
+                raise ValueError(f"invalid z for code type OL: required positive odd integer, actual={z}")
+            group_num = (z + 1) // 2
+            max_data_count = k // group_num + (1 if k % group_num else 0)
+            if max_data_count + r > 255:
+                raise ValueError(
+                    f"invalid parameters for code type OL: max members={max_data_count + r}, required<=255"
+                )
     return code_type, k, r, z, k + r + z
 
 
