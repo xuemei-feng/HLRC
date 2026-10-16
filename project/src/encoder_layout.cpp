@@ -14,6 +14,8 @@ namespace ECProject
   /* ----- Dispatchers (by code_type) ----- */
   std::vector<int> get_data_block_num_per_group(int k, int r, int z, const std::string &code_type)
   {
+    if (code_type == "CP-ALRC")
+      return get_data_block_num_per_group_cp_alrc(k, r, z);
     if (code_type == "AzureLRC")
       return get_data_block_num_per_group_azurelrc(k, r, z);
     if (code_type == "OptimalLRC")
@@ -29,6 +31,8 @@ namespace ECProject
 
   std::vector<int> get_global_parity_block_num_per_group(int k, int r, int z, const std::string &code_type)
   {
+    if (code_type == "CP-ALRC")
+      return get_global_parity_block_num_per_group_cp_alrc(k, r, z);
     if (code_type == "AzureLRC")
       return get_global_parity_block_num_per_group_azurelrc(k, r, z);
     if (code_type == "OptimalLRC")
@@ -44,6 +48,8 @@ namespace ECProject
 
   std::vector<int> get_local_parity_block_num_per_group(int k, int r, int z, const std::string &code_type)
   {
+    if (code_type == "CP-ALRC")
+      return get_local_parity_block_num_per_group_cp_alrc(k, r, z);
     if (code_type == "AzureLRC")
       return get_local_parity_block_num_per_group_azurelrc(k, r, z);
     if (code_type == "OptimalLRC")
@@ -94,6 +100,52 @@ namespace ECProject
       return (block_id - k - r);
     throw std::runtime_error("block id is out of range");
     return -1;
+  }
+
+  /* ----- CP-ALRC ----- */
+  namespace
+  {
+    void validate_cp_alrc_layout(int k, int r, int z)
+    {
+      if (k <= 0 || r <= 0 || z <= 0 || k % z != 0)
+        throw std::invalid_argument("CP-ALRC requires positive k, r, z and k divisible by z");
+    }
+  }
+
+  std::vector<int> get_data_block_num_per_group_cp_alrc(int k, int r, int z)
+  {
+    validate_cp_alrc_layout(k, r, z);
+    return get_data_block_num_per_group_azurelrc(k, r, z);
+  }
+
+  std::vector<int> get_global_parity_block_num_per_group_cp_alrc(int k, int r, int z)
+  {
+    validate_cp_alrc_layout(k, r, z);
+    return get_global_parity_block_num_per_group_azurelrc(k, r, z);
+  }
+
+  std::vector<int> get_local_parity_block_num_per_group_cp_alrc(int k, int r, int z)
+  {
+    validate_cp_alrc_layout(k, r, z);
+    return get_local_parity_block_num_per_group_azurelrc(k, r, z);
+  }
+
+  std::unordered_map<int, int> get_cp_alrc_block_id_to_group_id(int k, int r, int z)
+  {
+    validate_cp_alrc_layout(k, r, z);
+    return get_azurelrc_block_id_to_group_id(k, r, z);
+  }
+
+  std::unordered_map<int, std::vector<int>> get_cp_alrc_group_id_to_block_ids(int k, int r, int z)
+  {
+    validate_cp_alrc_layout(k, r, z);
+    return get_azurelrc_group_id_to_block_ids(k, r, z);
+  }
+
+  int get_cp_alrc_block_id_to_local_group_id(int k, int r, int z, int block_id)
+  {
+    validate_cp_alrc_layout(k, r, z);
+    return get_azurelrc_block_id_to_local_group_id(k, r, z, block_id);
   }
 
   /* ----- OptimalLRC ----- */

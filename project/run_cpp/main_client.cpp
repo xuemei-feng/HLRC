@@ -25,6 +25,11 @@ int block_id_to_group(const std::string &code_type, int k, int r, int z, int blo
         auto m = ECProject::get_lotuslrc_block_id_to_group_id(k, r, z);
         return m.at(block_id);
     }
+    if (code_type == "CP-ALRC")
+    {
+        auto m = ECProject::get_cp_alrc_block_id_to_group_id(k, r, z);
+        return m.at(block_id);
+    }
     if (code_type == "AzureLRC")
     {
         auto m = ECProject::get_azurelrc_block_id_to_group_id(k, r, z);
@@ -277,6 +282,9 @@ int main(int argc, char **argv)
     else if(parameters[4] == 4){
         code_type = "LotusLRC";
     }
+    else if(parameters[4] == 5){
+        code_type = "CP-ALRC";
+    }
     else{
         std::cout << "Code type error" << std::endl;
         return -1;
@@ -299,6 +307,12 @@ int main(int argc, char **argv)
     std::cout << "write throughput: " << (static_cast<double>(total_write_size) / set_time.count()) << " MB/s" << std::endl;
     std::mt19937 rng(std::random_device{}());
     sleep(5);
+
+    if (code_type == "CP-ALRC")
+    {
+        std::cout << "CP-ALRC full-stripe write completed; degraded read, recovery, subset, and append tests are not implemented and will be skipped." << std::endl;
+        return 0;
+    }
 
     std::uniform_int_distribution<int> dist_500(0, k*stripe_num - 500);
     std::uniform_real_distribution<double> dist_double(0.0, 1.0);

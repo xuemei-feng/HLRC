@@ -228,6 +228,18 @@ void ECProject::encode_azure_lrc(int k, int r, int z, unsigned char **data_ptrs,
     delete[] g_tbls;
 }
 
+void ECProject::encode_cp_alrc(int k, int r, int z, unsigned char **data_ptrs, unsigned char **parity_ptrs, int block_size)
+{
+    for (int i = 0; i < r + z; ++i) {
+        memset(parity_ptrs[i], 0, block_size);
+    }
+    std::vector<unsigned char> encode_matrix(static_cast<size_t>(k + r + z) * k);
+    gen_cp_alrc_matrix(encode_matrix.data(), k, r, z);
+    std::vector<unsigned char> g_tbls(static_cast<size_t>(k) * (r + z) * 32);
+    ec_init_tables(k, r + z, encode_matrix.data() + k * k, g_tbls.data());
+    ec_encode_data_avx2(block_size, k, r + z, g_tbls.data(), data_ptrs, parity_ptrs);
+}
+
 void ECProject::partial_encode_azure_lrc(int k, int r, int z, int data_block_num, unsigned char **data_ptrs, unsigned char **parity_ptrs, int block_size)
 {
     for(int i = 0; i < r + z; i++){
@@ -381,6 +393,24 @@ void ECProject::gen_azure_lrc_matrix(unsigned char *encode_matrix, int k, int r,
     for(int i = 0; i < k; i++){
         int row = i / (k / z);
         encode_matrix[(m + row) * k + i] = 1;
+    }
+}
+
+void ECProject::gen_cp_alrc_matrix(unsigned char *encode_matrix, int k, int r, int z)
+{
+    if (k <= 0 || r <= 0 || z <= 0 || k % z != 0) {
+        throw std::invalid_argument("CP-ALRC requires positive k, r, z and k divisible by z");
+    }
+    const int m = k + r;
+    memset(encode_matrix, 0, static_cast<size_t>(m + z) * k);
+    gf_gen_rs_matrix1(encode_matrix, m, k);
+    const int group_size = k / z;
+    const unsigned char *last_global = encode_matrix + (k + r - 1) * k;
+    for (int group = 0; group < z; ++group) {
+        for (int offset = 0; offset < group_size; ++offset) {
+            const int data_id = group * group_size + offset;
+            encode_matrix[(m + group) * k + data_id] = last_global[data_id];
+        }
     }
 }
 

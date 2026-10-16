@@ -292,3 +292,21 @@ add_test(NAME recovery_audit COMMAND recovery_audit)
 add_test(NAME maintenance_local_fill_verify COMMAND maintenance_local_fill_verify)
 set_tests_properties(layout_test lotus_2block_verify recovery_audit maintenance_local_fill_verify
     PROPERTIES TIMEOUT 30)
+
+add_executable(cp_alrc_test
+    ${CMAKE_CURRENT_SOURCE_DIR}/tests/cp_alrc_test.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/encoder_layout.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/encoder.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/recovery_strategy.cpp
+    ${ASM_SOURCES}
+)
+target_include_directories(cp_alrc_test PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
+target_link_libraries(cp_alrc_test
+    -lpthread
+    -lJerasure
+    -lgf_complete
+)
+add_test(NAME cp_alrc_test COMMAND cp_alrc_test)
+set_tests_properties(cp_alrc_test PROPERTIES TIMEOUT 30)

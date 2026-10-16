@@ -12,7 +12,7 @@ INI_PATH = CONFIG_DIR / "cluster.ini"
 NODE_XML_PATH = CONFIG_DIR / "nodeInformation.xml"
 PARAM_XML_PATH = CONFIG_DIR / "parameterConfiguration.xml"
 MAIN_CLIENT_CPP = CONFIG_DIR.parent / "run_cpp" / "main_client.cpp"
-SUPPORTED_CODE_TYPES = {"AzureLRC", "OptimalLRC", "UniformLRC", "LotusLRC", "UniLRC"}
+SUPPORTED_CODE_TYPES = {"AzureLRC", "CP-ALRC", "OptimalLRC", "UniformLRC", "LotusLRC", "UniLRC"}
 
 
 def _positive_int(root: ET.Element, name: str, code_type: str) -> int:
@@ -47,6 +47,8 @@ def parse_code_parameters(xml_path: Path) -> Tuple[str, int, int, int, int]:
     else:
         k = _positive_int(root, "k", code_type)
         r = _positive_int(root, "r", code_type)
+    if code_type == "CP-ALRC" and k % z != 0:
+        raise ValueError(f"invalid k/z for code type CP-ALRC: k={k}, z={z}, required k divisible by z")
     return code_type, k, r, z, k + r + z
 
 

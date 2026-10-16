@@ -43,7 +43,7 @@ namespace ECProject
   void Config::validateConfig() const
   {
     static const std::set<std::string> supported = {
-        "AzureLRC", "OptimalLRC", "UniformLRC", "LotusLRC", "UniLRC"};
+        "AzureLRC", "CP-ALRC", "OptimalLRC", "UniformLRC", "LotusLRC", "UniLRC"};
     if (supported.count(CodeType) == 0)
       throw std::runtime_error("Unsupported CodeType: actual=" + CodeType);
     if (AlignedSize <= 0 || UnitSize <= 0 || BlockSize == 0 || CoordinatorPort <= 0 ||
@@ -56,6 +56,9 @@ namespace ECProject
     if (CodeType == "UniLRC" && alpha <= 0)
       throw std::runtime_error("Invalid alpha for UniLRC: actual=" + std::to_string(alpha) +
                                ", required=positive integer");
+    if (CodeType == "CP-ALRC" && k % z != 0)
+      throw std::runtime_error("Invalid coding parameters for CP-ALRC: k=" + std::to_string(k) +
+                               ", z=" + std::to_string(z) + ", required=k divisible by z");
     if (NodeNum < n)
       throw std::runtime_error("Insufficient NodeNum for code type " + CodeType +
                                ": actual=" + std::to_string(NodeNum) +
