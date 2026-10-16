@@ -446,40 +446,90 @@ void ECProject::gen_lotuslrc_matrix(unsigned char *encode_matrix, int k, int r, 
 {
     assert(z % 2 == 0 && "z must be even");
     int group_num = z / 2;
+    // Need local groups 0/1/2 so that L1,L2 (group0), L4 (group1 second),
+    // and L5 (group2 first) all exist.
+    assert(group_num >= 3 && "LotusLRC cross-group local fusion needs z/2 >= 3");
     int m = k + r;
     memset(encode_matrix, 0, (m + z) * k);
     gf_gen_cauchy_matrix1(encode_matrix, m, k);
-    
-    int group_size = k / group_num;
-    //std::vector<int> data_block_num_per_local_group = get_data_block_num_per_local_group_lotuslrc(k, r, z);
-    //std::vector<int> global_parity_block_num_per_local_group = get_global_parity_block_num_per_local_group_lotuslrc(k, r, z);
+
+    std::vector<int> data_block_num_per_local_group =
+        get_data_block_num_per_local_group_lotuslrc(k, r, z);
+    std::vector<int> global_parity_block_num_per_local_group =
+        get_global_parity_block_num_per_local_group_lotuslrc(k, r, z);
+    assert((int)data_block_num_per_local_group.size() == group_num);
+    assert((int)global_parity_block_num_per_local_group.size() == group_num);
 
     unsigned char *local_vector0 = new unsigned char[k];
     gf_gen_local_vector(local_vector0, k, r);
     unsigned char *local_vector1 = new unsigned char[k];
     gf_gen_local_vector(local_vector1, k, r + 1);
-    
-    for(int i = 0; i < group_num; i++){
-        memcpy(encode_matrix + (m + i * 2) * k + i * group_size, local_vector0 + i * group_size, group_size * sizeof(unsigned char));
-        memcpy(encode_matrix + (m + i * 2 + 1) * k + i * group_size, local_vector1 + i * group_size, group_size * sizeof(unsigned char));
+
+    int data_offset = 0;
+    for (int i = 0; i < group_num; i++)
+    {
+        int group_size = data_block_num_per_local_group[i];
+        memcpy(encode_matrix + (m + i * 2) * k + data_offset,
+               local_vector0 + data_offset,
+               group_size * sizeof(unsigned char));
+        memcpy(encode_matrix + (m + i * 2 + 1) * k + data_offset,
+               local_vector1 + data_offset,
+               group_size * sizeof(unsigned char));
+        data_offset += group_size;
     }
+    assert(data_offset == k);
+
+    // First local group: split its data into two subgroups (more-first), then
+    //   L1 <- l11' * Da          (keep only first half of local_vector0)
+    //   L2 <- l21'' * Db         (keep only second half of local_vector1)
+    //   L4 ^= l21' * Da          (group1 second LP, keep its own coeffs)
+    //   L5 ^= l11'' * Db         (group2 first LP, keep its own coeffs)
+    // 1-based LP names: L1=m+0, L2=m+1, L4=m+3, L5=m+4.
+    {
+        int data0 = data_block_num_per_local_group[0];
+        int half0 = (data0 + 1) / 2; // more-first
+        int half1 = data0 - half0;
+        int off_a = 0;
+        int off_b = half0;
+
+        unsigned char *row_l1 = encode_matrix + (m + 0) * k;
+        unsigned char *row_l2 = encode_matrix + (m + 1) * k;
+        unsigned char *row_l4 = encode_matrix + (m + 3) * k;
+        unsigned char *row_l5 = encode_matrix + (m + 4) * k;
+
+        // L1 keeps only Da coeffs; move Db half of vector0 onto L5.
+        memset(row_l1 + off_b, 0, half1 * sizeof(unsigned char));
+        for (int j = 0; j < half1; j++)
+            row_l5[off_b + j] ^= local_vector0[off_b + j];
+
+        // L2 keeps only Db coeffs; move Da half of vector1 onto L4.
+        memset(row_l2 + off_a, 0, half0 * sizeof(unsigned char));
+        for (int j = 0; j < half0; j++)
+            row_l4[off_a + j] ^= local_vector1[off_a + j];
+    }
+
     delete[] local_vector0;
     delete[] local_vector1;
 
-    // Split each global parity block (k + i) into the two local-parity rows of the
-    // local group that holds it. The last r local groups hold one global parity each,
-    // so global parity (k + i) belongs to local group (group_num - r + i), whose two
-    // local-parity rows are at (m + 2*lg) and (m + 2*lg + 1).
-    // assume one local group has at most one global parity block, may need to be
-    // adjusted for more general cases.
-    for(int i = 0; i < r; i++){
-        int lg = group_num - r + i;
-        for(int j = 0; j < k; j++){
-            encode_matrix[(m + 2 * lg) * k + j] ^= encode_matrix[(k + i) * k + j];
-            encode_matrix[(m + 2 * lg + 1) * k + j] ^= encode_matrix[(k + i) * k + j];
+    // XOR each global parity Cauchy row into the two local-parity rows of the
+    // local group that holds it. Globals are placed only in the latter half of
+    // local groups (ceil(group_num/2)), possibly multiple globals per group.
+    int global_id = 0;
+    for (int lg = 0; lg < group_num; lg++)
+    {
+        for (int g = 0; g < global_parity_block_num_per_local_group[lg]; g++)
+        {
+            for (int j = 0; j < k; j++)
+            {
+                encode_matrix[(m + 2 * lg) * k + j] ^=
+                    encode_matrix[(k + global_id) * k + j];
+                encode_matrix[(m + 2 * lg + 1) * k + j] ^=
+                    encode_matrix[(k + global_id) * k + j];
+            }
+            global_id++;
         }
     }
-
+    assert(global_id == r);
 }
 
 void ECProject::decode_unilrc(const int k, const int r, const int z, const int block_num,

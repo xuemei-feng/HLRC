@@ -486,34 +486,81 @@ namespace ECProject
 
   std::vector<int> get_data_block_num_per_local_group_lotuslrc(int k, int r, int z)
   {
+    // Option B:
+    // 1) absorb (k+r) evenly with fewer-first / more-later;
+    // 2) data_i = kr_i - global_i;
+    // 3) among groups with no fused globals, rearrange those data counts
+    //    more-first so earlier unfused groups get more data blocks.
+    int local_group_num = z / 2;
+    if (local_group_num <= 0)
+      throw std::runtime_error("LotusLRC local group num must be positive");
+    std::vector<int> global_parity_block_num_per_local_group =
+        get_global_parity_block_num_per_local_group_lotuslrc(k, r, z);
+    if ((int)global_parity_block_num_per_local_group.size() != local_group_num)
+      throw std::runtime_error("global parity per local group size mismatch");
+
+    int kr_base = (k + r) / local_group_num;
+    int kr_rem = (k + r) % local_group_num;
     std::vector<int> data_block_num_per_local_group;
-    std::vector<int> local_group_sizes = get_lotuslrc_local_group_sizes(k, r, z);
-    int local_group_num = local_group_sizes.size();
-    if (local_group_num != z / 2)
-      throw std::runtime_error("local group num is not equal to z / 2");
+    data_block_num_per_local_group.reserve(local_group_num);
     for (int i = 0; i < local_group_num; i++)
     {
-      if (i < local_group_num - r)
-        data_block_num_per_local_group.push_back(local_group_sizes[i] - 2);
-      else
-        data_block_num_per_local_group.push_back(local_group_sizes[i] - 3);
+      int kr_slots = (i < local_group_num - kr_rem) ? kr_base : (kr_base + 1);
+      int data_num = kr_slots - global_parity_block_num_per_local_group[i];
+      if (data_num < 0)
+        throw std::runtime_error("LotusLRC local group has negative data block count");
+      data_block_num_per_local_group.push_back(data_num);
     }
+
+    std::vector<int> unfused_ids;
+    std::vector<int> unfused_data;
+    for (int i = 0; i < local_group_num; i++)
+    {
+      if (global_parity_block_num_per_local_group[i] == 0)
+      {
+        unfused_ids.push_back(i);
+        unfused_data.push_back(data_block_num_per_local_group[i]);
+      }
+    }
+    std::sort(unfused_data.begin(), unfused_data.end(), std::greater<int>());
+    for (size_t j = 0; j < unfused_ids.size(); j++)
+      data_block_num_per_local_group[unfused_ids[j]] = unfused_data[j];
+
+    int data_sum = std::accumulate(data_block_num_per_local_group.begin(),
+                                   data_block_num_per_local_group.end(), 0);
+    if (data_sum != k)
+      throw std::runtime_error("LotusLRC data block count does not sum to k");
     return data_block_num_per_local_group;
   }
 
   std::vector<int> get_global_parity_block_num_per_local_group_lotuslrc(int k, int r, int z)
   {
+    // Globals only go into the latter ceil(group_num/2) local groups,
+    // distributed as evenly as possible with fewer-first / more-later.
+    (void)k;
     std::vector<int> global_parity_block_num_per_local_group;
-    std::vector<int> local_group_sizes = get_lotuslrc_local_group_sizes(k, r, z);
-    int local_group_num = local_group_sizes.size();
-    if (local_group_num != z / 2)
-      throw std::runtime_error("local group num is not equal to z / 2");
+    int local_group_num = z / 2;
+    if (local_group_num <= 0)
+      throw std::runtime_error("LotusLRC local group num must be positive");
+    int latter_num = (local_group_num + 1) / 2; // ceil(group_num / 2)
+    int start = local_group_num - latter_num;
+    int base = r / latter_num;
+    int rem = r % latter_num;
     for (int i = 0; i < local_group_num; i++)
     {
-      if (i < local_group_num - r)
+      if (i < start)
+      {
         global_parity_block_num_per_local_group.push_back(0);
+      }
       else
-        global_parity_block_num_per_local_group.push_back(1);
+      {
+        int j = i - start;
+        // first (latter_num - rem) get base; last rem get base + 1
+        if (j < latter_num - rem)
+          global_parity_block_num_per_local_group.push_back(base);
+        else
+          global_parity_block_num_per_local_group.push_back(base + 1);
+      }
     }
     return global_parity_block_num_per_local_group;
   }
@@ -572,12 +619,14 @@ namespace ECProject
 
   std::vector<int> get_lotuslrc_group_sizes(int k, int r, int z)
   {
-    int max_capacity = r + 2;
     std::vector<int> local_group_sizes = get_lotuslrc_local_group_sizes(k, r, z);
+    std::vector<int> group_num_per_local_group = get_lotuslrc_group_num_per_local_group(k, r, z);
     std::vector<int> group_sizes;
     for (size_t i = 0; i < local_group_sizes.size(); i++)
     {
-      int group_num = local_group_sizes[i] / max_capacity + bool(local_group_sizes[i] % max_capacity);
+      int group_num = group_num_per_local_group[i];
+      if (group_num <= 0 || group_num > local_group_sizes[i])
+        throw std::runtime_error("LotusLRC invalid placement group num for local group");
       int group_size = local_group_sizes[i] / group_num;
       int larger_group_num = local_group_sizes[i] % group_num;
       for (int j = 0; j < larger_group_num; j++)
@@ -590,25 +639,37 @@ namespace ECProject
 
   std::vector<int> get_lotuslrc_local_group_sizes(int k, int r, int z)
   {
-    int group_num = z / 2;
-    int group_size = (k + r) / group_num + 2;
-    int larger_group_num = (k + r) % group_num;
+    // size_i = data_i + global_i + 2 (keeps Option B consistent after unfused
+    // data counts are rearranged more-first).
+    std::vector<int> data_block_num_per_local_group =
+        get_data_block_num_per_local_group_lotuslrc(k, r, z);
+    std::vector<int> global_parity_block_num_per_local_group =
+        get_global_parity_block_num_per_local_group_lotuslrc(k, r, z);
     std::vector<int> group_sizes;
-    for (int i = 0; i < group_num - larger_group_num; i++)
-      group_sizes.push_back(group_size);
-    for (int i = 0; i < larger_group_num; i++)
-      group_sizes.push_back(group_size + 1);
+    group_sizes.reserve(data_block_num_per_local_group.size());
+    for (size_t i = 0; i < data_block_num_per_local_group.size(); i++)
+      group_sizes.push_back(data_block_num_per_local_group[i] +
+                            global_parity_block_num_per_local_group[i] + 2);
     return group_sizes;
   }
 
   std::vector<int> get_lotuslrc_group_num_per_local_group(int k, int r, int z)
   {
+    // Each global/local parity occupies its own placement subgroup in the
+    // current layout, so subgroup count must be at least globals + 2 LPs.
     std::vector<int> group_num_per_local_group;
     int max_capacity = r + 2;
     std::vector<int> local_group_sizes = get_lotuslrc_local_group_sizes(k, r, z);
+    std::vector<int> global_parity_block_num_per_local_group =
+        get_global_parity_block_num_per_local_group_lotuslrc(k, r, z);
     for (size_t i = 0; i < local_group_sizes.size(); i++)
     {
+      int min_groups = global_parity_block_num_per_local_group[i] + 2;
       int group_num = local_group_sizes[i] / max_capacity + bool(local_group_sizes[i] % max_capacity);
+      if (group_num < min_groups)
+        group_num = min_groups;
+      if (group_num > local_group_sizes[i])
+        throw std::runtime_error("LotusLRC local group too small for its parity blocks");
       group_num_per_local_group.push_back(group_num);
     }
     return group_num_per_local_group;
