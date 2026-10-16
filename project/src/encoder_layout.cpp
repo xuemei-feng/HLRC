@@ -14,6 +14,8 @@ namespace ECProject
   /* ----- Dispatchers (by code_type) ----- */
   std::vector<int> get_data_block_num_per_group(int k, int r, int z, const std::string &code_type)
   {
+    if (code_type == "UL")
+      return get_data_block_num_per_group_ul(k, r, z);
     if (code_type == "AL")
       return get_data_block_num_per_group_al(k, r, z);
     if (code_type == "OL")
@@ -33,6 +35,8 @@ namespace ECProject
 
   std::vector<int> get_global_parity_block_num_per_group(int k, int r, int z, const std::string &code_type)
   {
+    if (code_type == "UL")
+      return get_global_parity_block_num_per_group_ul(k, r, z);
     if (code_type == "AL")
       return get_global_parity_block_num_per_group_al(k, r, z);
     if (code_type == "OL")
@@ -52,6 +56,8 @@ namespace ECProject
 
   std::vector<int> get_local_parity_block_num_per_group(int k, int r, int z, const std::string &code_type)
   {
+    if (code_type == "UL")
+      return get_local_parity_block_num_per_group_ul(k, r, z);
     if (code_type == "AL")
       return get_local_parity_block_num_per_group_al(k, r, z);
     if (code_type == "OL")
@@ -67,6 +73,93 @@ namespace ECProject
     if (code_type == "LotusLRC")
       return get_local_parity_block_num_per_group_lotuslrc(k, r, z);
     return {};
+  }
+
+  /* ----- UL ----- */
+  namespace
+  {
+    std::vector<int> get_ul_member_counts(int k, int r, int z)
+    {
+      if (z <= 0 || z % 2 == 0)
+        throw std::invalid_argument("UL requires a positive odd z");
+      if (k <= 0 || r <= 0)
+        throw std::invalid_argument("UL requires positive k and r");
+      const int group_num = (z + 1) / 2;
+      const int base = (k + r) / group_num;
+      const int remainder = (k + r) % group_num;
+      const int max_dual_member_count = group_num > 1
+          ? base + (remainder >= 2 ? 1 : 0) : 0;
+      if (max_dual_member_count > 255)
+        throw std::invalid_argument("UL dual-local-parity group member count must be <= 255");
+      std::vector<int> counts(group_num, base);
+      for (int group = group_num - remainder; group < group_num; ++group)
+        ++counts[group];
+      return counts;
+    }
+  }
+
+  std::unordered_map<int, std::vector<int>> get_ul_group_id_to_block_ids(int k, int r, int z)
+  {
+    const auto member_counts = get_ul_member_counts(k, r, z);
+    std::unordered_map<int, std::vector<int>> groups;
+    int member = 0;
+    int local = k + r;
+    for (size_t group = 0; group < member_counts.size(); ++group)
+    {
+      auto &blocks = groups[static_cast<int>(group)];
+      const int end = member + member_counts[group];
+      while (member < end && member < k) blocks.push_back(member++);
+      while (member < end) blocks.push_back(member++);
+      blocks.push_back(local++);
+      if (group + 1 != member_counts.size()) blocks.push_back(local++);
+    }
+    return groups;
+  }
+
+  std::unordered_map<int, int> get_ul_block_id_to_group_id(int k, int r, int z)
+  {
+    std::unordered_map<int, int> result;
+    const auto groups = get_ul_group_id_to_block_ids(k, r, z);
+    for (const auto &entry : groups)
+      for (int block : entry.second) result[block] = entry.first;
+    return result;
+  }
+
+  int get_ul_block_id_to_local_group_id(int k, int r, int z, int block_id)
+  {
+    if (block_id < 0 || block_id >= k + r + z)
+      throw std::out_of_range("UL block id is out of range");
+    return get_ul_block_id_to_group_id(k, r, z).at(block_id);
+  }
+
+  std::vector<int> get_data_block_num_per_group_ul(int k, int r, int z)
+  {
+    const auto groups = get_ul_group_id_to_block_ids(k, r, z);
+    std::vector<int> counts(groups.size(), 0);
+    for (size_t group = 0; group < groups.size(); ++group)
+      counts[group] = std::count_if(groups.at(static_cast<int>(group)).begin(), groups.at(static_cast<int>(group)).end(),
+                                    [k](int block) { return block < k; });
+    return counts;
+  }
+
+  std::vector<int> get_global_parity_block_num_per_group_ul(int k, int r, int z)
+  {
+    const auto groups = get_ul_group_id_to_block_ids(k, r, z);
+    std::vector<int> counts(groups.size(), 0);
+    for (size_t group = 0; group < groups.size(); ++group)
+      counts[group] = std::count_if(groups.at(static_cast<int>(group)).begin(), groups.at(static_cast<int>(group)).end(),
+                                    [k, r](int block) { return block >= k && block < k + r; });
+    return counts;
+  }
+
+  std::vector<int> get_local_parity_block_num_per_group_ul(int k, int r, int z)
+  {
+    const auto groups = get_ul_group_id_to_block_ids(k, r, z);
+    std::vector<int> counts(groups.size(), 0);
+    for (size_t group = 0; group < groups.size(); ++group)
+      counts[group] = std::count_if(groups.at(static_cast<int>(group)).begin(), groups.at(static_cast<int>(group)).end(),
+                                    [k, r](int block) { return block >= k + r; });
+    return counts;
   }
 
   /* ----- AL ----- */

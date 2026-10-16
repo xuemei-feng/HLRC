@@ -12,7 +12,7 @@ INI_PATH = CONFIG_DIR / "cluster.ini"
 NODE_XML_PATH = CONFIG_DIR / "nodeInformation.xml"
 PARAM_XML_PATH = CONFIG_DIR / "parameterConfiguration.xml"
 MAIN_CLIENT_CPP = CONFIG_DIR.parent / "run_cpp" / "main_client.cpp"
-SUPPORTED_CODE_TYPES = {"AL", "OL", "AzureLRC", "OptimalLRC", "UniformLRC", "LotusLRC", "UniLRC"}
+SUPPORTED_CODE_TYPES = {"UL", "AL", "OL", "AzureLRC", "OptimalLRC", "UniformLRC", "LotusLRC", "UniLRC"}
 
 
 def _positive_int(root: ET.Element, name: str, code_type: str) -> int:
@@ -47,6 +47,17 @@ def parse_code_parameters(xml_path: Path) -> Tuple[str, int, int, int, int]:
     else:
         k = _positive_int(root, "k", code_type)
         r = _positive_int(root, "r", code_type)
+        if code_type == "UL":
+            if z % 2 == 0:
+                raise ValueError(f"invalid z for code type UL: required positive odd integer, actual={z}")
+            group_num = (z + 1) // 2
+            remainder = (k + r) % group_num
+            max_dual_member_count = ((k + r) // group_num + (1 if remainder >= 2 else 0)
+                                     if group_num > 1 else 0)
+            if max_dual_member_count > 255:
+                raise ValueError(
+                    f"invalid parameters for code type UL: max dual-LP members={max_dual_member_count}, required<=255"
+                )
         if code_type == "AL":
             if z % 2 == 0:
                 raise ValueError(f"invalid z for code type AL: required positive odd integer, actual={z}")

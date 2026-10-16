@@ -148,6 +148,7 @@ namespace ECProject
     bool find_block(char type, int node_id, int stripe_id);
 
     void initialize_unilrc_stripe_placement(Stripe *stripe);
+    void initialize_ul_stripe_placement(Stripe *stripe);
     void initialize_al_stripe_placement(Stripe *stripe);
     void initialize_ol_stripe_placement(Stripe *stripe);
     void initialize_azurelrc_stripe_placement(Stripe *stripe);

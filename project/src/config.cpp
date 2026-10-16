@@ -43,7 +43,7 @@ namespace ECProject
   void Config::validateConfig() const
   {
     static const std::set<std::string> supported = {
-        "AL", "OL", "AzureLRC", "OptimalLRC", "UniformLRC", "LotusLRC", "UniLRC"};
+        "UL", "AL", "OL", "AzureLRC", "OptimalLRC", "UniformLRC", "LotusLRC", "UniLRC"};
     if (supported.count(CodeType) == 0)
       throw std::runtime_error("Unsupported CodeType: actual=" + CodeType);
     if (AlignedSize <= 0 || UnitSize <= 0 || BlockSize == 0 || CoordinatorPort <= 0 ||
@@ -53,6 +53,17 @@ namespace ECProject
       throw std::runtime_error("Invalid coding parameters for " + CodeType +
                                ": k=" + std::to_string(k) + ", r=" + std::to_string(r) +
                                ", z=" + std::to_string(z) + ", required=positive values");
+    if (CodeType == "UL")
+    {
+      if (z % 2 == 0)
+        throw std::runtime_error("Invalid UL z: required=positive odd integer, actual=" + std::to_string(z));
+      const int groupNum = (z + 1) / 2;
+      const int remainder = (k + r) % groupNum;
+      const int maxDualMemberCount = groupNum > 1
+          ? (k + r) / groupNum + (remainder >= 2 ? 1 : 0) : 0;
+      if (maxDualMemberCount > 255)
+        throw std::runtime_error("Invalid UL parameters: maximum dual-LP member count must be <= 255");
+    }
     if (CodeType == "AL")
     {
       const int groupNum = (z + 1) / 2;

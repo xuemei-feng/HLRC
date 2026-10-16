@@ -65,6 +65,8 @@ namespace ECProject
 
     void encode_uniform_lrc(int k, int r, int z, unsigned char **data_ptrs, unsigned char **parity_ptrs, int block_size);
 
+    void encode_ul(int k, int r, int z, unsigned char **data_ptrs, unsigned char **parity_ptrs, int block_size);
+
     void partial_encode_unilrc(int k, int r, int z, int data_block_num, unsigned char **data_ptrs, unsigned char **parity_ptrs, int block_size);
 
     void partial_encode_azure_lrc(int k, int r, int z, int data_block_num, unsigned char **data_ptrs, unsigned char **parity_ptrs, int block_size);
@@ -82,6 +84,7 @@ namespace ECProject
     void gen_ol_matrix(unsigned char *encode_matrix, int k, int r, int z);
     void gen_optimal_lrc_matrix(unsigned char *encode_matrix, int k, int r, int z);
     void gen_uniform_lrc_matrix(unsigned char *encode_matrix, int k, int r, int z);
+    void gen_ul_matrix(unsigned char *encode_matrix, int k, int r, int z);
 
     void decode_unilrc(const int k, const int r, const int z, const int block_num,
                        const std::vector<int> *block_indexes, unsigned char **block_ptrs, unsigned char *res_ptr, int block_size);
@@ -233,6 +236,13 @@ namespace ECProject
     int get_optimal_lrc_block_id_to_local_group_id(int k, int r, int z, int block_id);
     std::unordered_map<int, int> get_optimal_lrc_block_id_to_group_id(int k, int r, int z);
     std::unordered_map<int, std::vector<int>> get_optimal_lrc_group_id_to_block_ids(int k, int r, int z);
+
+    std::vector<int> get_data_block_num_per_group_ul(int k, int r, int z);
+    std::vector<int> get_global_parity_block_num_per_group_ul(int k, int r, int z);
+    std::vector<int> get_local_parity_block_num_per_group_ul(int k, int r, int z);
+    int get_ul_block_id_to_local_group_id(int k, int r, int z, int block_id);
+    std::unordered_map<int, int> get_ul_block_id_to_group_id(int k, int r, int z);
+    std::unordered_map<int, std::vector<int>> get_ul_group_id_to_block_ids(int k, int r, int z);
 
     std::vector<int> get_data_block_num_per_group_uniform_lrc(int k, int r, int z);
     std::vector<int> get_global_parity_block_num_per_group_uniform_lrc(int k, int r, int z);

@@ -340,6 +340,18 @@ void ECProject::encode_uniform_lrc(int k, int r, int z, unsigned char **data_ptr
     delete[] g_tbls;
 }
 
+void ECProject::encode_ul(int k, int r, int z, unsigned char **data_ptrs, unsigned char **parity_ptrs, int block_size)
+{
+    for (int i = 0; i < r + z; ++i)
+        memset(parity_ptrs[i], 0, block_size);
+    const int m = k + r;
+    std::vector<unsigned char> encode_matrix(static_cast<size_t>(m + z) * k);
+    gen_ul_matrix(encode_matrix.data(), k, r, z);
+    std::vector<unsigned char> g_tbls(static_cast<size_t>(k) * (r + z) * 32);
+    ec_init_tables(k, r + z, encode_matrix.data() + static_cast<size_t>(k) * k, g_tbls.data());
+    ec_encode_data_avx2(block_size, k, r + z, g_tbls.data(), data_ptrs, parity_ptrs);
+}
+
 void ECProject::partial_encode_uniform_lrc(int k, int r, int z, int data_block_num, unsigned char **data_ptrs, unsigned char **parity_ptrs, int block_size)
 {
     for(int i = 0; i < r + z; i++){
@@ -542,6 +554,54 @@ void ECProject::gen_uniform_lrc_matrix(unsigned char *encode_matrix, int k, int 
         }
     }
     delete[] local_vector;
+}
+
+void ECProject::gen_ul_matrix(unsigned char *encode_matrix, int k, int r, int z)
+{
+    if (z <= 0 || z % 2 == 0)
+        throw std::invalid_argument("UL requires a positive odd z");
+    if (k <= 0 || r <= 0)
+        throw std::invalid_argument("UL requires positive k and r");
+    const int group_num = (z + 1) / 2;
+    const int base = (k + r) / group_num;
+    const int remainder = (k + r) % group_num;
+    const int max_dual_member_count = group_num > 1
+        ? base + (remainder >= 2 ? 1 : 0) : 0;
+    if (max_dual_member_count > 255)
+        throw std::invalid_argument("UL dual-local-parity group member count must be <= 255");
+
+    const int m = k + r;
+    memset(encode_matrix, 0, static_cast<size_t>(m + z) * k);
+    gf_gen_cauchy_matrix1(encode_matrix, m, k);
+    int member_start = 0;
+    for (int group = 0; group < group_num; ++group)
+    {
+        const int member_count = base + (group >= group_num - remainder ? 1 : 0);
+        const int first_local = 2 * group;
+        unsigned char *first_row = encode_matrix + static_cast<size_t>(m + first_local) * k;
+        unsigned char *second_row = group == group_num - 1 ? nullptr : first_row + k;
+        for (int offset = 0; offset < member_count; ++offset)
+        {
+            const int member = member_start + offset;
+            const unsigned char a = member < k
+                ? gf_inv(static_cast<unsigned char>(member ^ m)) : 1;
+            if (member < k)
+                first_row[member] ^= a;
+            else
+                for (int col = 0; col < k; ++col)
+                    first_row[col] ^= encode_matrix[static_cast<size_t>(member) * k + col];
+            if (second_row != nullptr)
+            {
+                const unsigned char b = gf_mul(a, gff_base[offset]);
+                if (member < k)
+                    second_row[member] ^= b;
+                else
+                    for (int col = 0; col < k; ++col)
+                        second_row[col] ^= gf_mul(b, encode_matrix[static_cast<size_t>(member) * k + col]);
+            }
+        }
+        member_start += member_count;
+    }
 }
 
 void ECProject::gen_lotuslrc_matrix(unsigned char *encode_matrix, int k, int r, int z)

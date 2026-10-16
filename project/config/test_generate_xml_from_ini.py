@@ -22,6 +22,18 @@ class ParameterConfigurationTest(unittest.TestCase):
         self.assertEqual(self.parse("<CodeType>AzureLRC</CodeType><k>8</k><r>2</r><z>2</z>"),
                          ("AzureLRC", 8, 2, 2, 12))
 
+    def test_ul_valid(self):
+        self.assertEqual(self.parse("<CodeType>UL</CodeType><k>17</k><r>4</r><z>7</z>"),
+                         ("UL", 17, 4, 7, 28))
+
+    def test_ul_even_z_fails(self):
+        with self.assertRaisesRegex(ValueError, "positive odd"):
+            self.parse("<CodeType>UL</CodeType><k>8</k><r>2</r><z>4</z>")
+
+    def test_ul_member_limit_fails(self):
+        with self.assertRaisesRegex(ValueError, "required<=255"):
+            self.parse("<CodeType>UL</CodeType><k>508</k><r>4</r><z>3</z>")
+
     def test_al_valid(self):
         self.assertEqual(self.parse("<CodeType>AL</CodeType><k>16</k><r>4</r><z>7</z>"),
                          ("AL", 16, 4, 7, 27))

@@ -318,3 +318,16 @@ target_include_directories(ol_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_link_libraries(ol_test -lpthread -lJerasure -lgf_complete)
 add_test(NAME ol_test COMMAND ol_test)
 set_tests_properties(ol_test PROPERTIES TIMEOUT 30)
+
+# UL matrix and placement validation (pure GF math, no gRPC).
+add_executable(ul_test
+    ${CMAKE_CURRENT_SOURCE_DIR}/tests/ul_test.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/encoder_layout.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/recovery_strategy.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/encoder.cpp
+    ${ASM_SOURCES}
+)
+target_include_directories(ul_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_link_libraries(ul_test -lpthread -lJerasure -lgf_complete)
+add_test(NAME ul_test COMMAND ul_test)
+set_tests_properties(ul_test PROPERTIES TIMEOUT 30)

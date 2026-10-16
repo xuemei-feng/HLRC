@@ -20,7 +20,11 @@ namespace {
 // Same as Coordinator placement: each block uses a distinct node in the stripe.
 int block_id_to_group(const std::string &code_type, int k, int r, int z, int block_id)
 {
-    if (code_type == "AL")
+    if (code_type == "UL")
+    {
+        return ECProject::get_ul_block_id_to_group_id(k, r, z).at(block_id);
+    }
+        if (code_type == "AL")
     {
         return ECProject::get_al_block_id_to_group_id(k, r, z).at(block_id);
     }
@@ -270,7 +274,10 @@ int main(int argc, char **argv)
     int r = parameters[1];
     int z = parameters[2];
     std::string code_type;
-    if(parameters[4] == 5){
+    if(parameters[4] == 7){
+        code_type = "UL";
+    }
+    else if(parameters[4] == 5){
         code_type = "AL";
     }
     else if(parameters[4] == 6){
@@ -314,7 +321,7 @@ int main(int argc, char **argv)
     std::mt19937 rng(std::random_device{}());
     sleep(5);
 
-    if (code_type == "AL" || code_type == "OL")
+    if (code_type == "UL" || code_type == "AL" || code_type == "OL")
     {
         std::cout << code_type << " recovery and degraded-read experiments are not supported; skipping them." << std::endl;
         return 0;
