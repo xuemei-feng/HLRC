@@ -20,6 +20,10 @@ namespace {
 // Same as Coordinator placement: each block uses a distinct node in the stripe.
 int block_id_to_group(const std::string &code_type, int k, int r, int z, int block_id)
 {
+    if (code_type == "AL")
+    {
+        return ECProject::get_al_block_id_to_group_id(k, r, z).at(block_id);
+    }
     if (code_type == "LotusLRC")
     {
         auto m = ECProject::get_lotuslrc_block_id_to_group_id(k, r, z);
@@ -262,7 +266,10 @@ int main(int argc, char **argv)
     int r = parameters[1];
     int z = parameters[2];
     std::string code_type;
-    if(parameters[4] == 0){
+    if(parameters[4] == 5){
+        code_type = "AL";
+    }
+    else if(parameters[4] == 0){
         code_type = "AzureLRC";
     }
     else if(parameters[4] == 1){
@@ -299,6 +306,12 @@ int main(int argc, char **argv)
     std::cout << "write throughput: " << (static_cast<double>(total_write_size) / set_time.count()) << " MB/s" << std::endl;
     std::mt19937 rng(std::random_device{}());
     sleep(5);
+
+    if (code_type == "AL")
+    {
+        std::cout << "AL recovery and degraded-read experiments are not supported; skipping them." << std::endl;
+        return 0;
+    }
 
     std::uniform_int_distribution<int> dist_500(0, k*stripe_num - 500);
     std::uniform_real_distribution<double> dist_double(0.0, 1.0);

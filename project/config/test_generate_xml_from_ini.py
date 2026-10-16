@@ -22,6 +22,18 @@ class ParameterConfigurationTest(unittest.TestCase):
         self.assertEqual(self.parse("<CodeType>AzureLRC</CodeType><k>8</k><r>2</r><z>2</z>"),
                          ("AzureLRC", 8, 2, 2, 12))
 
+    def test_al_valid(self):
+        self.assertEqual(self.parse("<CodeType>AL</CodeType><k>16</k><r>4</r><z>7</z>"),
+                         ("AL", 16, 4, 7, 27))
+
+    def test_al_even_z_fails(self):
+        with self.assertRaisesRegex(ValueError, "positive odd"):
+            self.parse("<CodeType>AL</CodeType><k>8</k><r>2</r><z>4</z>")
+
+    def test_al_k_not_divisible_by_group_count_fails(self):
+        with self.assertRaisesRegex(ValueError, "required divisible"):
+            self.parse("<CodeType>AL</CodeType><k>10</k><r>2</r><z>7</z>")
+
     def test_uni_derivation(self):
         self.assertEqual(self.parse("<CodeType>UniLRC</CodeType><alpha>2</alpha><z>4</z>"),
                          ("UniLRC", 24, 8, 4, 36))

@@ -228,6 +228,15 @@ void ECProject::encode_azure_lrc(int k, int r, int z, unsigned char **data_ptrs,
     delete[] g_tbls;
 }
 
+void ECProject::encode_al(int k, int r, int z, unsigned char **data_ptrs, unsigned char **parity_ptrs, int block_size)
+{
+    std::vector<unsigned char> encode_matrix(static_cast<size_t>(k + r + z) * k);
+    gen_al_matrix(encode_matrix.data(), k, r, z);
+    std::vector<unsigned char> g_tbls(static_cast<size_t>(k) * (r + z) * 32);
+    ec_init_tables(k, r + z, encode_matrix.data() + static_cast<size_t>(k) * k, g_tbls.data());
+    ec_encode_data_avx2(block_size, k, r + z, g_tbls.data(), data_ptrs, parity_ptrs);
+}
+
 void ECProject::partial_encode_azure_lrc(int k, int r, int z, int data_block_num, unsigned char **data_ptrs, unsigned char **parity_ptrs, int block_size)
 {
     for(int i = 0; i < r + z; i++){
@@ -381,6 +390,40 @@ void ECProject::gen_azure_lrc_matrix(unsigned char *encode_matrix, int k, int r,
     for(int i = 0; i < k; i++){
         int row = i / (k / z);
         encode_matrix[(m + row) * k + i] = 1;
+    }
+}
+
+void ECProject::gen_al_matrix(unsigned char *encode_matrix, int k, int r, int z)
+{
+    if (z <= 0 || z % 2 == 0)
+        throw std::invalid_argument("AL requires a positive odd z");
+    const int group_num = (z + 1) / 2;
+    if (k <= 0 || k % group_num != 0)
+        throw std::invalid_argument("AL requires k divisible by (z + 1) / 2");
+    if (r <= 0 || k + r > 255)
+        throw std::invalid_argument("AL requires positive r and k + r <= 255");
+
+    const int m = k + r;
+    const int data_per_group = k / group_num;
+    memset(encode_matrix, 0, static_cast<size_t>(m + z) * k);
+    gf_gen_rs_matrix1(encode_matrix, m, k);
+    for (int group = 0; group < group_num; ++group)
+    {
+        const int start = group * data_per_group;
+        const int first_local_row = 2 * group;
+        for (int j = 0; j < data_per_group; ++j)
+            encode_matrix[static_cast<size_t>(m + first_local_row) * k + start + j] = 1;
+        if (group == group_num - 1)
+            continue;
+        for (int j = 0; j < data_per_group; ++j)
+        {
+            const int data_index = start + j;
+            const unsigned char denominator = static_cast<unsigned char>(data_index ^ (k + r));
+            const unsigned char coefficient = gf_inv(denominator);
+            if (coefficient == 0)
+                throw std::invalid_argument("AL local Cauchy coefficient must be nonzero");
+            encode_matrix[static_cast<size_t>(m + first_local_row + 1) * k + data_index] = coefficient;
+        }
     }
 }
 

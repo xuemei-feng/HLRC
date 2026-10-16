@@ -269,6 +269,51 @@ namespace ECProject
     stripe->num_groups = stripe->group_to_blocks.size();
   }
 
+  void CoordinatorImpl::initialize_al_stripe_placement(Stripe *stripe)
+  {
+    int k = stripe->k, r = stripe->r, z = stripe->z;
+    std::unordered_map<int, int> block_id_to_group_id =
+        ECProject::get_al_block_id_to_group_id(k, r, z);
+
+    Block *blocks_info = new Block[stripe->n];
+    assert(stripe->object_keys.size() == 1);
+    int t_node_id = stripe->stripe_id % m_sys_config->NodeNum;
+
+    for (int i = 0; i < stripe->n; i++)
+    {
+      blocks_info[i].block_size = m_sys_config->BlockSize;
+      blocks_info[i].map2stripe = stripe->stripe_id;
+      blocks_info[i].map2key = stripe->object_keys[0];
+      blocks_info[i].block_id = i;
+      blocks_info[i].map2group = block_id_to_group_id.at(i);
+
+      if (i < stripe->k)
+      {
+        blocks_info[i].block_type = 'D';
+        blocks_info[i].block_key = std::to_string(stripe->stripe_id) + "_D" + std::to_string(i);
+      }
+      else if (i < stripe->k + stripe->r)
+      {
+        blocks_info[i].block_type = 'G';
+        blocks_info[i].block_key = std::to_string(stripe->stripe_id) + "_G" + std::to_string(i - stripe->k);
+      }
+      else
+      {
+        blocks_info[i].block_type = 'L';
+        blocks_info[i].block_key = std::to_string(stripe->stripe_id) + "_L" + std::to_string(i - stripe->k - stripe->r);
+      }
+      int t_node_id = (stripe->stripe_id + i) % m_sys_config->NodeNum;
+      blocks_info[i].map2node = t_node_id;
+      update_stripe_info_in_node(t_node_id, stripe->stripe_id, i);
+      m_node_table[t_node_id].blocks.push_back(&blocks_info[i]);
+      stripe->blocks.push_back(&blocks_info[i]);
+      stripe->place2nodes.insert(blocks_info[i].map2node);
+      add_to_map(stripe->group_to_blocks, blocks_info[i].map2group, i);
+    }
+
+    stripe->num_groups = stripe->group_to_blocks.size();
+  }
+
   void CoordinatorImpl::initialize_azurelrc_stripe_placement(Stripe *stripe)
   {
     int k = stripe->k, r = stripe->r, z = stripe->z;
@@ -565,6 +610,8 @@ namespace ECProject
     std::string clientID = keyValueSize->key();
     int appendSizeBytes = keyValueSize->valuesizebytes();
     std::string append_mode = keyValueSize->append_mode();
+    if (m_sys_config->CodeType == "AL")
+      return grpc::Status(grpc::StatusCode::UNIMPLEMENTED, "AL append writes are not supported");
 
     // 1. record metadata
     // logical offset within the block stripe
@@ -750,7 +797,7 @@ namespace ECProject
     size_t setSizeBytes = keyValueSize->valuesizebytes();
     std::string code_type = m_sys_config->CodeType;
     assert(setSizeBytes == static_cast<size_t>(m_sys_config->BlockSize) * static_cast<size_t>(m_sys_config->k) && "set size is not equal to the block stripe size!");
-    assert((code_type == "UniLRC" || code_type == "AzureLRC" || code_type == "OptimalLRC" || code_type == "UniformLRC" || code_type == "LotusLRC") && "Error: code type must be UniLRC, AzureLRC, OptimalLRC, UniformLRC, or LotusLRC!");
+    assert((code_type == "AL" || code_type == "UniLRC" || code_type == "AzureLRC" || code_type == "OptimalLRC" || code_type == "UniformLRC" || code_type == "LotusLRC") && "Error: unsupported code type for full-stripe set");
 
     Stripe t_stripe;
     t_stripe.stripe_id = m_cur_stripe_id++;
@@ -759,7 +806,9 @@ namespace ECProject
     t_stripe.r = m_sys_config->r;
     t_stripe.z = m_sys_config->z;
     t_stripe.object_keys.push_back(clientID);
-    if (code_type == "UniLRC")
+    if (code_type == "AL")
+      initialize_al_stripe_placement(&t_stripe);
+    else if (code_type == "UniLRC")
       initialize_unilrc_stripe_placement(&t_stripe);
     else if (code_type == "AzureLRC")
       initialize_azurelrc_stripe_placement(&t_stripe);
@@ -811,6 +860,8 @@ namespace ECProject
     std::string clientID = keyValueSize->key();
     size_t setSizeBytes = keyValueSize->valuesizebytes();
     std::string code_type = m_sys_config->CodeType;
+    if (code_type == "AL")
+      return grpc::Status(grpc::StatusCode::UNIMPLEMENTED, "AL subset writes are not supported");
     assert(setSizeBytes <= static_cast<size_t>(m_sys_config->BlockSize) * static_cast<size_t>(m_sys_config->k) && "subset size is larger than the block size!");
     assert((code_type == "UniLRC" || code_type == "AzureLRC" || code_type == "OptimalLRC" || code_type == "UniformLRC") && "Error: code type must be UniLRC, AzureLRC, OptimalLRC, or UniformLRC!");
 

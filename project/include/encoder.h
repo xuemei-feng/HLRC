@@ -57,6 +57,8 @@ namespace ECProject
 
     void encode_azure_lrc(int k, int r, int z, unsigned char **data_ptrs, unsigned char **parity_ptrs, int block_size);
 
+    void encode_al(int k, int r, int z, unsigned char **data_ptrs, unsigned char **parity_ptrs, int block_size);
+
     void encode_optimal_lrc(int k, int r, int z, unsigned char **data_ptrs, unsigned char **parity_ptrs, int block_size);
 
     void encode_uniform_lrc(int k, int r, int z, unsigned char **data_ptrs, unsigned char **parity_ptrs, int block_size);
@@ -74,6 +76,7 @@ namespace ECProject
      */
     void gen_unilrc_matrix(unsigned char *encode_matrix, int k, int r, int z);
     void gen_azure_lrc_matrix(unsigned char *encode_matrix, int k, int r, int z);
+    void gen_al_matrix(unsigned char *encode_matrix, int k, int r, int z);
     void gen_optimal_lrc_matrix(unsigned char *encode_matrix, int k, int r, int z);
     void gen_uniform_lrc_matrix(unsigned char *encode_matrix, int k, int r, int z);
 
@@ -200,6 +203,13 @@ namespace ECProject
     std::vector<int> get_local_parity_block_num_per_group(int k, int r, int z, const std::string &code_type);
 
     /* Per-code-type layout functions */
+    std::vector<int> get_data_block_num_per_group_al(int k, int r, int z);
+    std::vector<int> get_global_parity_block_num_per_group_al(int k, int r, int z);
+    std::vector<int> get_local_parity_block_num_per_group_al(int k, int r, int z);
+    int get_al_block_id_to_local_group_id(int k, int r, int z, int block_id);
+    std::unordered_map<int, int> get_al_block_id_to_group_id(int k, int r, int z);
+    std::unordered_map<int, std::vector<int>> get_al_group_id_to_block_ids(int k, int r, int z);
+
     std::vector<int> get_data_block_num_per_group_azurelrc(int k, int r, int z);
     std::vector<int> get_global_parity_block_num_per_group_azurelrc(int k, int r, int z);
     std::vector<int> get_local_parity_block_num_per_group_azurelrc(int k, int r, int z);

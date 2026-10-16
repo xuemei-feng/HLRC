@@ -14,6 +14,8 @@ namespace ECProject
   /* ----- Dispatchers (by code_type) ----- */
   std::vector<int> get_data_block_num_per_group(int k, int r, int z, const std::string &code_type)
   {
+    if (code_type == "AL")
+      return get_data_block_num_per_group_al(k, r, z);
     if (code_type == "AzureLRC")
       return get_data_block_num_per_group_azurelrc(k, r, z);
     if (code_type == "OptimalLRC")
@@ -29,6 +31,8 @@ namespace ECProject
 
   std::vector<int> get_global_parity_block_num_per_group(int k, int r, int z, const std::string &code_type)
   {
+    if (code_type == "AL")
+      return get_global_parity_block_num_per_group_al(k, r, z);
     if (code_type == "AzureLRC")
       return get_global_parity_block_num_per_group_azurelrc(k, r, z);
     if (code_type == "OptimalLRC")
@@ -44,6 +48,8 @@ namespace ECProject
 
   std::vector<int> get_local_parity_block_num_per_group(int k, int r, int z, const std::string &code_type)
   {
+    if (code_type == "AL")
+      return get_local_parity_block_num_per_group_al(k, r, z);
     if (code_type == "AzureLRC")
       return get_local_parity_block_num_per_group_azurelrc(k, r, z);
     if (code_type == "OptimalLRC")
@@ -55,6 +61,89 @@ namespace ECProject
     if (code_type == "LotusLRC")
       return get_local_parity_block_num_per_group_lotuslrc(k, r, z);
     return {};
+  }
+
+  /* ----- AL ----- */
+  namespace
+  {
+    void validate_al_layout_parameters(int k, int r, int z)
+    {
+      if (z <= 0 || z % 2 == 0)
+        throw std::invalid_argument("AL requires a positive odd z");
+      const int group_num = (z + 1) / 2;
+      if (k <= 0 || k % group_num != 0)
+        throw std::invalid_argument("AL requires k divisible by (z + 1) / 2");
+      if (r <= 0 || k + r > 255)
+        throw std::invalid_argument("AL requires positive r and k + r <= 255");
+    }
+  }
+
+  std::vector<int> get_data_block_num_per_group_al(int k, int r, int z)
+  {
+    validate_al_layout_parameters(k, r, z);
+    const int group_num = (z + 1) / 2;
+    std::vector<int> counts(group_num, k / group_num);
+    counts.push_back(0);
+    return counts;
+  }
+
+  std::vector<int> get_global_parity_block_num_per_group_al(int k, int r, int z)
+  {
+    validate_al_layout_parameters(k, r, z);
+    std::vector<int> counts((z + 1) / 2 + 1, 0);
+    counts.back() = r;
+    return counts;
+  }
+
+  std::vector<int> get_local_parity_block_num_per_group_al(int k, int r, int z)
+  {
+    validate_al_layout_parameters(k, r, z);
+    const int group_num = (z + 1) / 2;
+    std::vector<int> counts(group_num, 2);
+    counts.back() = 1;
+    counts.push_back(0);
+    return counts;
+  }
+
+  std::unordered_map<int, std::vector<int>> get_al_group_id_to_block_ids(int k, int r, int z)
+  {
+    const auto data_counts = get_data_block_num_per_group_al(k, r, z);
+    const auto global_counts = get_global_parity_block_num_per_group_al(k, r, z);
+    const auto local_counts = get_local_parity_block_num_per_group_al(k, r, z);
+    std::unordered_map<int, std::vector<int>> groups;
+    int data_id = 0;
+    int global_id = k;
+    int local_id = k + r;
+    for (size_t group = 0; group < data_counts.size(); ++group)
+    {
+      auto &blocks = groups[static_cast<int>(group)];
+      for (int i = 0; i < data_counts[group]; ++i) blocks.push_back(data_id++);
+      for (int i = 0; i < global_counts[group]; ++i) blocks.push_back(global_id++);
+      for (int i = 0; i < local_counts[group]; ++i) blocks.push_back(local_id++);
+    }
+    return groups;
+  }
+
+  std::unordered_map<int, int> get_al_block_id_to_group_id(int k, int r, int z)
+  {
+    std::unordered_map<int, int> result;
+    const auto groups = get_al_group_id_to_block_ids(k, r, z);
+    for (const auto &entry : groups)
+      for (int block_id : entry.second) result[block_id] = entry.first;
+    return result;
+  }
+
+  int get_al_block_id_to_local_group_id(int k, int r, int z, int block_id)
+  {
+    validate_al_layout_parameters(k, r, z);
+    if (block_id < 0 || block_id >= k + r + z)
+      throw std::out_of_range("AL block id is out of range");
+    if (block_id < k)
+      return block_id / (k / ((z + 1) / 2));
+    if (block_id < k + r)
+      return -1;
+    const int local_id = block_id - k - r;
+    return local_id / 2;
   }
 
   /* ----- AzureLRC ----- */

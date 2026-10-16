@@ -292,3 +292,16 @@ add_test(NAME recovery_audit COMMAND recovery_audit)
 add_test(NAME maintenance_local_fill_verify COMMAND maintenance_local_fill_verify)
 set_tests_properties(layout_test lotus_2block_verify recovery_audit maintenance_local_fill_verify
     PROPERTIES TIMEOUT 30)
+
+# AL matrix and placement validation (pure GF math, no gRPC).
+add_executable(al_test
+    ${CMAKE_CURRENT_SOURCE_DIR}/tests/al_test.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/encoder_layout.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/recovery_strategy.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/encoder.cpp
+    ${ASM_SOURCES}
+)
+target_include_directories(al_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_link_libraries(al_test -lpthread -lJerasure -lgf_complete)
+add_test(NAME al_test COMMAND al_test)
+set_tests_properties(al_test PROPERTIES TIMEOUT 30)

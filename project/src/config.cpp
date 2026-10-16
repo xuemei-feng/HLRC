@@ -43,7 +43,7 @@ namespace ECProject
   void Config::validateConfig() const
   {
     static const std::set<std::string> supported = {
-        "AzureLRC", "OptimalLRC", "UniformLRC", "LotusLRC", "UniLRC"};
+        "AL", "AzureLRC", "OptimalLRC", "UniformLRC", "LotusLRC", "UniLRC"};
     if (supported.count(CodeType) == 0)
       throw std::runtime_error("Unsupported CodeType: actual=" + CodeType);
     if (AlignedSize <= 0 || UnitSize <= 0 || BlockSize == 0 || CoordinatorPort <= 0 ||
@@ -53,6 +53,17 @@ namespace ECProject
       throw std::runtime_error("Invalid coding parameters for " + CodeType +
                                ": k=" + std::to_string(k) + ", r=" + std::to_string(r) +
                                ", z=" + std::to_string(z) + ", required=positive values");
+    if (CodeType == "AL")
+    {
+      const int groupNum = (z + 1) / 2;
+      if (z % 2 == 0)
+        throw std::runtime_error("Invalid AL z: required=positive odd integer, actual=" + std::to_string(z));
+      if (k % groupNum != 0)
+        throw std::runtime_error("Invalid AL k: required divisible by (z + 1) / 2, k=" + std::to_string(k) +
+                                 ", groups=" + std::to_string(groupNum));
+      if (k + r > 255)
+        throw std::runtime_error("Invalid AL parameters: k + r must be <= 255 to avoid GF(256) index wrap");
+    }
     if (CodeType == "UniLRC" && alpha <= 0)
       throw std::runtime_error("Invalid alpha for UniLRC: actual=" + std::to_string(alpha) +
                                ", required=positive integer");
