@@ -30,6 +30,22 @@ class ParameterConfigurationTest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "required k divisible by z"):
             self.parse("<CodeType>CP-ALRC</CodeType><k>10</k><r>3</r><z>4</z>")
 
+    def test_cp_ulrc_non_divisible(self):
+        self.assertEqual(self.parse("<CodeType>CP-ULRC</CodeType><k>10</k><r>3</r><z>4</z>"),
+                         ("CP-ULRC", 10, 3, 4, 17))
+
+    def test_cp_ulrc_allows_groups_with_global_members(self):
+        self.assertEqual(self.parse("<CodeType>CP-ULRC</CodeType><k>3</k><r>2</r><z>4</z>"),
+                         ("CP-ULRC", 3, 2, 4, 9))
+
+    def test_cp_ulrc_supports_one_global(self):
+        self.assertEqual(self.parse("<CodeType>CP-ULRC</CodeType><k>4</k><r>1</r><z>3</z>"),
+                         ("CP-ULRC", 4, 1, 3, 8))
+
+    def test_cp_ulrc_rejects_empty_local_groups(self):
+        with self.assertRaisesRegex(ValueError, r"required z <= k \+ r - 1"):
+            self.parse("<CodeType>CP-ULRC</CodeType><k>3</k><r>2</r><z>5</z>")
+
     def test_uni_derivation(self):
         self.assertEqual(self.parse("<CodeType>UniLRC</CodeType><alpha>2</alpha><z>4</z>"),
                          ("UniLRC", 24, 8, 4, 36))

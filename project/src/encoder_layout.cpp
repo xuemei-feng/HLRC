@@ -16,6 +16,8 @@ namespace ECProject
   {
     if (code_type == "CP-ALRC")
       return get_data_block_num_per_group_cp_alrc(k, r, z);
+    if (code_type == "CP-ULRC")
+      return get_data_block_num_per_group_cp_ulrc(k, r, z);
     if (code_type == "AzureLRC")
       return get_data_block_num_per_group_azurelrc(k, r, z);
     if (code_type == "OptimalLRC")
@@ -33,6 +35,8 @@ namespace ECProject
   {
     if (code_type == "CP-ALRC")
       return get_global_parity_block_num_per_group_cp_alrc(k, r, z);
+    if (code_type == "CP-ULRC")
+      return get_global_parity_block_num_per_group_cp_ulrc(k, r, z);
     if (code_type == "AzureLRC")
       return get_global_parity_block_num_per_group_azurelrc(k, r, z);
     if (code_type == "OptimalLRC")
@@ -50,6 +54,8 @@ namespace ECProject
   {
     if (code_type == "CP-ALRC")
       return get_local_parity_block_num_per_group_cp_alrc(k, r, z);
+    if (code_type == "CP-ULRC")
+      return get_local_parity_block_num_per_group_cp_ulrc(k, r, z);
     if (code_type == "AzureLRC")
       return get_local_parity_block_num_per_group_azurelrc(k, r, z);
     if (code_type == "OptimalLRC")
@@ -146,6 +152,103 @@ namespace ECProject
   {
     validate_cp_alrc_layout(k, r, z);
     return get_azurelrc_block_id_to_local_group_id(k, r, z, block_id);
+  }
+
+  /* ----- CP-ULRC ----- */
+  namespace
+  {
+    void validate_cp_ulrc_layout(int k, int r, int z)
+    {
+      if (k <= 0 || r <= 0 || z <= 0 || z > k + r - 1)
+        throw std::invalid_argument("CP-ULRC requires positive k, r, z and z <= k + r - 1");
+    }
+
+    std::vector<int> cp_ulrc_member_group_sizes(int k, int r, int z)
+    {
+      const int member_count = k + r - 1;
+      const int base = member_count / z;
+      const int remainder = member_count % z;
+      std::vector<int> sizes;
+      sizes.reserve(static_cast<size_t>(z));
+      for (int group = 0; group < z; ++group)
+        sizes.push_back(base + (group >= z - remainder ? 1 : 0));
+      return sizes;
+    }
+  }
+
+  std::vector<int> get_data_block_num_per_group_cp_ulrc(int k, int r, int z)
+  {
+    validate_cp_ulrc_layout(k, r, z);
+    const auto groups = get_cp_ulrc_group_id_to_block_ids(k, r, z);
+    std::vector<int> result(static_cast<size_t>(z + 1), 0);
+    for (int group = 0; group < z; ++group)
+      for (int block_id : groups.at(group))
+        result[group] += block_id < k;
+    return result;
+  }
+
+  std::vector<int> get_global_parity_block_num_per_group_cp_ulrc(int k, int r, int z)
+  {
+    validate_cp_ulrc_layout(k, r, z);
+    const auto groups = get_cp_ulrc_group_id_to_block_ids(k, r, z);
+    std::vector<int> result(static_cast<size_t>(z + 1), 0);
+    for (int group = 0; group <= z; ++group)
+      for (int block_id : groups.at(group))
+        result[group] += block_id >= k && block_id < k + r;
+    return result;
+  }
+
+  std::vector<int> get_local_parity_block_num_per_group_cp_ulrc(int k, int r, int z)
+  {
+    validate_cp_ulrc_layout(k, r, z);
+    std::vector<int> result(static_cast<size_t>(z), 1);
+    result.push_back(0);
+    return result;
+  }
+
+  std::unordered_map<int, std::vector<int>> get_cp_ulrc_group_id_to_block_ids(int k, int r, int z)
+  {
+    validate_cp_ulrc_layout(k, r, z);
+    const std::vector<int> sizes = cp_ulrc_member_group_sizes(k, r, z);
+    std::unordered_map<int, std::vector<int>> groups;
+    int member_id = 0;
+    for (int group = 0; group < z; ++group)
+    {
+      for (int offset = 0; offset < sizes[group]; ++offset)
+        groups[group].push_back(member_id++);
+      groups[group].push_back(k + r + group);
+    }
+    groups[z].push_back(k + r - 1);
+    return groups;
+  }
+
+  std::unordered_map<int, int> get_cp_ulrc_block_id_to_group_id(int k, int r, int z)
+  {
+    std::unordered_map<int, int> result;
+    for (const auto &entry : get_cp_ulrc_group_id_to_block_ids(k, r, z))
+      for (int block_id : entry.second)
+        result[block_id] = entry.first;
+    return result;
+  }
+
+  int get_cp_ulrc_block_id_to_local_group_id(int k, int r, int z, int block_id)
+  {
+    validate_cp_ulrc_layout(k, r, z);
+    if (block_id < 0 || block_id >= k + r + z)
+      throw std::out_of_range("CP-ULRC block id is out of range");
+    if (block_id == k + r - 1)
+      return -1;
+    if (block_id >= k + r)
+      return block_id - k - r;
+    const std::vector<int> sizes = cp_ulrc_member_group_sizes(k, r, z);
+    int end = 0;
+    for (int group = 0; group < z; ++group)
+    {
+      end += sizes[group];
+      if (block_id < end)
+        return group;
+    }
+    throw std::out_of_range("CP-ULRC block id is out of range");
   }
 
   /* ----- OptimalLRC ----- */

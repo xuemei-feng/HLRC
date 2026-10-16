@@ -59,6 +59,8 @@ namespace ECProject
 
     void encode_cp_alrc(int k, int r, int z, unsigned char **data_ptrs, unsigned char **parity_ptrs, int block_size);
 
+    void encode_cp_ulrc(int k, int r, int z, unsigned char **data_ptrs, unsigned char **parity_ptrs, int block_size);
+
     void encode_optimal_lrc(int k, int r, int z, unsigned char **data_ptrs, unsigned char **parity_ptrs, int block_size);
 
     void encode_uniform_lrc(int k, int r, int z, unsigned char **data_ptrs, unsigned char **parity_ptrs, int block_size);
@@ -77,6 +79,7 @@ namespace ECProject
     void gen_unilrc_matrix(unsigned char *encode_matrix, int k, int r, int z);
     void gen_azure_lrc_matrix(unsigned char *encode_matrix, int k, int r, int z);
     void gen_cp_alrc_matrix(unsigned char *encode_matrix, int k, int r, int z);
+    void gen_cp_ulrc_matrix(unsigned char *encode_matrix, int k, int r, int z);
     void gen_optimal_lrc_matrix(unsigned char *encode_matrix, int k, int r, int z);
     void gen_uniform_lrc_matrix(unsigned char *encode_matrix, int k, int r, int z);
 
@@ -216,6 +219,13 @@ namespace ECProject
     int get_cp_alrc_block_id_to_local_group_id(int k, int r, int z, int block_id);
     std::unordered_map<int, int> get_cp_alrc_block_id_to_group_id(int k, int r, int z);
     std::unordered_map<int, std::vector<int>> get_cp_alrc_group_id_to_block_ids(int k, int r, int z);
+
+    std::vector<int> get_data_block_num_per_group_cp_ulrc(int k, int r, int z);
+    std::vector<int> get_global_parity_block_num_per_group_cp_ulrc(int k, int r, int z);
+    std::vector<int> get_local_parity_block_num_per_group_cp_ulrc(int k, int r, int z);
+    int get_cp_ulrc_block_id_to_local_group_id(int k, int r, int z, int block_id);
+    std::unordered_map<int, int> get_cp_ulrc_block_id_to_group_id(int k, int r, int z);
+    std::unordered_map<int, std::vector<int>> get_cp_ulrc_group_id_to_block_ids(int k, int r, int z);
 
     std::vector<int> get_data_block_num_per_group_optimal_lrc(int k, int r, int z);
     std::vector<int> get_global_parity_block_num_per_group_optimal_lrc(int k, int r, int z);

@@ -240,6 +240,18 @@ void ECProject::encode_cp_alrc(int k, int r, int z, unsigned char **data_ptrs, u
     ec_encode_data_avx2(block_size, k, r + z, g_tbls.data(), data_ptrs, parity_ptrs);
 }
 
+void ECProject::encode_cp_ulrc(int k, int r, int z, unsigned char **data_ptrs, unsigned char **parity_ptrs, int block_size)
+{
+    for (int i = 0; i < r + z; ++i) {
+        memset(parity_ptrs[i], 0, block_size);
+    }
+    std::vector<unsigned char> encode_matrix(static_cast<size_t>(k + r + z) * k);
+    gen_cp_ulrc_matrix(encode_matrix.data(), k, r, z);
+    std::vector<unsigned char> g_tbls(static_cast<size_t>(k) * (r + z) * 32);
+    ec_init_tables(k, r + z, encode_matrix.data() + k * k, g_tbls.data());
+    ec_encode_data_avx2(block_size, k, r + z, g_tbls.data(), data_ptrs, parity_ptrs);
+}
+
 void ECProject::partial_encode_azure_lrc(int k, int r, int z, int data_block_num, unsigned char **data_ptrs, unsigned char **parity_ptrs, int block_size)
 {
     for(int i = 0; i < r + z; i++){
@@ -410,6 +422,43 @@ void ECProject::gen_cp_alrc_matrix(unsigned char *encode_matrix, int k, int r, i
         for (int offset = 0; offset < group_size; ++offset) {
             const int data_id = group * group_size + offset;
             encode_matrix[(m + group) * k + data_id] = last_global[data_id];
+        }
+    }
+}
+
+void ECProject::gen_cp_ulrc_matrix(unsigned char *encode_matrix, int k, int r, int z)
+{
+    const int member_count = k + r - 1;
+    if (k <= 0 || r <= 0 || z <= 0 || z > member_count) {
+        throw std::invalid_argument("CP-ULRC requires positive k, r, z and z <= k + r - 1");
+    }
+    const int m = k + r;
+    gf_gen_cauchy_matrix1(encode_matrix, m, k);
+    memset(encode_matrix + static_cast<size_t>(m) * k, 0, static_cast<size_t>(z) * k);
+
+    std::vector<unsigned char> data_coefficients(static_cast<size_t>(k));
+    for (int data_id = 0; data_id < k; ++data_id) {
+        unsigned char coefficient = encode_matrix[static_cast<size_t>(k + r - 1) * k + data_id];
+        for (int global = 0; global < r - 1; ++global)
+            coefficient ^= encode_matrix[static_cast<size_t>(k + global) * k + data_id];
+        data_coefficients[data_id] = coefficient;
+    }
+
+    const int base = member_count / z;
+    const int remainder = member_count % z;
+    int member_id = 0;
+    for (int group = 0; group < z; ++group) {
+        const int group_size = base + (group >= z - remainder ? 1 : 0);
+        unsigned char *local_row = encode_matrix + static_cast<size_t>(m + group) * k;
+        for (int offset = 0; offset < group_size; ++offset, ++member_id) {
+            if (member_id < k) {
+                local_row[member_id] ^= data_coefficients[member_id];
+            } else {
+                const unsigned char *global_row =
+                    encode_matrix + static_cast<size_t>(member_id) * k;
+                for (int data_id = 0; data_id < k; ++data_id)
+                    local_row[data_id] ^= global_row[data_id];
+            }
         }
     }
 }

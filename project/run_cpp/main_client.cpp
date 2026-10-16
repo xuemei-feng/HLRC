@@ -25,6 +25,11 @@ int block_id_to_group(const std::string &code_type, int k, int r, int z, int blo
         auto m = ECProject::get_lotuslrc_block_id_to_group_id(k, r, z);
         return m.at(block_id);
     }
+    if (code_type == "CP-ULRC")
+    {
+        auto m = ECProject::get_cp_ulrc_block_id_to_group_id(k, r, z);
+        return m.at(block_id);
+    }
     if (code_type == "CP-ALRC")
     {
         auto m = ECProject::get_cp_alrc_block_id_to_group_id(k, r, z);
@@ -285,6 +290,9 @@ int main(int argc, char **argv)
     else if(parameters[4] == 5){
         code_type = "CP-ALRC";
     }
+    else if(parameters[4] == 6){
+        code_type = "CP-ULRC";
+    }
     else{
         std::cout << "Code type error" << std::endl;
         return -1;
@@ -308,9 +316,9 @@ int main(int argc, char **argv)
     std::mt19937 rng(std::random_device{}());
     sleep(5);
 
-    if (code_type == "CP-ALRC")
+    if (code_type == "CP-ALRC" || code_type == "CP-ULRC")
     {
-        std::cout << "CP-ALRC full-stripe write completed; degraded read, recovery, subset, and append tests are not implemented and will be skipped." << std::endl;
+        std::cout << code_type << " full-stripe write completed; degraded read, recovery, subset, and append tests are not implemented and will be skipped." << std::endl;
         return 0;
     }
 

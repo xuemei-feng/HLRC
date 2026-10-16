@@ -355,6 +355,45 @@ namespace ECProject
     stripe->num_groups = stripe->group_to_blocks.size();
   }
 
+  void CoordinatorImpl::initialize_cp_ulrc_stripe_placement(Stripe *stripe)
+  {
+    const auto block_id_to_group_id =
+        ECProject::get_cp_ulrc_block_id_to_group_id(stripe->k, stripe->r, stripe->z);
+    Block *blocks_info = new Block[stripe->n];
+    assert(stripe->object_keys.size() == 1);
+    for (int i = 0; i < stripe->n; ++i)
+    {
+      blocks_info[i].block_size = m_sys_config->BlockSize;
+      blocks_info[i].map2stripe = stripe->stripe_id;
+      blocks_info[i].map2key = stripe->object_keys[0];
+      blocks_info[i].block_id = i;
+      blocks_info[i].map2group = block_id_to_group_id.at(i);
+      if (i < stripe->k)
+      {
+        blocks_info[i].block_type = 'D';
+        blocks_info[i].block_key = std::to_string(stripe->stripe_id) + "_D" + std::to_string(i);
+      }
+      else if (i < stripe->k + stripe->r)
+      {
+        blocks_info[i].block_type = 'G';
+        blocks_info[i].block_key = std::to_string(stripe->stripe_id) + "_G" + std::to_string(i - stripe->k);
+      }
+      else
+      {
+        blocks_info[i].block_type = 'L';
+        blocks_info[i].block_key = std::to_string(stripe->stripe_id) + "_L" + std::to_string(i - stripe->k - stripe->r);
+      }
+      const int node_id = (stripe->stripe_id + i) % m_sys_config->NodeNum;
+      blocks_info[i].map2node = node_id;
+      update_stripe_info_in_node(node_id, stripe->stripe_id, i);
+      m_node_table[node_id].blocks.push_back(&blocks_info[i]);
+      stripe->blocks.push_back(&blocks_info[i]);
+      stripe->place2nodes.insert(node_id);
+      add_to_map(stripe->group_to_blocks, blocks_info[i].map2group, i);
+    }
+    stripe->num_groups = stripe->group_to_blocks.size();
+  }
+
   void CoordinatorImpl::initialize_unilrc_stripe_placement(Stripe *stripe)
   {
     int k = stripe->k, r = stripe->r, z = stripe->z;
@@ -603,8 +642,8 @@ namespace ECProject
       const coordinator_proto::RequestProxyIPPort *keyValueSize,
       coordinator_proto::ReplyProxyIPsPorts *proxyIPPort)
   {
-    if (m_sys_config->CodeType == "CP-ALRC")
-      return grpc::Status(grpc::StatusCode::UNIMPLEMENTED, "CP-ALRC append is not implemented");
+    if (m_sys_config->CodeType == "CP-ALRC" || m_sys_config->CodeType == "CP-ULRC")
+      return grpc::Status(grpc::StatusCode::UNIMPLEMENTED, m_sys_config->CodeType + " append is not implemented");
     std::string clientID = keyValueSize->key();
     int appendSizeBytes = keyValueSize->valuesizebytes();
     std::string append_mode = keyValueSize->append_mode();
@@ -793,7 +832,7 @@ namespace ECProject
     size_t setSizeBytes = keyValueSize->valuesizebytes();
     std::string code_type = m_sys_config->CodeType;
     assert(setSizeBytes == static_cast<size_t>(m_sys_config->BlockSize) * static_cast<size_t>(m_sys_config->k) && "set size is not equal to the block stripe size!");
-    assert((code_type == "UniLRC" || code_type == "AzureLRC" || code_type == "CP-ALRC" || code_type == "OptimalLRC" || code_type == "UniformLRC" || code_type == "LotusLRC") && "Error: unsupported code type for full-stripe set");
+    assert((code_type == "UniLRC" || code_type == "AzureLRC" || code_type == "CP-ALRC" || code_type == "CP-ULRC" || code_type == "OptimalLRC" || code_type == "UniformLRC" || code_type == "LotusLRC") && "Error: unsupported code type for full-stripe set");
 
     Stripe t_stripe;
     t_stripe.stripe_id = m_cur_stripe_id++;
@@ -808,6 +847,8 @@ namespace ECProject
       initialize_azurelrc_stripe_placement(&t_stripe);
     else if (code_type == "CP-ALRC")
       initialize_cp_alrc_stripe_placement(&t_stripe);
+    else if (code_type == "CP-ULRC")
+      initialize_cp_ulrc_stripe_placement(&t_stripe);
     else if (code_type == "OptimalLRC")
       initialize_optimal_lrc_stripe_placement(&t_stripe);
     else if (code_type == "UniformLRC")
@@ -856,8 +897,8 @@ namespace ECProject
     std::string clientID = keyValueSize->key();
     size_t setSizeBytes = keyValueSize->valuesizebytes();
     std::string code_type = m_sys_config->CodeType;
-    if (code_type == "CP-ALRC")
-      return grpc::Status(grpc::StatusCode::UNIMPLEMENTED, "CP-ALRC subset writes are not implemented");
+    if (code_type == "CP-ALRC" || code_type == "CP-ULRC")
+      return grpc::Status(grpc::StatusCode::UNIMPLEMENTED, code_type + " subset writes are not implemented");
     assert(setSizeBytes <= static_cast<size_t>(m_sys_config->BlockSize) * static_cast<size_t>(m_sys_config->k) && "subset size is larger than the block size!");
     assert((code_type == "UniLRC" || code_type == "AzureLRC" || code_type == "OptimalLRC" || code_type == "UniformLRC") && "Error: code type must be UniLRC, AzureLRC, OptimalLRC, or UniformLRC!");
 
@@ -1988,6 +2029,8 @@ namespace ECProject
       const coordinator_proto::KeyAndClientIP *keyClient,
       coordinator_proto::RecoveryReply *recoveryReply)
   {
+    if (m_sys_config->CodeType == "CP-ULRC")
+      return grpc::Status(grpc::StatusCode::UNIMPLEMENTED, "CP-ULRC recovery and degraded read are not implemented");
     std::chrono::time_point<std::chrono::high_resolution_clock> START = std::chrono::high_resolution_clock::now();
     recoveryReply->set_grpc_start_time(std::chrono::duration_cast<std::chrono::duration<double>>(START.time_since_epoch()).count());
     int stripe_id = std::stoi(keyClient->key().substr(0, keyClient->key().find('_')));
@@ -2004,6 +2047,8 @@ namespace ECProject
       const coordinator_proto::KeyAndClientIP *keyClient,
       coordinator_proto::RecoveryReply *recoveryReply)
   {
+    if (m_sys_config->CodeType == "CP-ULRC")
+      return grpc::Status(grpc::StatusCode::UNIMPLEMENTED, "CP-ULRC recovery and degraded read are not implemented");
     int stripe_id = std::stoi(keyClient->key().substr(0, keyClient->key().find('_')));
     int failed_block_id = std::stoi(keyClient->key().substr(keyClient->key().find('_') + 1));
     bool if_success = recovery_one_block(stripe_id, failed_block_id);
@@ -2421,6 +2466,8 @@ namespace ECProject
     const coordinator_proto::KeyAndClientIP *keyClient,
     coordinator_proto::DegradedReadReply *degradedReadReply)
   {
+    if (m_sys_config->CodeType == "CP-ULRC")
+      return grpc::Status(grpc::StatusCode::UNIMPLEMENTED, "CP-ULRC recovery and degraded read are not implemented");
     std::chrono::high_resolution_clock::time_point start = std::chrono::high_resolution_clock::now();
     double start_time = std::chrono::duration_cast<std::chrono::duration<double>>(start.time_since_epoch()).count();
     degradedReadReply->set_grpc_start_time(start_time);
@@ -2473,6 +2520,8 @@ namespace ECProject
       const coordinator_proto::KeyAndClientIP *keyClient,
       coordinator_proto::DegradedReadReply *degradedReadReply)
   {
+    if (m_sys_config->CodeType == "CP-ULRC")
+      return grpc::Status(grpc::StatusCode::UNIMPLEMENTED, "CP-ULRC recovery and degraded read are not implemented");
     int stripe_id = std::stoi(keyClient->key().substr(0, keyClient->key().find('_')));
     int failed_block_id = std::stoi(keyClient->key().substr(keyClient->key().find('_') + 1));
     std::string client_ip = keyClient->clientip();
@@ -3556,6 +3605,8 @@ namespace ECProject
       const coordinator_proto::MaintenanceReadRequest *request,
       coordinator_proto::RecoveryReply *replyClient)
   {
+    if (m_sys_config->CodeType == "CP-ULRC")
+      return grpc::Status(grpc::StatusCode::UNIMPLEMENTED, "CP-ULRC recovery and degraded read are not implemented");
     const int stripe_id = request->stripe_id();
     std::string client_ip = request->clientip();
     int client_port = request->clientport();
@@ -3605,6 +3656,8 @@ namespace ECProject
       const coordinator_proto::StripeIdAndBlockIDsFromClient *request,
       coordinator_proto::RecoveryReply *replyClient)
   {
+    if (m_sys_config->CodeType == "CP-ULRC")
+      return grpc::Status(grpc::StatusCode::UNIMPLEMENTED, "CP-ULRC recovery and degraded read are not implemented");
     const int stripe_id = request->stripe_id();
     const int all_failed_num = request->block_ids_size();
     std::vector<int> all_failed;
@@ -3639,6 +3692,8 @@ namespace ECProject
       const coordinator_proto::StripeIdAndBlockIDsFromClient *request,
       coordinator_proto::RecoveryReply *replyClient)
   {
+    if (m_sys_config->CodeType == "CP-ULRC")
+      return grpc::Status(grpc::StatusCode::UNIMPLEMENTED, "CP-ULRC recovery and degraded read are not implemented");
     std::chrono::time_point<std::chrono::high_resolution_clock> start = std::chrono::high_resolution_clock::now();
     replyClient->set_grpc_start_time(
         std::chrono::duration_cast<std::chrono::duration<double>>(start.time_since_epoch()).count());

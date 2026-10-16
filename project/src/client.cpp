@@ -389,7 +389,7 @@ namespace ECProject
       std::unique_ptr<bool[]> if_commit_arr(new bool[reply.append_keys_size()]);
       std::fill_n(if_commit_arr.get(), reply.append_keys_size(), false);
 
-      assert(m_sys_config->CodeType == "UniLRC" || m_sys_config->CodeType == "OptimalLRC" || m_sys_config->CodeType == "UniformLRC" || m_sys_config->CodeType == "AzureLRC" || m_sys_config->CodeType == "CP-ALRC" || m_sys_config->CodeType == "LotusLRC");
+      assert(m_sys_config->CodeType == "UniLRC" || m_sys_config->CodeType == "OptimalLRC" || m_sys_config->CodeType == "UniformLRC" || m_sys_config->CodeType == "AzureLRC" || m_sys_config->CodeType == "CP-ALRC" || m_sys_config->CodeType == "CP-ULRC" || m_sys_config->CodeType == "LotusLRC");
       std::vector<int> data_block_num_per_group = ECProject::get_data_block_num_per_group(m_sys_config->k, m_sys_config->r, m_sys_config->z, m_sys_config->CodeType);
       std::vector<int> global_parity_block_num_per_group = ECProject::get_global_parity_block_num_per_group(m_sys_config->k, m_sys_config->r, m_sys_config->z, m_sys_config->CodeType);
       std::vector<int> local_parity_block_num_per_group = ECProject::get_local_parity_block_num_per_group(m_sys_config->k, m_sys_config->r, m_sys_config->z, m_sys_config->CodeType);
@@ -426,6 +426,10 @@ namespace ECProject
       {
         ECProject::encode_cp_alrc(m_sys_config->k, m_sys_config->r, m_sys_config->z, reinterpret_cast<unsigned char **>(data_ptr_array.data()), reinterpret_cast<unsigned char **>(parity_ptr_array.data()), m_sys_config->BlockSize);
       }
+      else if (m_sys_config->CodeType == "CP-ULRC")
+      {
+        ECProject::encode_cp_ulrc(m_sys_config->k, m_sys_config->r, m_sys_config->z, reinterpret_cast<unsigned char **>(data_ptr_array.data()), reinterpret_cast<unsigned char **>(parity_ptr_array.data()), m_sys_config->BlockSize);
+      }
       else if (m_sys_config->CodeType == "LotusLRC")
       {
         ECProject::encode_lotuslrc(m_sys_config->k, m_sys_config->r, m_sys_config->z, reinterpret_cast<unsigned char **>(data_ptr_array.data()), reinterpret_cast<unsigned char **>(parity_ptr_array.data()), m_sys_config->BlockSize);
@@ -461,9 +465,9 @@ namespace ECProject
 
   bool Client::sub_set(int block_num)
   {
-    if (m_sys_config->CodeType == "CP-ALRC")
+    if (m_sys_config->CodeType == "CP-ALRC" || m_sys_config->CodeType == "CP-ULRC")
     {
-      std::cout << "[Client] CP-ALRC subset writes are not implemented" << std::endl;
+      std::cout << "[Client] " << m_sys_config->CodeType << " subset writes are not implemented" << std::endl;
       return false;
     }
     grpc::ClientContext get_proxy_ip_port;
@@ -1169,6 +1173,10 @@ namespace ECProject
     else if(m_sys_config->CodeType == "CP-ALRC")
     {
       parameters.push_back(5);
+    }
+    else if(m_sys_config->CodeType == "CP-ULRC")
+    {
+      parameters.push_back(6);
     }
     else
     {

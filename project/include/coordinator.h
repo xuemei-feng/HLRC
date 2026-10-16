@@ -150,6 +150,7 @@ namespace ECProject
     void initialize_unilrc_stripe_placement(Stripe *stripe);
     void initialize_azurelrc_stripe_placement(Stripe *stripe);
     void initialize_cp_alrc_stripe_placement(Stripe *stripe);
+    void initialize_cp_ulrc_stripe_placement(Stripe *stripe);
     void initialize_optimal_lrc_stripe_placement(Stripe *stripe);
     void initialize_uniform_lrc_stripe_placement(Stripe *stripe);
     void initialize_lotuslrc_stripe_placement(Stripe *stripe);
