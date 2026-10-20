@@ -676,7 +676,8 @@ namespace ECProject
 
   bool Client::double_recovery_with_sources(
       int stripe_id, const std::vector<std::vector<int>> &failed_block_ids,
-      const std::vector<std::vector<int>> &source_block_ids, double &recovery_time)
+      const std::vector<std::vector<int>> &source_block_ids, double &recovery_time,
+      bool optimal_g0_d0_chain)
   {
     recovery_time = 0.0;
     if (failed_block_ids.size() != source_block_ids.size() || failed_block_ids.empty())
@@ -685,6 +686,7 @@ namespace ECProject
     grpc::ClientContext context;
     coordinator_proto::CustomDoubleRecoveryRequest request;
     request.set_stripe_id(stripe_id);
+    request.set_optimal_g0_d0_chain(optimal_g0_d0_chain);
     for (size_t i = 0; i < failed_block_ids.size(); ++i)
     {
       auto *task = request.add_tasks();

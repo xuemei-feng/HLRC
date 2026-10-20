@@ -2061,6 +2061,127 @@ namespace ECProject
     if (request->tasks_size() == 0)
       return finish(grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, "repair task list is empty"));
 
+    if (request->optimal_g0_d0_chain())
+    {
+      const int k = m_sys_config->k;
+      const int r = m_sys_config->r;
+      const int z = m_sys_config->z;
+      if (m_sys_config->CodeType != "OptimalLRC" ||
+          !((k == 24 && r == 2 && z == 2) ||
+            (k == 48 && r == 3 && z == 4) ||
+            (k == 72 && r == 4 && z == 4) ||
+            (k == 96 && r == 5 && z == 4)) ||
+          request->tasks_size() != 2 ||
+          request->tasks(0).failed_block_ids_size() != 1 ||
+          request->tasks(0).failed_block_ids(0) != k ||
+          request->tasks(1).failed_block_ids_size() != 1 ||
+          request->tasks(1).failed_block_ids(0) != 0)
+        return finish(grpc::Status(grpc::StatusCode::INVALID_ARGUMENT,
+                                   "invalid OptimalLRC G0+D0 chained repair request"));
+
+      const int local_group_size = k / z;
+      std::vector<int> phase1_sources;
+      for (int id = local_group_size; id < 2 * local_group_size; ++id)
+        phase1_sources.push_back(id);
+      for (int id = k + 1; id < k + r; ++id)
+        phase1_sources.push_back(id);
+      phase1_sources.push_back(k + r + 1);
+      std::vector<int> phase2_sources;
+      for (int id = 1; id < local_group_size; ++id)
+        phase2_sources.push_back(id);
+      phase2_sources.push_back(k + r);
+      std::vector<int> global_ids;
+      for (int id = k; id < k + r; ++id)
+        global_ids.push_back(id);
+
+      auto request_sources_equal = [](const coordinator_proto::CustomRepairTask &task,
+                                      const std::vector<int> &expected) {
+        return task.source_block_ids_size() == static_cast<int>(expected.size()) &&
+               std::equal(expected.begin(), expected.end(), task.source_block_ids().begin());
+      };
+      if (!request_sources_equal(request->tasks(0), phase1_sources) ||
+          !request_sources_equal(request->tasks(1), phase2_sources))
+        return finish(grpc::Status(grpc::StatusCode::INVALID_ARGUMENT,
+                                   "OptimalLRC G0+D0 source order mismatch"));
+
+      std::vector<unsigned char> phase1_coefficients;
+      if (!ECProject::get_local_fill_plan(k, r, z, "OptimalLRC", {k},
+                                          phase1_sources, phase1_coefficients))
+        return finish(grpc::Status(grpc::StatusCode::INVALID_ARGUMENT,
+                                   "phase 1 cannot recover G0"));
+      std::vector<int> phase2_formal_sources = phase2_sources;
+      phase2_formal_sources.insert(phase2_formal_sources.end(),
+                                   global_ids.begin(), global_ids.end());
+      std::vector<unsigned char> phase2_coefficients;
+      if (!ECProject::get_local_fill_plan(k, r, z, "OptimalLRC", {0},
+                                          phase2_formal_sources, phase2_coefficients))
+        return finish(grpc::Status(grpc::StatusCode::INVALID_ARGUMENT,
+                                   "phase 2 cannot recover D0"));
+      const unsigned char sum_coefficient = phase2_coefficients.back();
+      for (int i = 0; i < r; ++i)
+        if (phase2_coefficients[phase2_coefficients.size() - r + i] != sum_coefficient)
+          return finish(grpc::Status(grpc::StatusCode::INVALID_ARGUMENT,
+                                     "phase 2 globals cannot form one combination"));
+
+      auto add_sources = [&](proxy_proto::RecoveryRequest &proxy_request,
+                             const std::vector<int> &source_ids) {
+        for (int source_id : source_ids)
+        {
+          Block *source = stripe.blocks[source_id];
+          const int node_id = source->map2node;
+          proxy_request.add_custom_source_block_ids(source_id);
+          proxy_request.add_blockids(source_id);
+          proxy_request.add_blockkeys(source->block_key);
+          proxy_request.add_source_proxy_ips(m_node_table[node_id].proxy_ip);
+          proxy_request.add_source_proxy_ports(m_node_table[node_id].proxy_port);
+        }
+      };
+      auto destination_stub = [&](int block_id) -> proxy_proto::proxyService::Stub * {
+        const int node_id = stripe.blocks[block_id]->map2node;
+        const std::string endpoint = m_node_table[node_id].proxy_ip + ":" +
+                                     std::to_string(m_node_table[node_id].proxy_port);
+        auto it = m_proxy_ptrs.find(endpoint);
+        return it == m_proxy_ptrs.end() ? nullptr : it->second.get();
+      };
+
+      proxy_proto::proxyService::Stub *g0_stub = destination_stub(k);
+      proxy_proto::proxyService::Stub *d0_stub = destination_stub(0);
+      if (g0_stub == nullptr || d0_stub == nullptr)
+        return finish(grpc::Status(grpc::StatusCode::INTERNAL,
+                                   "chained recovery destination proxy is not registered"));
+
+      proxy_proto::RecoveryRequest phase1;
+      phase1.set_failed_block_id(k);
+      phase1.set_failed_block_key(stripe.blocks[k]->block_key);
+      phase1.set_cross_rack_num(0);
+      phase1.set_optimal_return_global_sum(true);
+      for (int id : global_ids) phase1.add_optimal_global_sum_block_ids(id);
+      add_sources(phase1, phase1_sources);
+      grpc::ClientContext phase1_context;
+      proxy_proto::RecoveryReply phase1_reply;
+      grpc::Status phase1_status = g0_stub->recovery(&phase1_context, phase1, &phase1_reply);
+      if (!phase1_status.ok() || phase1_reply.custom_intermediate_data().size() !=
+                                     static_cast<size_t>(m_sys_config->BlockSize))
+        return finish(grpc::Status(grpc::StatusCode::INTERNAL,
+                                   "OptimalLRC phase 1 failed: " + phase1_status.error_message()));
+
+      proxy_proto::RecoveryRequest phase2;
+      phase2.set_failed_block_id(0);
+      phase2.set_failed_block_key(stripe.blocks[0]->block_key);
+      phase2.set_cross_rack_num(0);
+      phase2.set_optimal_recover_data_with_sum(true);
+      for (int id : global_ids) phase2.add_optimal_global_sum_block_ids(id);
+      phase2.set_custom_intermediate_data(phase1_reply.custom_intermediate_data());
+      add_sources(phase2, phase2_sources);
+      grpc::ClientContext phase2_context;
+      proxy_proto::RecoveryReply phase2_reply;
+      grpc::Status phase2_status = d0_stub->recovery(&phase2_context, phase2, &phase2_reply);
+      if (!phase2_status.ok())
+        return finish(grpc::Status(grpc::StatusCode::INTERNAL,
+                                   "OptimalLRC phase 2 failed: " + phase2_status.error_message()));
+      return finish(grpc::Status::OK);
+    }
+
     std::unordered_set<int> all_failed;
     std::vector<proxy_proto::RecoveryRequest> proxy_requests;
     std::vector<std::string> destination_proxies;

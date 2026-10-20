@@ -4364,9 +4364,11 @@ class RecoveryRequest final :
     kCustomFailedBlockKeysFieldNumber = 38,
     kCustomTargetProxyIpsFieldNumber = 39,
     kCustomTargetProxyPortsFieldNumber = 40,
+    kOptimalGlobalSumBlockIdsFieldNumber = 44,
     kReplacedNodeIpFieldNumber = 1,
     kFailedBlockKeyFieldNumber = 4,
     kReplacedProxyIpFieldNumber = 30,
+    kCustomIntermediateDataFieldNumber = 43,
     kReplacedNodePortFieldNumber = 2,
     kFailedBlockIdFieldNumber = 3,
     kCrossRackNumFieldNumber = 5,
@@ -4374,8 +4376,10 @@ class RecoveryRequest final :
     kIsToSendBlockIdFieldNumber = 12,
     kSendToClientFieldNumber = 20,
     kMaintenanceHeaderFieldNumber = 27,
+    kOptimalReturnGlobalSumFieldNumber = 41,
     kLocalFillSenderNumFieldNumber = 28,
     kReplacedProxyPortFieldNumber = 31,
+    kOptimalRecoverDataWithSumFieldNumber = 42,
   };
   // repeated string datanodeip = 6;
   int datanodeip_size() const;
@@ -5015,6 +5019,28 @@ class RecoveryRequest final :
   ::PROTOBUF_NAMESPACE_ID::RepeatedField< int32_t >*
       mutable_custom_target_proxy_ports();
 
+  // repeated int32 optimal_global_sum_block_ids = 44;
+  int optimal_global_sum_block_ids_size() const;
+  private:
+  int _internal_optimal_global_sum_block_ids_size() const;
+  public:
+  void clear_optimal_global_sum_block_ids();
+  private:
+  int32_t _internal_optimal_global_sum_block_ids(int index) const;
+  const ::PROTOBUF_NAMESPACE_ID::RepeatedField< int32_t >&
+      _internal_optimal_global_sum_block_ids() const;
+  void _internal_add_optimal_global_sum_block_ids(int32_t value);
+  ::PROTOBUF_NAMESPACE_ID::RepeatedField< int32_t >*
+      _internal_mutable_optimal_global_sum_block_ids();
+  public:
+  int32_t optimal_global_sum_block_ids(int index) const;
+  void set_optimal_global_sum_block_ids(int index, int32_t value);
+  void add_optimal_global_sum_block_ids(int32_t value);
+  const ::PROTOBUF_NAMESPACE_ID::RepeatedField< int32_t >&
+      optimal_global_sum_block_ids() const;
+  ::PROTOBUF_NAMESPACE_ID::RepeatedField< int32_t >*
+      mutable_optimal_global_sum_block_ids();
+
   // string replaced_node_ip = 1;
   void clear_replaced_node_ip();
   const std::string& replaced_node_ip() const;
@@ -5055,6 +5081,20 @@ class RecoveryRequest final :
   const std::string& _internal_replaced_proxy_ip() const;
   inline PROTOBUF_ALWAYS_INLINE void _internal_set_replaced_proxy_ip(const std::string& value);
   std::string* _internal_mutable_replaced_proxy_ip();
+  public:
+
+  // bytes custom_intermediate_data = 43;
+  void clear_custom_intermediate_data();
+  const std::string& custom_intermediate_data() const;
+  template <typename ArgT0 = const std::string&, typename... ArgT>
+  void set_custom_intermediate_data(ArgT0&& arg0, ArgT... args);
+  std::string* mutable_custom_intermediate_data();
+  PROTOBUF_NODISCARD std::string* release_custom_intermediate_data();
+  void set_allocated_custom_intermediate_data(std::string* custom_intermediate_data);
+  private:
+  const std::string& _internal_custom_intermediate_data() const;
+  inline PROTOBUF_ALWAYS_INLINE void _internal_set_custom_intermediate_data(const std::string& value);
+  std::string* _internal_mutable_custom_intermediate_data();
   public:
 
   // int32 replaced_node_port = 2;
@@ -5120,6 +5160,15 @@ class RecoveryRequest final :
   void _internal_set_maintenance_header(bool value);
   public:
 
+  // bool optimal_return_global_sum = 41;
+  void clear_optimal_return_global_sum();
+  bool optimal_return_global_sum() const;
+  void set_optimal_return_global_sum(bool value);
+  private:
+  bool _internal_optimal_return_global_sum() const;
+  void _internal_set_optimal_return_global_sum(bool value);
+  public:
+
   // int32 local_fill_sender_num = 28;
   void clear_local_fill_sender_num();
   int32_t local_fill_sender_num() const;
@@ -5136,6 +5185,15 @@ class RecoveryRequest final :
   private:
   int32_t _internal_replaced_proxy_port() const;
   void _internal_set_replaced_proxy_port(int32_t value);
+  public:
+
+  // bool optimal_recover_data_with_sum = 42;
+  void clear_optimal_recover_data_with_sum();
+  bool optimal_recover_data_with_sum() const;
+  void set_optimal_recover_data_with_sum(bool value);
+  private:
+  bool _internal_optimal_recover_data_with_sum() const;
+  void _internal_set_optimal_recover_data_with_sum(bool value);
   public:
 
   // @@protoc_insertion_point(class_scope:proxy_proto.RecoveryRequest)
@@ -5191,9 +5249,12 @@ class RecoveryRequest final :
     ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField<std::string> custom_target_proxy_ips_;
     ::PROTOBUF_NAMESPACE_ID::RepeatedField< int32_t > custom_target_proxy_ports_;
     mutable std::atomic<int> _custom_target_proxy_ports_cached_byte_size_;
+    ::PROTOBUF_NAMESPACE_ID::RepeatedField< int32_t > optimal_global_sum_block_ids_;
+    mutable std::atomic<int> _optimal_global_sum_block_ids_cached_byte_size_;
     ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr replaced_node_ip_;
     ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr failed_block_key_;
     ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr replaced_proxy_ip_;
+    ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr custom_intermediate_data_;
     int32_t replaced_node_port_;
     int32_t failed_block_id_;
     int32_t cross_rack_num_;
@@ -5201,8 +5262,10 @@ class RecoveryRequest final :
     bool is_to_send_block_id_;
     bool send_to_client_;
     bool maintenance_header_;
+    bool optimal_return_global_sum_;
     int32_t local_fill_sender_num_;
     int32_t replaced_proxy_port_;
+    bool optimal_recover_data_with_sum_;
     mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
   };
   union { Impl_ _impl_; };
@@ -5557,6 +5620,7 @@ class RecoveryReply final :
   // accessors -------------------------------------------------------
 
   enum : int {
+    kCustomIntermediateDataFieldNumber = 14,
     kDiskIoStartTimeFieldNumber = 1,
     kDiskIoEndTimeFieldNumber = 2,
     kNetworkStartTimeFieldNumber = 3,
@@ -5571,6 +5635,20 @@ class RecoveryReply final :
     kDestDataNodeNetworkTimeFieldNumber = 12,
     kDestDataNodeDiskIoTimeFieldNumber = 13,
   };
+  // bytes custom_intermediate_data = 14;
+  void clear_custom_intermediate_data();
+  const std::string& custom_intermediate_data() const;
+  template <typename ArgT0 = const std::string&, typename... ArgT>
+  void set_custom_intermediate_data(ArgT0&& arg0, ArgT... args);
+  std::string* mutable_custom_intermediate_data();
+  PROTOBUF_NODISCARD std::string* release_custom_intermediate_data();
+  void set_allocated_custom_intermediate_data(std::string* custom_intermediate_data);
+  private:
+  const std::string& _internal_custom_intermediate_data() const;
+  inline PROTOBUF_ALWAYS_INLINE void _internal_set_custom_intermediate_data(const std::string& value);
+  std::string* _internal_mutable_custom_intermediate_data();
+  public:
+
   // double disk_io_start_time = 1;
   void clear_disk_io_start_time();
   double disk_io_start_time() const;
@@ -5696,6 +5774,7 @@ class RecoveryReply final :
   typedef void InternalArenaConstructable_;
   typedef void DestructorSkippable_;
   struct Impl_ {
+    ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr custom_intermediate_data_;
     double disk_io_start_time_;
     double disk_io_end_time_;
     double network_start_time_;
@@ -12920,6 +12999,143 @@ RecoveryRequest::mutable_custom_target_proxy_ports() {
   return _internal_mutable_custom_target_proxy_ports();
 }
 
+// bool optimal_return_global_sum = 41;
+inline void RecoveryRequest::clear_optimal_return_global_sum() {
+  _impl_.optimal_return_global_sum_ = false;
+}
+inline bool RecoveryRequest::_internal_optimal_return_global_sum() const {
+  return _impl_.optimal_return_global_sum_;
+}
+inline bool RecoveryRequest::optimal_return_global_sum() const {
+  // @@protoc_insertion_point(field_get:proxy_proto.RecoveryRequest.optimal_return_global_sum)
+  return _internal_optimal_return_global_sum();
+}
+inline void RecoveryRequest::_internal_set_optimal_return_global_sum(bool value) {
+
+  _impl_.optimal_return_global_sum_ = value;
+}
+inline void RecoveryRequest::set_optimal_return_global_sum(bool value) {
+  _internal_set_optimal_return_global_sum(value);
+  // @@protoc_insertion_point(field_set:proxy_proto.RecoveryRequest.optimal_return_global_sum)
+}
+
+// bool optimal_recover_data_with_sum = 42;
+inline void RecoveryRequest::clear_optimal_recover_data_with_sum() {
+  _impl_.optimal_recover_data_with_sum_ = false;
+}
+inline bool RecoveryRequest::_internal_optimal_recover_data_with_sum() const {
+  return _impl_.optimal_recover_data_with_sum_;
+}
+inline bool RecoveryRequest::optimal_recover_data_with_sum() const {
+  // @@protoc_insertion_point(field_get:proxy_proto.RecoveryRequest.optimal_recover_data_with_sum)
+  return _internal_optimal_recover_data_with_sum();
+}
+inline void RecoveryRequest::_internal_set_optimal_recover_data_with_sum(bool value) {
+
+  _impl_.optimal_recover_data_with_sum_ = value;
+}
+inline void RecoveryRequest::set_optimal_recover_data_with_sum(bool value) {
+  _internal_set_optimal_recover_data_with_sum(value);
+  // @@protoc_insertion_point(field_set:proxy_proto.RecoveryRequest.optimal_recover_data_with_sum)
+}
+
+// bytes custom_intermediate_data = 43;
+inline void RecoveryRequest::clear_custom_intermediate_data() {
+  _impl_.custom_intermediate_data_.ClearToEmpty();
+}
+inline const std::string& RecoveryRequest::custom_intermediate_data() const {
+  // @@protoc_insertion_point(field_get:proxy_proto.RecoveryRequest.custom_intermediate_data)
+  return _internal_custom_intermediate_data();
+}
+template <typename ArgT0, typename... ArgT>
+inline PROTOBUF_ALWAYS_INLINE
+void RecoveryRequest::set_custom_intermediate_data(ArgT0&& arg0, ArgT... args) {
+
+ _impl_.custom_intermediate_data_.SetBytes(static_cast<ArgT0 &&>(arg0), args..., GetArenaForAllocation());
+  // @@protoc_insertion_point(field_set:proxy_proto.RecoveryRequest.custom_intermediate_data)
+}
+inline std::string* RecoveryRequest::mutable_custom_intermediate_data() {
+  std::string* _s = _internal_mutable_custom_intermediate_data();
+  // @@protoc_insertion_point(field_mutable:proxy_proto.RecoveryRequest.custom_intermediate_data)
+  return _s;
+}
+inline const std::string& RecoveryRequest::_internal_custom_intermediate_data() const {
+  return _impl_.custom_intermediate_data_.Get();
+}
+inline void RecoveryRequest::_internal_set_custom_intermediate_data(const std::string& value) {
+
+  _impl_.custom_intermediate_data_.Set(value, GetArenaForAllocation());
+}
+inline std::string* RecoveryRequest::_internal_mutable_custom_intermediate_data() {
+
+  return _impl_.custom_intermediate_data_.Mutable(GetArenaForAllocation());
+}
+inline std::string* RecoveryRequest::release_custom_intermediate_data() {
+  // @@protoc_insertion_point(field_release:proxy_proto.RecoveryRequest.custom_intermediate_data)
+  return _impl_.custom_intermediate_data_.Release();
+}
+inline void RecoveryRequest::set_allocated_custom_intermediate_data(std::string* custom_intermediate_data) {
+  if (custom_intermediate_data != nullptr) {
+
+  } else {
+
+  }
+  _impl_.custom_intermediate_data_.SetAllocated(custom_intermediate_data, GetArenaForAllocation());
+#ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  if (_impl_.custom_intermediate_data_.IsDefault()) {
+    _impl_.custom_intermediate_data_.Set("", GetArenaForAllocation());
+  }
+#endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  // @@protoc_insertion_point(field_set_allocated:proxy_proto.RecoveryRequest.custom_intermediate_data)
+}
+
+// repeated int32 optimal_global_sum_block_ids = 44;
+inline int RecoveryRequest::_internal_optimal_global_sum_block_ids_size() const {
+  return _impl_.optimal_global_sum_block_ids_.size();
+}
+inline int RecoveryRequest::optimal_global_sum_block_ids_size() const {
+  return _internal_optimal_global_sum_block_ids_size();
+}
+inline void RecoveryRequest::clear_optimal_global_sum_block_ids() {
+  _impl_.optimal_global_sum_block_ids_.Clear();
+}
+inline int32_t RecoveryRequest::_internal_optimal_global_sum_block_ids(int index) const {
+  return _impl_.optimal_global_sum_block_ids_.Get(index);
+}
+inline int32_t RecoveryRequest::optimal_global_sum_block_ids(int index) const {
+  // @@protoc_insertion_point(field_get:proxy_proto.RecoveryRequest.optimal_global_sum_block_ids)
+  return _internal_optimal_global_sum_block_ids(index);
+}
+inline void RecoveryRequest::set_optimal_global_sum_block_ids(int index, int32_t value) {
+  _impl_.optimal_global_sum_block_ids_.Set(index, value);
+  // @@protoc_insertion_point(field_set:proxy_proto.RecoveryRequest.optimal_global_sum_block_ids)
+}
+inline void RecoveryRequest::_internal_add_optimal_global_sum_block_ids(int32_t value) {
+  _impl_.optimal_global_sum_block_ids_.Add(value);
+}
+inline void RecoveryRequest::add_optimal_global_sum_block_ids(int32_t value) {
+  _internal_add_optimal_global_sum_block_ids(value);
+  // @@protoc_insertion_point(field_add:proxy_proto.RecoveryRequest.optimal_global_sum_block_ids)
+}
+inline const ::PROTOBUF_NAMESPACE_ID::RepeatedField< int32_t >&
+RecoveryRequest::_internal_optimal_global_sum_block_ids() const {
+  return _impl_.optimal_global_sum_block_ids_;
+}
+inline const ::PROTOBUF_NAMESPACE_ID::RepeatedField< int32_t >&
+RecoveryRequest::optimal_global_sum_block_ids() const {
+  // @@protoc_insertion_point(field_list:proxy_proto.RecoveryRequest.optimal_global_sum_block_ids)
+  return _internal_optimal_global_sum_block_ids();
+}
+inline ::PROTOBUF_NAMESPACE_ID::RepeatedField< int32_t >*
+RecoveryRequest::_internal_mutable_optimal_global_sum_block_ids() {
+  return &_impl_.optimal_global_sum_block_ids_;
+}
+inline ::PROTOBUF_NAMESPACE_ID::RepeatedField< int32_t >*
+RecoveryRequest::mutable_optimal_global_sum_block_ids() {
+  // @@protoc_insertion_point(field_mutable_list:proxy_proto.RecoveryRequest.optimal_global_sum_block_ids)
+  return _internal_mutable_optimal_global_sum_block_ids();
+}
+
 // -------------------------------------------------------------------
 
 // MultipleRecoveryRequest
@@ -13398,6 +13614,56 @@ inline void RecoveryReply::_internal_set_dest_data_node_disk_io_time(double valu
 inline void RecoveryReply::set_dest_data_node_disk_io_time(double value) {
   _internal_set_dest_data_node_disk_io_time(value);
   // @@protoc_insertion_point(field_set:proxy_proto.RecoveryReply.dest_data_node_disk_io_time)
+}
+
+// bytes custom_intermediate_data = 14;
+inline void RecoveryReply::clear_custom_intermediate_data() {
+  _impl_.custom_intermediate_data_.ClearToEmpty();
+}
+inline const std::string& RecoveryReply::custom_intermediate_data() const {
+  // @@protoc_insertion_point(field_get:proxy_proto.RecoveryReply.custom_intermediate_data)
+  return _internal_custom_intermediate_data();
+}
+template <typename ArgT0, typename... ArgT>
+inline PROTOBUF_ALWAYS_INLINE
+void RecoveryReply::set_custom_intermediate_data(ArgT0&& arg0, ArgT... args) {
+
+ _impl_.custom_intermediate_data_.SetBytes(static_cast<ArgT0 &&>(arg0), args..., GetArenaForAllocation());
+  // @@protoc_insertion_point(field_set:proxy_proto.RecoveryReply.custom_intermediate_data)
+}
+inline std::string* RecoveryReply::mutable_custom_intermediate_data() {
+  std::string* _s = _internal_mutable_custom_intermediate_data();
+  // @@protoc_insertion_point(field_mutable:proxy_proto.RecoveryReply.custom_intermediate_data)
+  return _s;
+}
+inline const std::string& RecoveryReply::_internal_custom_intermediate_data() const {
+  return _impl_.custom_intermediate_data_.Get();
+}
+inline void RecoveryReply::_internal_set_custom_intermediate_data(const std::string& value) {
+
+  _impl_.custom_intermediate_data_.Set(value, GetArenaForAllocation());
+}
+inline std::string* RecoveryReply::_internal_mutable_custom_intermediate_data() {
+
+  return _impl_.custom_intermediate_data_.Mutable(GetArenaForAllocation());
+}
+inline std::string* RecoveryReply::release_custom_intermediate_data() {
+  // @@protoc_insertion_point(field_release:proxy_proto.RecoveryReply.custom_intermediate_data)
+  return _impl_.custom_intermediate_data_.Release();
+}
+inline void RecoveryReply::set_allocated_custom_intermediate_data(std::string* custom_intermediate_data) {
+  if (custom_intermediate_data != nullptr) {
+
+  } else {
+
+  }
+  _impl_.custom_intermediate_data_.SetAllocated(custom_intermediate_data, GetArenaForAllocation());
+#ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  if (_impl_.custom_intermediate_data_.IsDefault()) {
+    _impl_.custom_intermediate_data_.Set("", GetArenaForAllocation());
+  }
+#endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  // @@protoc_insertion_point(field_set_allocated:proxy_proto.RecoveryReply.custom_intermediate_data)
 }
 
 // -------------------------------------------------------------------

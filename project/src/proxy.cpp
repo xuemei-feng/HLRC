@@ -2617,28 +2617,110 @@ namespace ECProject
         }
 
         std::vector<unsigned char> coefficients;
-        const bool solvable = get_local_fill_plan(
-            m_sys_config->k, m_sys_config->r, m_sys_config->z, code_type,
-            failed_ids, source_ids, coefficients);
-        if (!solvable)
+        std::vector<unsigned char *> source_ptrs = convertToUnsignedCharArray(source_bufs);
+        int decode_source_num = source_num;
+        std::vector<unsigned char> intermediate;
+        if (recovery_request->optimal_recover_data_with_sum())
         {
-          for (char *buffer : source_bufs)
-            std::free(buffer);
+          if (code_type != "OptimalLRC" || failed_ids != std::vector<int>{0} ||
+              recovery_request->custom_intermediate_data().size() !=
+                  static_cast<size_t>(m_sys_config->BlockSize))
+          {
+            for (char *buffer : source_bufs) std::free(buffer);
+            std::free(recovered);
+            return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT,
+                                "invalid OptimalLRC chained data recovery request");
+          }
+          const int global_num = recovery_request->optimal_global_sum_block_ids_size();
+          if (global_num != m_sys_config->r)
+          {
+            for (char *buffer : source_bufs) std::free(buffer);
+            std::free(recovered);
+            return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT,
+                                "OptimalLRC global-sum member count mismatch");
+          }
+          std::vector<int> formal_sources = source_ids;
+          for (int i = 0; i < global_num; ++i)
+            formal_sources.push_back(recovery_request->optimal_global_sum_block_ids(i));
+          std::vector<unsigned char> formal_coefficients;
+          if (!get_local_fill_plan(m_sys_config->k, m_sys_config->r, m_sys_config->z,
+                                   code_type, failed_ids, formal_sources,
+                                   formal_coefficients))
+          {
+            for (char *buffer : source_bufs) std::free(buffer);
+            std::free(recovered);
+            return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT,
+                                "OptimalLRC global sum cannot recover D0");
+          }
+          const unsigned char sum_coefficient = formal_coefficients[formal_coefficients.size() - 1];
+          for (int i = 0; i < global_num; ++i)
+            if (formal_coefficients[formal_coefficients.size() - global_num + i] != sum_coefficient)
+            {
+              for (char *buffer : source_bufs) std::free(buffer);
+              std::free(recovered);
+              return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT,
+                                  "OptimalLRC global coefficients cannot share one sum");
+            }
+          coefficients.assign(formal_coefficients.begin(), formal_coefficients.end() - global_num);
+          coefficients.push_back(sum_coefficient);
+          intermediate.assign(recovery_request->custom_intermediate_data().begin(),
+                              recovery_request->custom_intermediate_data().end());
+          source_ptrs.push_back(intermediate.data());
+          ++decode_source_num;
+        }
+        else if (!get_local_fill_plan(m_sys_config->k, m_sys_config->r, m_sys_config->z,
+                                      code_type, failed_ids, source_ids, coefficients))
+        {
+          for (char *buffer : source_bufs) std::free(buffer);
           std::free(recovered);
           return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT,
                               "custom source blocks cannot recover the failed blocks");
         }
 
-        std::vector<unsigned char *> source_ptrs = convertToUnsignedCharArray(source_bufs);
         std::vector<unsigned char *> output_ptrs(static_cast<size_t>(output_num));
         for (int i = 0; i < output_num; ++i)
           output_ptrs[static_cast<size_t>(i)] = reinterpret_cast<unsigned char *>(
               recovered + static_cast<size_t>(i) * m_sys_config->BlockSize);
         std::vector<unsigned char> tables(
-            static_cast<size_t>(source_num) * output_num * 32);
-        ec_init_tables(source_num, output_num, coefficients.data(), tables.data());
-        ec_encode_data_avx2(m_sys_config->BlockSize, source_num, output_num,
+            static_cast<size_t>(decode_source_num) * output_num * 32);
+        ec_init_tables(decode_source_num, output_num, coefficients.data(), tables.data());
+        ec_encode_data_avx2(m_sys_config->BlockSize, decode_source_num, output_num,
                             tables.data(), source_ptrs.data(), output_ptrs.data());
+
+        if (recovery_request->optimal_return_global_sum())
+        {
+          if (code_type != "OptimalLRC" || failed_ids != std::vector<int>{m_sys_config->k} ||
+              recovery_request->optimal_global_sum_block_ids_size() != m_sys_config->r)
+          {
+            for (char *buffer : source_bufs) std::free(buffer);
+            std::free(recovered);
+            return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT,
+                                "invalid OptimalLRC global-sum request");
+          }
+          std::vector<size_t> surviving_global_indexes;
+          for (int i = 1; i < recovery_request->optimal_global_sum_block_ids_size(); ++i)
+          {
+            const int global_id = recovery_request->optimal_global_sum_block_ids(i);
+            auto it = std::find(source_ids.begin(), source_ids.end(), global_id);
+            if (it == source_ids.end())
+            {
+              for (char *buffer : source_bufs) std::free(buffer);
+              std::free(recovered);
+              return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT,
+                                  "missing surviving global block for sum");
+            }
+            surviving_global_indexes.push_back(static_cast<size_t>(it - source_ids.begin()));
+          }
+          std::string sum(static_cast<size_t>(m_sys_config->BlockSize), '\0');
+          for (int i = 0; i < m_sys_config->BlockSize; ++i)
+          {
+            char value = recovered[i];
+            for (size_t index : surviving_global_indexes)
+              value ^= source_bufs[index][i];
+            sum[static_cast<size_t>(i)] = value;
+          }
+          response->set_custom_intermediate_data(std::move(sum));
+        }
         for (char *buffer : source_bufs)
           std::free(buffer);
 

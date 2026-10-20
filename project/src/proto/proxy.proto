@@ -302,6 +302,12 @@ message RecoveryRequest{
   repeated string custom_failed_block_keys = 38;
   repeated string custom_target_proxy_ips = 39;
   repeated int32 custom_target_proxy_ports = 40;
+  // OptimalLRC chained repair controls. The intermediate sum remains in memory.
+  bool optimal_return_global_sum = 41;
+  bool optimal_recover_data_with_sum = 42;
+  bytes custom_intermediate_data = 43;
+  // Global parity ids whose raw values are XORed into the chained intermediate.
+  repeated int32 optimal_global_sum_block_ids = 44;
 }
 
 message MultipleRecoveryRequest{
@@ -326,7 +332,7 @@ message RecoveryReply {
   double data_node_grpc_start_time = 11;
   double dest_data_node_network_time = 12;
   double dest_data_node_disk_io_time = 13;
-  
+  bytes custom_intermediate_data = 14;
 }
 
 // append

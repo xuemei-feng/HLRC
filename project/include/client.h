@@ -80,7 +80,8 @@ namespace ECProject
                                double &recovery_time);
     bool double_recovery_with_sources(
         int stripe_id, const std::vector<std::vector<int>> &failed_block_ids,
-        const std::vector<std::vector<int>> &source_block_ids, double &recovery_time);
+        const std::vector<std::vector<int>> &source_block_ids, double &recovery_time,
+        bool optimal_g0_d0_chain = false);
     // all_failed_block_ids: full failed set for decode plan; recovery_block_ids: subset to repair (empty = repair all)
     bool multi_block_recovery(int stripe_id, std::vector<int> all_failed_block_ids,
                               const std::vector<int> &recovery_block_ids = {});

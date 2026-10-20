@@ -178,6 +178,8 @@ message CustomDoubleRecoveryRequest {
   // Independent tasks are launched concurrently. A task containing two failed
   // blocks reads its source set once and reconstructs both blocks at one proxy.
   repeated CustomRepairTask tasks = 2;
+  // OptimalLRC k=24 chained G0 then D0 recovery using an ephemeral G0+G1 sum.
+  bool optimal_g0_d0_chain = 3;
 }
 
 message NodeIdFromClient {

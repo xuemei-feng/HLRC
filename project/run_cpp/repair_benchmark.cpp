@@ -30,6 +30,7 @@ struct DoubleRepairCase
 {
   std::string failed_name;
   std::vector<RepairTask> tasks;
+  bool optimal_g0_d0_chain = false;
 };
 
 struct RepairPlan
@@ -46,6 +47,252 @@ void append_range(std::vector<int> &ids, int first, int last)
 {
   for (int id = first; id <= last; ++id)
     ids.push_back(id);
+}
+
+std::vector<DoubleRepairCase> make_uniform_k96_double_block_cases()
+{
+  std::vector<DoubleRepairCase> cases;
+
+  RepairTask g0_g1{{96, 97}, {}};
+  append_range(g0_g1.source_block_ids, 0, 95);
+  cases.push_back({"G0+G1", {g0_g1}, false});
+
+  return cases;
+}
+
+std::vector<RepairCase> make_uniform_k96_single_block_cases(int r)
+{
+  const int first_global_parity_id = 96;
+  const int first_local_parity_id = 96 + r;
+  std::vector<RepairCase> cases;
+
+  RepairCase l0{"L0", first_local_parity_id, {}};
+  append_range(l0.source_block_ids, 0, 24);
+  cases.push_back(l0);
+
+  RepairCase l3{"L3", first_local_parity_id + 3, {}};
+  append_range(l3.source_block_ids, 75, 95);
+  append_range(l3.source_block_ids, first_global_parity_id,
+               first_global_parity_id + r - 1);
+  cases.push_back(l3);
+
+  return cases;
+}
+
+std::vector<DoubleRepairCase> make_uniform_k72_double_block_cases()
+{
+  std::vector<DoubleRepairCase> cases;
+
+  RepairTask g0_g1{{72, 73}, {}};
+  append_range(g0_g1.source_block_ids, 0, 71);
+  cases.push_back({"G0+G1", {g0_g1}, false});
+
+  return cases;
+}
+
+std::vector<RepairCase> make_uniform_k72_single_block_cases(int r)
+{
+  const int first_local_parity_id = 72 + r;
+  std::vector<RepairCase> cases;
+
+  RepairCase l0{"L0", first_local_parity_id, {}};
+  append_range(l0.source_block_ids, 0, 18);
+  cases.push_back(l0);
+
+  return cases;
+}
+
+std::vector<DoubleRepairCase> make_uniform_k48_double_block_cases()
+{
+  std::vector<DoubleRepairCase> cases;
+
+  RepairTask g0_g1{{48, 49}, {}};
+  append_range(g0_g1.source_block_ids, 0, 47);
+  cases.push_back({"G0+G1", {g0_g1}, false});
+
+  return cases;
+}
+
+std::vector<RepairCase> make_uniform_k48_single_block_cases(int r)
+{
+  const int first_local_parity_id = 48 + r;
+  std::vector<RepairCase> cases;
+
+  RepairCase l0{"L0", first_local_parity_id, {}};
+  append_range(l0.source_block_ids, 0, 11);
+  cases.push_back(l0);
+
+  RepairCase l1{"L1", first_local_parity_id + 1, {}};
+  append_range(l1.source_block_ids, 12, 24);
+  cases.push_back(l1);
+
+  return cases;
+}
+
+std::vector<DoubleRepairCase> make_uniform_k24_double_block_cases()
+{
+  std::vector<DoubleRepairCase> cases;
+
+  RepairTask g0_g1{{24, 25}, {}};
+  append_range(g0_g1.source_block_ids, 0, 23);
+  cases.push_back({"G0+G1", {g0_g1}, false});
+
+  return cases;
+}
+
+std::vector<RepairCase> make_uniform_k24_single_block_cases(int r)
+{
+  const int first_local_parity_id = 24 + r;
+  std::vector<RepairCase> cases;
+
+  RepairCase l0{"L0", first_local_parity_id, {}};
+  append_range(l0.source_block_ids, 0, 12);
+  cases.push_back(l0);
+
+  return cases;
+}
+
+std::vector<DoubleRepairCase> make_optimal_k48_double_block_cases()
+{
+  std::vector<DoubleRepairCase> cases;
+
+  RepairTask recover_g0{{48}, {}};
+  append_range(recover_g0.source_block_ids, 12, 23);
+  recover_g0.source_block_ids.push_back(49);
+  recover_g0.source_block_ids.push_back(50);
+  recover_g0.source_block_ids.push_back(52);
+  RepairTask recover_d0{{0}, {}};
+  append_range(recover_d0.source_block_ids, 1, 11);
+  recover_d0.source_block_ids.push_back(51);
+  cases.push_back({"G0+D0", {recover_g0, recover_d0}, true});
+
+  RepairTask g0_g1{{48, 49}, {}};
+  append_range(g0_g1.source_block_ids, 0, 47);
+  cases.push_back({"G0+G1", {g0_g1}, false});
+
+  return cases;
+}
+
+std::vector<DoubleRepairCase> make_optimal_k24_double_block_cases()
+{
+  std::vector<DoubleRepairCase> cases;
+
+  RepairTask g0_g1{{24, 25}, {}};
+  append_range(g0_g1.source_block_ids, 0, 23);
+  cases.push_back({"G0+G1", {g0_g1}, false});
+
+  RepairTask recover_g0{{24}, {}};
+  append_range(recover_g0.source_block_ids, 12, 23);
+  recover_g0.source_block_ids.push_back(25);
+  recover_g0.source_block_ids.push_back(27);
+  RepairTask recover_d0{{0}, {}};
+  append_range(recover_d0.source_block_ids, 1, 11);
+  recover_d0.source_block_ids.push_back(26);
+  cases.push_back({"G0+D0", {recover_g0, recover_d0}, true});
+
+  return cases;
+}
+
+std::vector<DoubleRepairCase> make_optimal_k72_double_block_cases()
+{
+  std::vector<DoubleRepairCase> cases;
+
+  RepairTask recover_g0{{72}, {}};
+  append_range(recover_g0.source_block_ids, 18, 35);
+  recover_g0.source_block_ids.push_back(73);
+  recover_g0.source_block_ids.push_back(74);
+  recover_g0.source_block_ids.push_back(75);
+  recover_g0.source_block_ids.push_back(77);
+  RepairTask recover_d0{{0}, {}};
+  append_range(recover_d0.source_block_ids, 1, 17);
+  recover_d0.source_block_ids.push_back(76);
+  cases.push_back({"G0+D0", {recover_g0, recover_d0}, true});
+
+  RepairTask g0_g1{{72, 73}, {}};
+  append_range(g0_g1.source_block_ids, 0, 71);
+  cases.push_back({"G0+G1", {g0_g1}, false});
+
+  return cases;
+}
+
+std::vector<DoubleRepairCase> make_optimal_k96_double_block_cases()
+{
+  std::vector<DoubleRepairCase> cases;
+
+  RepairTask recover_g0{{96}, {}};
+  append_range(recover_g0.source_block_ids, 24, 47);
+  recover_g0.source_block_ids.push_back(97);
+  recover_g0.source_block_ids.push_back(98);
+  recover_g0.source_block_ids.push_back(99);
+  recover_g0.source_block_ids.push_back(100);
+  recover_g0.source_block_ids.push_back(102);
+  RepairTask recover_d0{{0}, {}};
+  append_range(recover_d0.source_block_ids, 1, 23);
+  recover_d0.source_block_ids.push_back(101);
+  cases.push_back({"G0+D0", {recover_g0, recover_d0}, true});
+
+  RepairTask g0_g1{{96, 97}, {}};
+  append_range(g0_g1.source_block_ids, 0, 95);
+  cases.push_back({"G0+G1", {g0_g1}, false});
+
+  return cases;
+}
+
+std::vector<RepairCase> make_optimal_k96_single_block_cases(int r)
+{
+  const int first_local_parity_id = 96 + r;
+  std::vector<RepairCase> cases;
+
+  RepairCase l0{"L0", first_local_parity_id, {}};
+  append_range(l0.source_block_ids, 0, 23);
+  for (int global_id = 96; global_id < 96 + r; ++global_id)
+    l0.source_block_ids.push_back(global_id);
+  cases.push_back(l0);
+
+  return cases;
+}
+
+std::vector<RepairCase> make_optimal_k72_single_block_cases(int r)
+{
+  const int first_local_parity_id = 72 + r;
+  std::vector<RepairCase> cases;
+
+  RepairCase l0{"L0", first_local_parity_id, {}};
+  append_range(l0.source_block_ids, 0, 17);
+  for (int global_id = 72; global_id < 72 + r; ++global_id)
+    l0.source_block_ids.push_back(global_id);
+  cases.push_back(l0);
+
+  return cases;
+}
+
+std::vector<RepairCase> make_optimal_k48_single_block_cases(int r)
+{
+  const int first_local_parity_id = 48 + r;
+  std::vector<RepairCase> cases;
+
+  RepairCase l0{"L0", first_local_parity_id, {}};
+  append_range(l0.source_block_ids, 0, 11);
+  l0.source_block_ids.push_back(48);
+  l0.source_block_ids.push_back(49);
+  l0.source_block_ids.push_back(50);
+  cases.push_back(l0);
+
+  return cases;
+}
+
+std::vector<RepairCase> make_optimal_k24_single_block_cases(int r)
+{
+  const int first_local_parity_id = 24 + r;
+  std::vector<RepairCase> cases;
+
+  RepairCase l0{"L0", first_local_parity_id, {}};
+  append_range(l0.source_block_ids, 0, 11);
+  l0.source_block_ids.push_back(24);
+  l0.source_block_ids.push_back(25);
+  cases.push_back(l0);
+
+  return cases;
 }
 
 std::vector<RepairCase> make_azure_k24_single_block_cases(int r)
@@ -430,12 +677,151 @@ bool make_repair_plan(const std::string &code_type, int k,
     return false;
   }
 
+  if (code_type == "OptimalLRC")
+  {
+    if (k == 24 && (failure_type == "single" || failure_type == "double"))
+    {
+      plan.required_r = 2;
+      plan.required_z = 2;
+      if (configured_r != plan.required_r)
+      {
+        error = "OptimalLRC k=24 requires r=2";
+        return false;
+      }
+      if (failure_type == "single")
+        plan.single_cases = make_optimal_k24_single_block_cases(configured_r);
+      else
+        plan.double_cases = make_optimal_k24_double_block_cases();
+      return true;
+    }
+
+    if (k == 48 && (failure_type == "single" || failure_type == "double"))
+    {
+      plan.required_r = 3;
+      plan.required_z = 4;
+      if (configured_r != plan.required_r)
+      {
+        error = "OptimalLRC k=48 requires r=3";
+        return false;
+      }
+      if (failure_type == "single")
+        plan.single_cases = make_optimal_k48_single_block_cases(configured_r);
+      else
+        plan.double_cases = make_optimal_k48_double_block_cases();
+      return true;
+    }
+
+    if (k == 72 && (failure_type == "single" || failure_type == "double"))
+    {
+      plan.required_r = 4;
+      plan.required_z = 4;
+      if (configured_r != plan.required_r)
+      {
+        error = "OptimalLRC k=72 requires r=4";
+        return false;
+      }
+      if (failure_type == "single")
+        plan.single_cases = make_optimal_k72_single_block_cases(configured_r);
+      else
+        plan.double_cases = make_optimal_k72_double_block_cases();
+      return true;
+    }
+
+    if (k == 96 && (failure_type == "single" || failure_type == "double"))
+    {
+      plan.required_r = 5;
+      plan.required_z = 4;
+      if (configured_r != plan.required_r)
+      {
+        error = "OptimalLRC k=96 requires r=5";
+        return false;
+      }
+      if (failure_type == "single")
+        plan.single_cases = make_optimal_k96_single_block_cases(configured_r);
+      else
+        plan.double_cases = make_optimal_k96_double_block_cases();
+      return true;
+    }
+
+    error = "no repair plan is registered for CodeType=OptimalLRC, k=" +
+            std::to_string(k) + ", failure=" + failure_type;
+    return false;
+  }
+
+  if (code_type == "UniformLRC")
+  {
+    if (k == 24 && (failure_type == "single" || failure_type == "double"))
+    {
+      plan.required_r = 2;
+      plan.required_z = 2;
+      if (configured_r != plan.required_r)
+      {
+        error = "UniformLRC k=24 requires r=2";
+        return false;
+      }
+      if (failure_type == "single")
+        plan.single_cases = make_uniform_k24_single_block_cases(configured_r);
+      else
+        plan.double_cases = make_uniform_k24_double_block_cases();
+      return true;
+    }
+
+    if (k == 48 && (failure_type == "single" || failure_type == "double"))
+    {
+      plan.required_r = 3;
+      plan.required_z = 4;
+      if (configured_r != plan.required_r)
+      {
+        error = "UniformLRC k=48 requires r=3";
+        return false;
+      }
+      if (failure_type == "single")
+        plan.single_cases = make_uniform_k48_single_block_cases(configured_r);
+      else
+        plan.double_cases = make_uniform_k48_double_block_cases();
+      return true;
+    }
+
+    if (k == 72 && (failure_type == "single" || failure_type == "double"))
+    {
+      plan.required_r = 4;
+      plan.required_z = 4;
+      if (configured_r != plan.required_r)
+      {
+        error = "UniformLRC k=72 requires r=4";
+        return false;
+      }
+      if (failure_type == "single")
+        plan.single_cases = make_uniform_k72_single_block_cases(configured_r);
+      else
+        plan.double_cases = make_uniform_k72_double_block_cases();
+      return true;
+    }
+
+    if (k == 96 && (failure_type == "single" || failure_type == "double"))
+    {
+      plan.required_r = 5;
+      plan.required_z = 4;
+      if (configured_r != plan.required_r)
+      {
+        error = "UniformLRC k=96 requires r=5";
+        return false;
+      }
+      if (failure_type == "single")
+        plan.single_cases = make_uniform_k96_single_block_cases(configured_r);
+      else
+        plan.double_cases = make_uniform_k96_double_block_cases();
+      return true;
+    }
+
+    error = "no repair plan is registered for CodeType=UniformLRC, k=" +
+            std::to_string(k) + ", failure=" + failure_type;
+    return false;
+  }
+
   if (code_type != "LotusLRC")
   {
-    if (code_type == "OptimalLRC" || code_type == "UniformLRC")
-      error = "no repair plan is registered yet for CodeType=" + code_type;
-    else
-      error = "unsupported CodeType=" + code_type;
+    error = "unsupported CodeType=" + code_type;
     return false;
   }
 
@@ -659,7 +1045,8 @@ int main(int argc, char **argv)
 
       double recovery_time = 0.0;
       const bool succeeded = client.double_recovery_with_sources(
-          stripe_id, failed_ids, source_ids, recovery_time);
+          stripe_id, failed_ids, source_ids, recovery_time,
+          test_case.optimal_g0_d0_chain);
       if (succeeded)
         std::cout << "Result [" << repair_plan.code_type << "] " << test_case.failed_name << ": " << recovery_time << " s" << std::endl;
       else

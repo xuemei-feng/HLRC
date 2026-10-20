@@ -3340,6 +3340,7 @@ class CustomDoubleRecoveryRequest final :
   enum : int {
     kTasksFieldNumber = 2,
     kStripeIdFieldNumber = 1,
+    kOptimalG0D0ChainFieldNumber = 3,
   };
   // repeated .coordinator_proto.CustomRepairTask tasks = 2;
   int tasks_size() const;
@@ -3368,6 +3369,15 @@ class CustomDoubleRecoveryRequest final :
   void _internal_set_stripe_id(int32_t value);
   public:
 
+  // bool optimal_g0_d0_chain = 3;
+  void clear_optimal_g0_d0_chain();
+  bool optimal_g0_d0_chain() const;
+  void set_optimal_g0_d0_chain(bool value);
+  private:
+  bool _internal_optimal_g0_d0_chain() const;
+  void _internal_set_optimal_g0_d0_chain(bool value);
+  public:
+
   // @@protoc_insertion_point(class_scope:coordinator_proto.CustomDoubleRecoveryRequest)
  private:
   class _Internal;
@@ -3378,6 +3388,7 @@ class CustomDoubleRecoveryRequest final :
   struct Impl_ {
     ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::coordinator_proto::CustomRepairTask > tasks_;
     int32_t stripe_id_;
+    bool optimal_g0_d0_chain_;
     mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
   };
   union { Impl_ _impl_; };
@@ -6356,6 +6367,26 @@ inline const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::coordinator_proto::Cus
 CustomDoubleRecoveryRequest::tasks() const {
   // @@protoc_insertion_point(field_list:coordinator_proto.CustomDoubleRecoveryRequest.tasks)
   return _impl_.tasks_;
+}
+
+// bool optimal_g0_d0_chain = 3;
+inline void CustomDoubleRecoveryRequest::clear_optimal_g0_d0_chain() {
+  _impl_.optimal_g0_d0_chain_ = false;
+}
+inline bool CustomDoubleRecoveryRequest::_internal_optimal_g0_d0_chain() const {
+  return _impl_.optimal_g0_d0_chain_;
+}
+inline bool CustomDoubleRecoveryRequest::optimal_g0_d0_chain() const {
+  // @@protoc_insertion_point(field_get:coordinator_proto.CustomDoubleRecoveryRequest.optimal_g0_d0_chain)
+  return _internal_optimal_g0_d0_chain();
+}
+inline void CustomDoubleRecoveryRequest::_internal_set_optimal_g0_d0_chain(bool value) {
+
+  _impl_.optimal_g0_d0_chain_ = value;
+}
+inline void CustomDoubleRecoveryRequest::set_optimal_g0_d0_chain(bool value) {
+  _internal_set_optimal_g0_d0_chain(value);
+  // @@protoc_insertion_point(field_set:coordinator_proto.CustomDoubleRecoveryRequest.optimal_g0_d0_chain)
 }
 
 // -------------------------------------------------------------------
