@@ -2535,8 +2535,7 @@ namespace ECProject
         const int source_num = recovery_request->custom_source_block_ids_size();
         const bool multi_output = recovery_request->failed_block_ids_size() > 0;
         const int output_num = multi_output ? recovery_request->failed_block_ids_size() : 1;
-        if (code_type != "LotusLRC" ||
-            recovery_request->source_proxy_ips_size() != source_num ||
+        if (recovery_request->source_proxy_ips_size() != source_num ||
             recovery_request->source_proxy_ports_size() != source_num ||
             recovery_request->blockkeys_size() != source_num ||
             recovery_request->blockids_size() != source_num || output_num <= 0 ||

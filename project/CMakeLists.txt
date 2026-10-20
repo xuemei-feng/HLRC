@@ -136,7 +136,7 @@ aux_source_directory(${CMAKE_CURRENT_SOURCE_DIR}/src/   PROJECT_SRC)
 
 # Targets (client|server)
 foreach (_target
-       run_coordinator run_proxy run_datanode main_client lotus_repair_benchmark)
+       run_coordinator run_proxy run_datanode main_client repair_benchmark)
     add_executable(${_target}
             ${cn_proto_srcs}
             ${cn_grpc_srcs}
@@ -180,7 +180,7 @@ target_include_directories(layout_test PRIVATE
 )
 
 # Legacy recovery-plan test executables are intentionally not built.
-# lotus_repair_benchmark is the only repair benchmark entry point.
+# repair_benchmark is the only repair benchmark entry point.
 
 # Exp#7: pure encoding microbenchmark (no gRPC / cluster)
 add_executable(encode_benchmark

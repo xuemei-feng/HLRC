@@ -245,7 +245,7 @@ int main(int argc, char **argv)
 */
 
     // Recovery benchmarks are intentionally kept out of main_client.
-    // Use lotus_repair_benchmark so that every repair uses an explicit source-block plan.
+    // Use repair_benchmark so that every repair uses an explicit source-block plan.
 
 
 /*

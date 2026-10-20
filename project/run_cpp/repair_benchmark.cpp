@@ -32,13 +32,23 @@ struct DoubleRepairCase
   std::vector<RepairTask> tasks;
 };
 
+struct RepairPlan
+{
+  std::string code_type;
+  int k = 0;
+  int required_r = 0;
+  int required_z = 0;
+  std::vector<RepairCase> single_cases;
+  std::vector<DoubleRepairCase> double_cases;
+};
+
 void append_range(std::vector<int> &ids, int first, int last)
 {
   for (int id = first; id <= last; ++id)
     ids.push_back(id);
 }
 
-std::vector<RepairCase> make_k24_single_block_cases(int r)
+std::vector<RepairCase> make_lotus_k24_single_block_cases(int r)
 {
   const int first_local_parity_id = 24 + r;
   std::vector<RepairCase> cases;
@@ -55,7 +65,7 @@ std::vector<RepairCase> make_k24_single_block_cases(int r)
   return cases;
 }
 
-std::vector<RepairCase> make_k48_single_block_cases()
+std::vector<RepairCase> make_lotus_k48_single_block_cases()
 {
   std::vector<RepairCase> cases;
 
@@ -85,7 +95,7 @@ std::vector<RepairCase> make_k48_single_block_cases()
   return cases;
 }
 
-std::vector<RepairCase> make_k72_single_block_cases(int r)
+std::vector<RepairCase> make_lotus_k72_single_block_cases(int r)
 {
   const int first_local_parity_id = 72 + r;
   std::vector<RepairCase> cases;
@@ -115,7 +125,7 @@ std::vector<RepairCase> make_k72_single_block_cases(int r)
   return cases;
 }
 
-std::vector<RepairCase> make_k96_single_block_cases(int r)
+std::vector<RepairCase> make_lotus_k96_single_block_cases(int r)
 {
   const int first_local_parity_id = 96 + r;
   std::vector<RepairCase> cases;
@@ -146,7 +156,7 @@ std::vector<RepairCase> make_k96_single_block_cases(int r)
   return cases;
 }
 
-std::vector<DoubleRepairCase> make_k24_double_block_cases(int r)
+std::vector<DoubleRepairCase> make_lotus_k24_double_block_cases(int r)
 {
   const int first_local_parity_id = 24 + r;
   std::vector<DoubleRepairCase> cases;
@@ -159,7 +169,7 @@ std::vector<DoubleRepairCase> make_k24_double_block_cases(int r)
   return cases;
 }
 
-std::vector<DoubleRepairCase> make_k48_double_block_cases()
+std::vector<DoubleRepairCase> make_lotus_k48_double_block_cases()
 {
   std::vector<DoubleRepairCase> cases;
 
@@ -185,7 +195,7 @@ std::vector<DoubleRepairCase> make_k48_double_block_cases()
   return cases;
 }
 
-std::vector<DoubleRepairCase> make_k72_double_block_cases(int r)
+std::vector<DoubleRepairCase> make_lotus_k72_double_block_cases(int r)
 {
   const int first_local_parity_id = 72 + r;
   std::vector<DoubleRepairCase> cases;
@@ -206,7 +216,7 @@ std::vector<DoubleRepairCase> make_k72_double_block_cases(int r)
   return cases;
 }
 
-std::vector<DoubleRepairCase> make_k96_double_block_cases(int r)
+std::vector<DoubleRepairCase> make_lotus_k96_double_block_cases(int r)
 {
   const int first_local_parity_id = 96 + r;
   std::vector<DoubleRepairCase> cases;
@@ -225,6 +235,65 @@ std::vector<DoubleRepairCase> make_k96_double_block_cases(int r)
   cases.push_back({"L0+L3", {l0, l3}});
 
   return cases;
+}
+
+bool make_repair_plan(const std::string &code_type, int k,
+                      const std::string &failure_type, int configured_r,
+                      RepairPlan &plan, std::string &error)
+{
+  plan = RepairPlan{};
+  plan.code_type = code_type;
+  plan.k = k;
+
+  if (code_type != "LotusLRC")
+  {
+    if (code_type == "AzureLRC" || code_type == "OptimalLRC" ||
+        code_type == "UniformLRC")
+      error = "no repair plan is registered yet for CodeType=" + code_type;
+    else
+      error = "unsupported CodeType=" + code_type;
+    return false;
+  }
+
+  plan.required_r = k / 24;
+  plan.required_z = 8;
+  if (configured_r != plan.required_r)
+  {
+    error = "LotusLRC k=" + std::to_string(k) + " requires r=" +
+            std::to_string(plan.required_r);
+    return false;
+  }
+
+  if (failure_type == "single")
+  {
+    if (k == 24)
+      plan.single_cases = make_lotus_k24_single_block_cases(configured_r);
+    else if (k == 48)
+      plan.single_cases = make_lotus_k48_single_block_cases();
+    else if (k == 72)
+      plan.single_cases = make_lotus_k72_single_block_cases(configured_r);
+    else if (k == 96)
+      plan.single_cases = make_lotus_k96_single_block_cases(configured_r);
+  }
+  else if (failure_type == "double")
+  {
+    if (k == 24)
+      plan.double_cases = make_lotus_k24_double_block_cases(configured_r);
+    else if (k == 48)
+      plan.double_cases = make_lotus_k48_double_block_cases();
+    else if (k == 72)
+      plan.double_cases = make_lotus_k72_double_block_cases(configured_r);
+    else if (k == 96)
+      plan.double_cases = make_lotus_k96_double_block_cases(configured_r);
+  }
+
+  if (plan.single_cases.empty() && plan.double_cases.empty())
+  {
+    error = "no repair plan is registered for CodeType=" + code_type +
+            ", k=" + std::to_string(k) + ", failure=" + failure_type;
+    return false;
+  }
+  return true;
 }
 
 bool is_supported_k(int k)
@@ -317,26 +386,23 @@ int main(int argc, char **argv)
     return 1;
   }
 
-  const bool supported_plan =
-      (requested_k == 24 && (failure_type == "single" || failure_type == "double")) ||
-      (requested_k == 48 && (failure_type == "single" || failure_type == "double")) ||
-      (requested_k == 72 && (failure_type == "single" || failure_type == "double")) ||
-      (requested_k == 96 && (failure_type == "single" || failure_type == "double"));
-  if (!supported_plan)
+  std::cout << "Current code type: " << config->CodeType << std::endl;
+
+  RepairPlan repair_plan;
+  std::string plan_error;
+  if (!make_repair_plan(config->CodeType, requested_k, failure_type,
+                        config->r, repair_plan, plan_error))
   {
-    std::cerr << "Error: k=" << requested_k << " with failure type '" << failure_type
-              << "' is not implemented yet. Currently available: 24 single, 24 double, "
-              << "48 single, 48 double, 72 single, 72 double, 96 single, 96 double."
-              << std::endl;
+    std::cerr << "Error: " << plan_error << "." << std::endl;
     return 3;
   }
-  const int expected_r = requested_k / 24;
-  if (config->CodeType != "LotusLRC" || config->r != expected_r || config->z != 8)
+  if (config->z != repair_plan.required_z)
   {
-    std::cerr << "Error: the selected repair plan requires LotusLRC with k=" << requested_k
-              << ", r=" << expected_r << ", z=8; XML has " << config->CodeType
-              << " with k=" << config->k << ", r=" << config->r
-              << ", z=" << config->z << "." << std::endl;
+    std::cerr << "Error: repair plan for " << repair_plan.code_type
+              << " with k=" << requested_k << " requires r="
+              << repair_plan.required_r << ", z=" << repair_plan.required_z
+              << "; XML has r=" << config->r << ", z=" << config->z << "."
+              << std::endl;
     return 1;
   }
 
@@ -346,7 +412,8 @@ int main(int argc, char **argv)
       config->CoordinatorIP + ":" + std::to_string(config->CoordinatorPort), config_path);
 
   std::cout << client.sayHelloToCoordinatorByGrpc(
-      "Lotus repair benchmark: " + client_ip + ":" + std::to_string(client_port)) << std::endl;
+      "Repair benchmark (" + config->CodeType + "): " + client_ip + ":" +
+      std::to_string(client_port)) << std::endl;
   if (!client.set())
   {
     std::cerr << "Error: failed to create the benchmark stripe." << std::endl;
@@ -361,22 +428,14 @@ int main(int argc, char **argv)
   }
   const int stripe_id = *std::max_element(stripe_ids.begin(), stripe_ids.end());
 
-  std::cout << "LotusLRC repair benchmark: k=" << config->k << ", r=" << config->r
+  std::cout << "Repair benchmark: code=" << repair_plan.code_type
+            << ", k=" << config->k << ", r=" << config->r
             << ", z=" << config->z << ", failure=" << failure_type
             << ", stripe=" << stripe_id << std::endl;
   bool all_succeeded = true;
   if (failure_type == "single")
   {
-    std::vector<RepairCase> single_cases;
-    if (requested_k == 24)
-      single_cases = make_k24_single_block_cases(config->r);
-    else if (requested_k == 48)
-      single_cases = make_k48_single_block_cases();
-    else if (requested_k == 72)
-      single_cases = make_k72_single_block_cases(config->r);
-    else
-      single_cases = make_k96_single_block_cases(config->r);
-    for (const RepairCase &test_case : single_cases)
+    for (const RepairCase &test_case : repair_plan.single_cases)
     {
       std::cout << "Case " << test_case.failed_name << " (block " << test_case.failed_block_id
                 << "), sources=[";
@@ -387,10 +446,10 @@ int main(int argc, char **argv)
       const bool succeeded = client.recovery_with_sources(
           stripe_id, test_case.failed_block_id, test_case.source_block_ids, recovery_time);
       if (succeeded)
-        std::cout << "Result " << test_case.failed_name << ": " << recovery_time << " s" << std::endl;
+        std::cout << "Result [" << repair_plan.code_type << "] " << test_case.failed_name << ": " << recovery_time << " s" << std::endl;
       else
       {
-        std::cout << "Result " << test_case.failed_name << ": FAILED after "
+        std::cout << "Result [" << repair_plan.code_type << "] " << test_case.failed_name << ": FAILED after "
                   << recovery_time << " s" << std::endl;
         all_succeeded = false;
       }
@@ -398,16 +457,7 @@ int main(int argc, char **argv)
   }
   else
   {
-    std::vector<DoubleRepairCase> double_cases;
-    if (requested_k == 24)
-      double_cases = make_k24_double_block_cases(config->r);
-    else if (requested_k == 48)
-      double_cases = make_k48_double_block_cases();
-    else if (requested_k == 72)
-      double_cases = make_k72_double_block_cases(config->r);
-    else
-      double_cases = make_k96_double_block_cases(config->r);
-    for (const DoubleRepairCase &test_case : double_cases)
+    for (const DoubleRepairCase &test_case : repair_plan.double_cases)
     {
       std::cout << "Case " << test_case.failed_name << std::endl;
       std::vector<std::vector<int>> failed_ids;
@@ -427,15 +477,17 @@ int main(int argc, char **argv)
       const bool succeeded = client.double_recovery_with_sources(
           stripe_id, failed_ids, source_ids, recovery_time);
       if (succeeded)
-        std::cout << "Result " << test_case.failed_name << ": " << recovery_time << " s" << std::endl;
+        std::cout << "Result [" << repair_plan.code_type << "] " << test_case.failed_name << ": " << recovery_time << " s" << std::endl;
       else
       {
-        std::cout << "Result " << test_case.failed_name << ": FAILED after "
+        std::cout << "Result [" << repair_plan.code_type << "] " << test_case.failed_name << ": FAILED after "
                   << recovery_time << " s" << std::endl;
         all_succeeded = false;
       }
     }
   }
 
+  std::cout << "Benchmark completed: code=" << repair_plan.code_type
+            << ", result=" << (all_succeeded ? "SUCCESS" : "FAILED") << std::endl;
   return all_succeeded ? 0 : 1;
 }
