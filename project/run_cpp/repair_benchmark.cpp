@@ -48,6 +48,114 @@ void append_range(std::vector<int> &ids, int first, int last)
     ids.push_back(id);
 }
 
+std::vector<RepairCase> make_azure_k24_single_block_cases(int r)
+{
+  const int first_local_parity_id = 24 + r;
+  std::vector<RepairCase> cases;
+
+  RepairCase l0{"L0", first_local_parity_id, {}};
+  append_range(l0.source_block_ids, 0, 11);
+  cases.push_back(l0);
+
+  RepairCase g0{"G0", 24, {}};
+  append_range(g0.source_block_ids, 0, 23);
+  cases.push_back(g0);
+
+  return cases;
+}
+
+std::vector<RepairCase> make_azure_k48_single_block_cases(int r)
+{
+  const int first_local_parity_id = 48 + r;
+  std::vector<RepairCase> cases;
+
+  RepairCase l0{"L0", first_local_parity_id, {}};
+  append_range(l0.source_block_ids, 0, 11);
+  cases.push_back(l0);
+
+  RepairCase g0{"G0", 48, {}};
+  append_range(g0.source_block_ids, 0, 47);
+  cases.push_back(g0);
+
+  return cases;
+}
+
+std::vector<RepairCase> make_azure_k72_single_block_cases(int r)
+{
+  const int first_local_parity_id = 72 + r;
+  std::vector<RepairCase> cases;
+
+  RepairCase l0{"L0", first_local_parity_id, {}};
+  append_range(l0.source_block_ids, 0, 17);
+  cases.push_back(l0);
+
+  RepairCase g0{"G0", 72, {}};
+  append_range(g0.source_block_ids, 0, 71);
+  cases.push_back(g0);
+
+  return cases;
+}
+
+std::vector<RepairCase> make_azure_k96_single_block_cases(int r)
+{
+  const int first_local_parity_id = 96 + r;
+  std::vector<RepairCase> cases;
+
+  RepairCase l0{"L0", first_local_parity_id, {}};
+  append_range(l0.source_block_ids, 0, 23);
+  cases.push_back(l0);
+
+  RepairCase g0{"G0", 96, {}};
+  append_range(g0.source_block_ids, 0, 95);
+  cases.push_back(g0);
+
+  return cases;
+}
+
+std::vector<DoubleRepairCase> make_azure_k96_double_block_cases()
+{
+  std::vector<DoubleRepairCase> cases;
+
+  RepairTask g0_g1{{96, 97}, {}};
+  append_range(g0_g1.source_block_ids, 0, 95);
+  cases.push_back({"G0+G1", {g0_g1}});
+
+  return cases;
+}
+
+std::vector<DoubleRepairCase> make_azure_k72_double_block_cases()
+{
+  std::vector<DoubleRepairCase> cases;
+
+  RepairTask g0_g1{{72, 73}, {}};
+  append_range(g0_g1.source_block_ids, 0, 71);
+  cases.push_back({"G0+G1", {g0_g1}});
+
+  return cases;
+}
+
+std::vector<DoubleRepairCase> make_azure_k48_double_block_cases()
+{
+  std::vector<DoubleRepairCase> cases;
+
+  RepairTask g0_g1{{48, 49}, {}};
+  append_range(g0_g1.source_block_ids, 0, 47);
+  cases.push_back({"G0+G1", {g0_g1}});
+
+  return cases;
+}
+
+std::vector<DoubleRepairCase> make_azure_k24_double_block_cases()
+{
+  std::vector<DoubleRepairCase> cases;
+
+  RepairTask g0_g1{{24, 25}, {}};
+  append_range(g0_g1.source_block_ids, 0, 23);
+  cases.push_back({"G0+G1", {g0_g1}});
+
+  return cases;
+}
+
 std::vector<RepairCase> make_lotus_k24_single_block_cases(int r)
 {
   const int first_local_parity_id = 24 + r;
@@ -245,10 +353,86 @@ bool make_repair_plan(const std::string &code_type, int k,
   plan.code_type = code_type;
   plan.k = k;
 
+  if (code_type == "AzureLRC")
+  {
+    if (k == 24)
+    {
+      if (failure_type != "single" && failure_type != "double")
+      {
+        error = "no repair plan is registered for CodeType=AzureLRC, k=24, failure=" +
+                failure_type;
+        return false;
+      }
+      plan.required_r = 2;
+      plan.required_z = 2;
+      if (configured_r != plan.required_r)
+      {
+        error = "AzureLRC k=24 requires r=2";
+        return false;
+      }
+      if (failure_type == "single")
+        plan.single_cases = make_azure_k24_single_block_cases(configured_r);
+      else
+        plan.double_cases = make_azure_k24_double_block_cases();
+      return true;
+    }
+
+    if (k == 48 && (failure_type == "single" || failure_type == "double"))
+    {
+      plan.required_r = 3;
+      plan.required_z = 4;
+      if (configured_r != plan.required_r)
+      {
+        error = "AzureLRC k=48 requires r=3";
+        return false;
+      }
+      if (failure_type == "single")
+        plan.single_cases = make_azure_k48_single_block_cases(configured_r);
+      else
+        plan.double_cases = make_azure_k48_double_block_cases();
+      return true;
+    }
+
+    if (k == 72 && (failure_type == "single" || failure_type == "double"))
+    {
+      plan.required_r = 4;
+      plan.required_z = 4;
+      if (configured_r != plan.required_r)
+      {
+        error = "AzureLRC k=72 requires r=4";
+        return false;
+      }
+      if (failure_type == "single")
+        plan.single_cases = make_azure_k72_single_block_cases(configured_r);
+      else
+        plan.double_cases = make_azure_k72_double_block_cases();
+      return true;
+    }
+
+    if (k == 96 && (failure_type == "single" || failure_type == "double"))
+    {
+      plan.required_r = 5;
+      plan.required_z = 4;
+      if (configured_r != plan.required_r)
+      {
+        error = "AzureLRC k=96 requires r=5";
+        return false;
+      }
+      if (failure_type == "single")
+        plan.single_cases = make_azure_k96_single_block_cases(configured_r);
+      else
+        plan.double_cases = make_azure_k96_double_block_cases();
+      return true;
+    }
+
+    error = "no repair plan is registered for CodeType=AzureLRC, k=" +
+            std::to_string(k) + ", failure=" + failure_type;
+    return false;
+  }
+
   if (code_type != "LotusLRC")
   {
-    if (code_type == "AzureLRC" || code_type == "OptimalLRC" ||
-        code_type == "UniformLRC")
+    if (code_type == "OptimalLRC" || code_type == "UniformLRC")
       error = "no repair plan is registered yet for CodeType=" + code_type;
     else
       error = "unsupported CodeType=" + code_type;
