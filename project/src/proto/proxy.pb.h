@@ -3296,6 +3296,7 @@ class DegradedReadRequest final :
     kLocalMemberBlockIdsFieldNumber = 13,
     kLeftoverBlockIdsFieldNumber = 15,
     kLocalFillSourceIdsFieldNumber = 16,
+    kCustomSourceBlockIdsFieldNumber = 17,
     kClientipFieldNumber = 1,
     kFailedBlockKeyFieldNumber = 5,
     kClientportFieldNumber = 2,
@@ -3527,6 +3528,28 @@ class DegradedReadRequest final :
   ::PROTOBUF_NAMESPACE_ID::RepeatedField< int32_t >*
       mutable_local_fill_source_ids();
 
+  // repeated int32 custom_source_block_ids = 17;
+  int custom_source_block_ids_size() const;
+  private:
+  int _internal_custom_source_block_ids_size() const;
+  public:
+  void clear_custom_source_block_ids();
+  private:
+  int32_t _internal_custom_source_block_ids(int index) const;
+  const ::PROTOBUF_NAMESPACE_ID::RepeatedField< int32_t >&
+      _internal_custom_source_block_ids() const;
+  void _internal_add_custom_source_block_ids(int32_t value);
+  ::PROTOBUF_NAMESPACE_ID::RepeatedField< int32_t >*
+      _internal_mutable_custom_source_block_ids();
+  public:
+  int32_t custom_source_block_ids(int index) const;
+  void set_custom_source_block_ids(int index, int32_t value);
+  void add_custom_source_block_ids(int32_t value);
+  const ::PROTOBUF_NAMESPACE_ID::RepeatedField< int32_t >&
+      custom_source_block_ids() const;
+  ::PROTOBUF_NAMESPACE_ID::RepeatedField< int32_t >*
+      mutable_custom_source_block_ids();
+
   // string clientip = 1;
   void clear_clientip();
   const std::string& clientip() const;
@@ -3617,6 +3640,8 @@ class DegradedReadRequest final :
     mutable std::atomic<int> _leftover_block_ids_cached_byte_size_;
     ::PROTOBUF_NAMESPACE_ID::RepeatedField< int32_t > local_fill_source_ids_;
     mutable std::atomic<int> _local_fill_source_ids_cached_byte_size_;
+    ::PROTOBUF_NAMESPACE_ID::RepeatedField< int32_t > custom_source_block_ids_;
+    mutable std::atomic<int> _custom_source_block_ids_cached_byte_size_;
     ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr clientip_;
     ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr failed_block_key_;
     int32_t clientport_;
@@ -4335,6 +4360,10 @@ class RecoveryRequest final :
     kSourceProxyPortsFieldNumber = 34,
     kReplacedProxyIpsFieldNumber = 35,
     kReplacedProxyPortsFieldNumber = 36,
+    kCustomSourceBlockIdsFieldNumber = 37,
+    kCustomFailedBlockKeysFieldNumber = 38,
+    kCustomTargetProxyIpsFieldNumber = 39,
+    kCustomTargetProxyPortsFieldNumber = 40,
     kReplacedNodeIpFieldNumber = 1,
     kFailedBlockKeyFieldNumber = 4,
     kReplacedProxyIpFieldNumber = 30,
@@ -4894,6 +4923,98 @@ class RecoveryRequest final :
   ::PROTOBUF_NAMESPACE_ID::RepeatedField< int32_t >*
       mutable_replaced_proxy_ports();
 
+  // repeated int32 custom_source_block_ids = 37;
+  int custom_source_block_ids_size() const;
+  private:
+  int _internal_custom_source_block_ids_size() const;
+  public:
+  void clear_custom_source_block_ids();
+  private:
+  int32_t _internal_custom_source_block_ids(int index) const;
+  const ::PROTOBUF_NAMESPACE_ID::RepeatedField< int32_t >&
+      _internal_custom_source_block_ids() const;
+  void _internal_add_custom_source_block_ids(int32_t value);
+  ::PROTOBUF_NAMESPACE_ID::RepeatedField< int32_t >*
+      _internal_mutable_custom_source_block_ids();
+  public:
+  int32_t custom_source_block_ids(int index) const;
+  void set_custom_source_block_ids(int index, int32_t value);
+  void add_custom_source_block_ids(int32_t value);
+  const ::PROTOBUF_NAMESPACE_ID::RepeatedField< int32_t >&
+      custom_source_block_ids() const;
+  ::PROTOBUF_NAMESPACE_ID::RepeatedField< int32_t >*
+      mutable_custom_source_block_ids();
+
+  // repeated string custom_failed_block_keys = 38;
+  int custom_failed_block_keys_size() const;
+  private:
+  int _internal_custom_failed_block_keys_size() const;
+  public:
+  void clear_custom_failed_block_keys();
+  const std::string& custom_failed_block_keys(int index) const;
+  std::string* mutable_custom_failed_block_keys(int index);
+  void set_custom_failed_block_keys(int index, const std::string& value);
+  void set_custom_failed_block_keys(int index, std::string&& value);
+  void set_custom_failed_block_keys(int index, const char* value);
+  void set_custom_failed_block_keys(int index, const char* value, size_t size);
+  std::string* add_custom_failed_block_keys();
+  void add_custom_failed_block_keys(const std::string& value);
+  void add_custom_failed_block_keys(std::string&& value);
+  void add_custom_failed_block_keys(const char* value);
+  void add_custom_failed_block_keys(const char* value, size_t size);
+  const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField<std::string>& custom_failed_block_keys() const;
+  ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField<std::string>* mutable_custom_failed_block_keys();
+  private:
+  const std::string& _internal_custom_failed_block_keys(int index) const;
+  std::string* _internal_add_custom_failed_block_keys();
+  public:
+
+  // repeated string custom_target_proxy_ips = 39;
+  int custom_target_proxy_ips_size() const;
+  private:
+  int _internal_custom_target_proxy_ips_size() const;
+  public:
+  void clear_custom_target_proxy_ips();
+  const std::string& custom_target_proxy_ips(int index) const;
+  std::string* mutable_custom_target_proxy_ips(int index);
+  void set_custom_target_proxy_ips(int index, const std::string& value);
+  void set_custom_target_proxy_ips(int index, std::string&& value);
+  void set_custom_target_proxy_ips(int index, const char* value);
+  void set_custom_target_proxy_ips(int index, const char* value, size_t size);
+  std::string* add_custom_target_proxy_ips();
+  void add_custom_target_proxy_ips(const std::string& value);
+  void add_custom_target_proxy_ips(std::string&& value);
+  void add_custom_target_proxy_ips(const char* value);
+  void add_custom_target_proxy_ips(const char* value, size_t size);
+  const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField<std::string>& custom_target_proxy_ips() const;
+  ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField<std::string>* mutable_custom_target_proxy_ips();
+  private:
+  const std::string& _internal_custom_target_proxy_ips(int index) const;
+  std::string* _internal_add_custom_target_proxy_ips();
+  public:
+
+  // repeated int32 custom_target_proxy_ports = 40;
+  int custom_target_proxy_ports_size() const;
+  private:
+  int _internal_custom_target_proxy_ports_size() const;
+  public:
+  void clear_custom_target_proxy_ports();
+  private:
+  int32_t _internal_custom_target_proxy_ports(int index) const;
+  const ::PROTOBUF_NAMESPACE_ID::RepeatedField< int32_t >&
+      _internal_custom_target_proxy_ports() const;
+  void _internal_add_custom_target_proxy_ports(int32_t value);
+  ::PROTOBUF_NAMESPACE_ID::RepeatedField< int32_t >*
+      _internal_mutable_custom_target_proxy_ports();
+  public:
+  int32_t custom_target_proxy_ports(int index) const;
+  void set_custom_target_proxy_ports(int index, int32_t value);
+  void add_custom_target_proxy_ports(int32_t value);
+  const ::PROTOBUF_NAMESPACE_ID::RepeatedField< int32_t >&
+      custom_target_proxy_ports() const;
+  ::PROTOBUF_NAMESPACE_ID::RepeatedField< int32_t >*
+      mutable_custom_target_proxy_ports();
+
   // string replaced_node_ip = 1;
   void clear_replaced_node_ip();
   const std::string& replaced_node_ip() const;
@@ -5064,6 +5185,12 @@ class RecoveryRequest final :
     ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField<std::string> replaced_proxy_ips_;
     ::PROTOBUF_NAMESPACE_ID::RepeatedField< int32_t > replaced_proxy_ports_;
     mutable std::atomic<int> _replaced_proxy_ports_cached_byte_size_;
+    ::PROTOBUF_NAMESPACE_ID::RepeatedField< int32_t > custom_source_block_ids_;
+    mutable std::atomic<int> _custom_source_block_ids_cached_byte_size_;
+    ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField<std::string> custom_failed_block_keys_;
+    ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField<std::string> custom_target_proxy_ips_;
+    ::PROTOBUF_NAMESPACE_ID::RepeatedField< int32_t > custom_target_proxy_ports_;
+    mutable std::atomic<int> _custom_target_proxy_ports_cached_byte_size_;
     ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr replaced_node_ip_;
     ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr failed_block_key_;
     ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr replaced_proxy_ip_;
@@ -10085,6 +10212,53 @@ inline void DegradedReadRequest::set_maintenance_header(bool value) {
   // @@protoc_insertion_point(field_set:proxy_proto.DegradedReadRequest.maintenance_header)
 }
 
+// repeated int32 custom_source_block_ids = 17;
+inline int DegradedReadRequest::_internal_custom_source_block_ids_size() const {
+  return _impl_.custom_source_block_ids_.size();
+}
+inline int DegradedReadRequest::custom_source_block_ids_size() const {
+  return _internal_custom_source_block_ids_size();
+}
+inline void DegradedReadRequest::clear_custom_source_block_ids() {
+  _impl_.custom_source_block_ids_.Clear();
+}
+inline int32_t DegradedReadRequest::_internal_custom_source_block_ids(int index) const {
+  return _impl_.custom_source_block_ids_.Get(index);
+}
+inline int32_t DegradedReadRequest::custom_source_block_ids(int index) const {
+  // @@protoc_insertion_point(field_get:proxy_proto.DegradedReadRequest.custom_source_block_ids)
+  return _internal_custom_source_block_ids(index);
+}
+inline void DegradedReadRequest::set_custom_source_block_ids(int index, int32_t value) {
+  _impl_.custom_source_block_ids_.Set(index, value);
+  // @@protoc_insertion_point(field_set:proxy_proto.DegradedReadRequest.custom_source_block_ids)
+}
+inline void DegradedReadRequest::_internal_add_custom_source_block_ids(int32_t value) {
+  _impl_.custom_source_block_ids_.Add(value);
+}
+inline void DegradedReadRequest::add_custom_source_block_ids(int32_t value) {
+  _internal_add_custom_source_block_ids(value);
+  // @@protoc_insertion_point(field_add:proxy_proto.DegradedReadRequest.custom_source_block_ids)
+}
+inline const ::PROTOBUF_NAMESPACE_ID::RepeatedField< int32_t >&
+DegradedReadRequest::_internal_custom_source_block_ids() const {
+  return _impl_.custom_source_block_ids_;
+}
+inline const ::PROTOBUF_NAMESPACE_ID::RepeatedField< int32_t >&
+DegradedReadRequest::custom_source_block_ids() const {
+  // @@protoc_insertion_point(field_list:proxy_proto.DegradedReadRequest.custom_source_block_ids)
+  return _internal_custom_source_block_ids();
+}
+inline ::PROTOBUF_NAMESPACE_ID::RepeatedField< int32_t >*
+DegradedReadRequest::_internal_mutable_custom_source_block_ids() {
+  return &_impl_.custom_source_block_ids_;
+}
+inline ::PROTOBUF_NAMESPACE_ID::RepeatedField< int32_t >*
+DegradedReadRequest::mutable_custom_source_block_ids() {
+  // @@protoc_insertion_point(field_mutable_list:proxy_proto.DegradedReadRequest.custom_source_block_ids)
+  return _internal_mutable_custom_source_block_ids();
+}
+
 // repeated int32 leftover_block_ids = 15;
 inline int DegradedReadRequest::_internal_leftover_block_ids_size() const {
   return _impl_.leftover_block_ids_.size();
@@ -12500,6 +12674,250 @@ inline ::PROTOBUF_NAMESPACE_ID::RepeatedField< int32_t >*
 RecoveryRequest::mutable_replaced_proxy_ports() {
   // @@protoc_insertion_point(field_mutable_list:proxy_proto.RecoveryRequest.replaced_proxy_ports)
   return _internal_mutable_replaced_proxy_ports();
+}
+
+// repeated int32 custom_source_block_ids = 37;
+inline int RecoveryRequest::_internal_custom_source_block_ids_size() const {
+  return _impl_.custom_source_block_ids_.size();
+}
+inline int RecoveryRequest::custom_source_block_ids_size() const {
+  return _internal_custom_source_block_ids_size();
+}
+inline void RecoveryRequest::clear_custom_source_block_ids() {
+  _impl_.custom_source_block_ids_.Clear();
+}
+inline int32_t RecoveryRequest::_internal_custom_source_block_ids(int index) const {
+  return _impl_.custom_source_block_ids_.Get(index);
+}
+inline int32_t RecoveryRequest::custom_source_block_ids(int index) const {
+  // @@protoc_insertion_point(field_get:proxy_proto.RecoveryRequest.custom_source_block_ids)
+  return _internal_custom_source_block_ids(index);
+}
+inline void RecoveryRequest::set_custom_source_block_ids(int index, int32_t value) {
+  _impl_.custom_source_block_ids_.Set(index, value);
+  // @@protoc_insertion_point(field_set:proxy_proto.RecoveryRequest.custom_source_block_ids)
+}
+inline void RecoveryRequest::_internal_add_custom_source_block_ids(int32_t value) {
+  _impl_.custom_source_block_ids_.Add(value);
+}
+inline void RecoveryRequest::add_custom_source_block_ids(int32_t value) {
+  _internal_add_custom_source_block_ids(value);
+  // @@protoc_insertion_point(field_add:proxy_proto.RecoveryRequest.custom_source_block_ids)
+}
+inline const ::PROTOBUF_NAMESPACE_ID::RepeatedField< int32_t >&
+RecoveryRequest::_internal_custom_source_block_ids() const {
+  return _impl_.custom_source_block_ids_;
+}
+inline const ::PROTOBUF_NAMESPACE_ID::RepeatedField< int32_t >&
+RecoveryRequest::custom_source_block_ids() const {
+  // @@protoc_insertion_point(field_list:proxy_proto.RecoveryRequest.custom_source_block_ids)
+  return _internal_custom_source_block_ids();
+}
+inline ::PROTOBUF_NAMESPACE_ID::RepeatedField< int32_t >*
+RecoveryRequest::_internal_mutable_custom_source_block_ids() {
+  return &_impl_.custom_source_block_ids_;
+}
+inline ::PROTOBUF_NAMESPACE_ID::RepeatedField< int32_t >*
+RecoveryRequest::mutable_custom_source_block_ids() {
+  // @@protoc_insertion_point(field_mutable_list:proxy_proto.RecoveryRequest.custom_source_block_ids)
+  return _internal_mutable_custom_source_block_ids();
+}
+
+// repeated string custom_failed_block_keys = 38;
+inline int RecoveryRequest::_internal_custom_failed_block_keys_size() const {
+  return _impl_.custom_failed_block_keys_.size();
+}
+inline int RecoveryRequest::custom_failed_block_keys_size() const {
+  return _internal_custom_failed_block_keys_size();
+}
+inline void RecoveryRequest::clear_custom_failed_block_keys() {
+  _impl_.custom_failed_block_keys_.Clear();
+}
+inline std::string* RecoveryRequest::add_custom_failed_block_keys() {
+  std::string* _s = _internal_add_custom_failed_block_keys();
+  // @@protoc_insertion_point(field_add_mutable:proxy_proto.RecoveryRequest.custom_failed_block_keys)
+  return _s;
+}
+inline const std::string& RecoveryRequest::_internal_custom_failed_block_keys(int index) const {
+  return _impl_.custom_failed_block_keys_.Get(index);
+}
+inline const std::string& RecoveryRequest::custom_failed_block_keys(int index) const {
+  // @@protoc_insertion_point(field_get:proxy_proto.RecoveryRequest.custom_failed_block_keys)
+  return _internal_custom_failed_block_keys(index);
+}
+inline std::string* RecoveryRequest::mutable_custom_failed_block_keys(int index) {
+  // @@protoc_insertion_point(field_mutable:proxy_proto.RecoveryRequest.custom_failed_block_keys)
+  return _impl_.custom_failed_block_keys_.Mutable(index);
+}
+inline void RecoveryRequest::set_custom_failed_block_keys(int index, const std::string& value) {
+  _impl_.custom_failed_block_keys_.Mutable(index)->assign(value);
+  // @@protoc_insertion_point(field_set:proxy_proto.RecoveryRequest.custom_failed_block_keys)
+}
+inline void RecoveryRequest::set_custom_failed_block_keys(int index, std::string&& value) {
+  _impl_.custom_failed_block_keys_.Mutable(index)->assign(std::move(value));
+  // @@protoc_insertion_point(field_set:proxy_proto.RecoveryRequest.custom_failed_block_keys)
+}
+inline void RecoveryRequest::set_custom_failed_block_keys(int index, const char* value) {
+  GOOGLE_DCHECK(value != nullptr);
+  _impl_.custom_failed_block_keys_.Mutable(index)->assign(value);
+  // @@protoc_insertion_point(field_set_char:proxy_proto.RecoveryRequest.custom_failed_block_keys)
+}
+inline void RecoveryRequest::set_custom_failed_block_keys(int index, const char* value, size_t size) {
+  _impl_.custom_failed_block_keys_.Mutable(index)->assign(
+    reinterpret_cast<const char*>(value), size);
+  // @@protoc_insertion_point(field_set_pointer:proxy_proto.RecoveryRequest.custom_failed_block_keys)
+}
+inline std::string* RecoveryRequest::_internal_add_custom_failed_block_keys() {
+  return _impl_.custom_failed_block_keys_.Add();
+}
+inline void RecoveryRequest::add_custom_failed_block_keys(const std::string& value) {
+  _impl_.custom_failed_block_keys_.Add()->assign(value);
+  // @@protoc_insertion_point(field_add:proxy_proto.RecoveryRequest.custom_failed_block_keys)
+}
+inline void RecoveryRequest::add_custom_failed_block_keys(std::string&& value) {
+  _impl_.custom_failed_block_keys_.Add(std::move(value));
+  // @@protoc_insertion_point(field_add:proxy_proto.RecoveryRequest.custom_failed_block_keys)
+}
+inline void RecoveryRequest::add_custom_failed_block_keys(const char* value) {
+  GOOGLE_DCHECK(value != nullptr);
+  _impl_.custom_failed_block_keys_.Add()->assign(value);
+  // @@protoc_insertion_point(field_add_char:proxy_proto.RecoveryRequest.custom_failed_block_keys)
+}
+inline void RecoveryRequest::add_custom_failed_block_keys(const char* value, size_t size) {
+  _impl_.custom_failed_block_keys_.Add()->assign(reinterpret_cast<const char*>(value), size);
+  // @@protoc_insertion_point(field_add_pointer:proxy_proto.RecoveryRequest.custom_failed_block_keys)
+}
+inline const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField<std::string>&
+RecoveryRequest::custom_failed_block_keys() const {
+  // @@protoc_insertion_point(field_list:proxy_proto.RecoveryRequest.custom_failed_block_keys)
+  return _impl_.custom_failed_block_keys_;
+}
+inline ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField<std::string>*
+RecoveryRequest::mutable_custom_failed_block_keys() {
+  // @@protoc_insertion_point(field_mutable_list:proxy_proto.RecoveryRequest.custom_failed_block_keys)
+  return &_impl_.custom_failed_block_keys_;
+}
+
+// repeated string custom_target_proxy_ips = 39;
+inline int RecoveryRequest::_internal_custom_target_proxy_ips_size() const {
+  return _impl_.custom_target_proxy_ips_.size();
+}
+inline int RecoveryRequest::custom_target_proxy_ips_size() const {
+  return _internal_custom_target_proxy_ips_size();
+}
+inline void RecoveryRequest::clear_custom_target_proxy_ips() {
+  _impl_.custom_target_proxy_ips_.Clear();
+}
+inline std::string* RecoveryRequest::add_custom_target_proxy_ips() {
+  std::string* _s = _internal_add_custom_target_proxy_ips();
+  // @@protoc_insertion_point(field_add_mutable:proxy_proto.RecoveryRequest.custom_target_proxy_ips)
+  return _s;
+}
+inline const std::string& RecoveryRequest::_internal_custom_target_proxy_ips(int index) const {
+  return _impl_.custom_target_proxy_ips_.Get(index);
+}
+inline const std::string& RecoveryRequest::custom_target_proxy_ips(int index) const {
+  // @@protoc_insertion_point(field_get:proxy_proto.RecoveryRequest.custom_target_proxy_ips)
+  return _internal_custom_target_proxy_ips(index);
+}
+inline std::string* RecoveryRequest::mutable_custom_target_proxy_ips(int index) {
+  // @@protoc_insertion_point(field_mutable:proxy_proto.RecoveryRequest.custom_target_proxy_ips)
+  return _impl_.custom_target_proxy_ips_.Mutable(index);
+}
+inline void RecoveryRequest::set_custom_target_proxy_ips(int index, const std::string& value) {
+  _impl_.custom_target_proxy_ips_.Mutable(index)->assign(value);
+  // @@protoc_insertion_point(field_set:proxy_proto.RecoveryRequest.custom_target_proxy_ips)
+}
+inline void RecoveryRequest::set_custom_target_proxy_ips(int index, std::string&& value) {
+  _impl_.custom_target_proxy_ips_.Mutable(index)->assign(std::move(value));
+  // @@protoc_insertion_point(field_set:proxy_proto.RecoveryRequest.custom_target_proxy_ips)
+}
+inline void RecoveryRequest::set_custom_target_proxy_ips(int index, const char* value) {
+  GOOGLE_DCHECK(value != nullptr);
+  _impl_.custom_target_proxy_ips_.Mutable(index)->assign(value);
+  // @@protoc_insertion_point(field_set_char:proxy_proto.RecoveryRequest.custom_target_proxy_ips)
+}
+inline void RecoveryRequest::set_custom_target_proxy_ips(int index, const char* value, size_t size) {
+  _impl_.custom_target_proxy_ips_.Mutable(index)->assign(
+    reinterpret_cast<const char*>(value), size);
+  // @@protoc_insertion_point(field_set_pointer:proxy_proto.RecoveryRequest.custom_target_proxy_ips)
+}
+inline std::string* RecoveryRequest::_internal_add_custom_target_proxy_ips() {
+  return _impl_.custom_target_proxy_ips_.Add();
+}
+inline void RecoveryRequest::add_custom_target_proxy_ips(const std::string& value) {
+  _impl_.custom_target_proxy_ips_.Add()->assign(value);
+  // @@protoc_insertion_point(field_add:proxy_proto.RecoveryRequest.custom_target_proxy_ips)
+}
+inline void RecoveryRequest::add_custom_target_proxy_ips(std::string&& value) {
+  _impl_.custom_target_proxy_ips_.Add(std::move(value));
+  // @@protoc_insertion_point(field_add:proxy_proto.RecoveryRequest.custom_target_proxy_ips)
+}
+inline void RecoveryRequest::add_custom_target_proxy_ips(const char* value) {
+  GOOGLE_DCHECK(value != nullptr);
+  _impl_.custom_target_proxy_ips_.Add()->assign(value);
+  // @@protoc_insertion_point(field_add_char:proxy_proto.RecoveryRequest.custom_target_proxy_ips)
+}
+inline void RecoveryRequest::add_custom_target_proxy_ips(const char* value, size_t size) {
+  _impl_.custom_target_proxy_ips_.Add()->assign(reinterpret_cast<const char*>(value), size);
+  // @@protoc_insertion_point(field_add_pointer:proxy_proto.RecoveryRequest.custom_target_proxy_ips)
+}
+inline const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField<std::string>&
+RecoveryRequest::custom_target_proxy_ips() const {
+  // @@protoc_insertion_point(field_list:proxy_proto.RecoveryRequest.custom_target_proxy_ips)
+  return _impl_.custom_target_proxy_ips_;
+}
+inline ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField<std::string>*
+RecoveryRequest::mutable_custom_target_proxy_ips() {
+  // @@protoc_insertion_point(field_mutable_list:proxy_proto.RecoveryRequest.custom_target_proxy_ips)
+  return &_impl_.custom_target_proxy_ips_;
+}
+
+// repeated int32 custom_target_proxy_ports = 40;
+inline int RecoveryRequest::_internal_custom_target_proxy_ports_size() const {
+  return _impl_.custom_target_proxy_ports_.size();
+}
+inline int RecoveryRequest::custom_target_proxy_ports_size() const {
+  return _internal_custom_target_proxy_ports_size();
+}
+inline void RecoveryRequest::clear_custom_target_proxy_ports() {
+  _impl_.custom_target_proxy_ports_.Clear();
+}
+inline int32_t RecoveryRequest::_internal_custom_target_proxy_ports(int index) const {
+  return _impl_.custom_target_proxy_ports_.Get(index);
+}
+inline int32_t RecoveryRequest::custom_target_proxy_ports(int index) const {
+  // @@protoc_insertion_point(field_get:proxy_proto.RecoveryRequest.custom_target_proxy_ports)
+  return _internal_custom_target_proxy_ports(index);
+}
+inline void RecoveryRequest::set_custom_target_proxy_ports(int index, int32_t value) {
+  _impl_.custom_target_proxy_ports_.Set(index, value);
+  // @@protoc_insertion_point(field_set:proxy_proto.RecoveryRequest.custom_target_proxy_ports)
+}
+inline void RecoveryRequest::_internal_add_custom_target_proxy_ports(int32_t value) {
+  _impl_.custom_target_proxy_ports_.Add(value);
+}
+inline void RecoveryRequest::add_custom_target_proxy_ports(int32_t value) {
+  _internal_add_custom_target_proxy_ports(value);
+  // @@protoc_insertion_point(field_add:proxy_proto.RecoveryRequest.custom_target_proxy_ports)
+}
+inline const ::PROTOBUF_NAMESPACE_ID::RepeatedField< int32_t >&
+RecoveryRequest::_internal_custom_target_proxy_ports() const {
+  return _impl_.custom_target_proxy_ports_;
+}
+inline const ::PROTOBUF_NAMESPACE_ID::RepeatedField< int32_t >&
+RecoveryRequest::custom_target_proxy_ports() const {
+  // @@protoc_insertion_point(field_list:proxy_proto.RecoveryRequest.custom_target_proxy_ports)
+  return _internal_custom_target_proxy_ports();
+}
+inline ::PROTOBUF_NAMESPACE_ID::RepeatedField< int32_t >*
+RecoveryRequest::_internal_mutable_custom_target_proxy_ports() {
+  return &_impl_.custom_target_proxy_ports_;
+}
+inline ::PROTOBUF_NAMESPACE_ID::RepeatedField< int32_t >*
+RecoveryRequest::mutable_custom_target_proxy_ports() {
+  // @@protoc_insertion_point(field_mutable_list:proxy_proto.RecoveryRequest.custom_target_proxy_ports)
+  return _internal_mutable_custom_target_proxy_ports();
 }
 
 // -------------------------------------------------------------------

@@ -91,9 +91,9 @@ namespace ECProject
     void decode_uniform_lrc(const int k, const int r, const int z, const int block_num,
                             const std::vector<int> *block_indexes, unsigned char **block_ptrs, unsigned char *res_ptr, int block_size,
                             int failed_block_id);
-    void decode_lotus_lrc(const int k, const int r, const int z, const int block_num,
+    bool decode_lotus_lrc(const int k, const int r, const int z, const int block_num,
                           const std::vector<int> *block_indexes, unsigned char **block_ptrs, unsigned char *res_ptr, int block_size,
-                          int failed_block_id);
+                          int failed_block_id, const std::vector<int> *full_source_block_ids = nullptr);
 
     int xor_avx(int vects, int len, void **array);
 

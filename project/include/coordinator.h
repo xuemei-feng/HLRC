@@ -94,6 +94,14 @@ namespace ECProject
         grpc::ServerContext *context,
         const coordinator_proto::KeyAndClientIP *keyClient,
         coordinator_proto::RecoveryReply *replyClient) override;
+    grpc::Status customRecovery(
+        grpc::ServerContext *context,
+        const coordinator_proto::CustomRecoveryRequest *request,
+        coordinator_proto::RecoveryReply *replyClient) override;
+    grpc::Status customDoubleRecovery(
+        grpc::ServerContext *context,
+        const coordinator_proto::CustomDoubleRecoveryRequest *request,
+        coordinator_proto::RecoveryReply *replyClient) override;
     grpc::Status getRecoveryBreakdown(
         grpc::ServerContext *context,
         const coordinator_proto::KeyAndClientIP *keyClient,
@@ -168,7 +176,8 @@ namespace ECProject
     void getStripeFromProxy(std::string client_ip, int client_port, std::string proxy_ip, int proxy_port, int stripe_id, int group_id, std::vector<int> block_ids);
     bool recovery_one_block(int stripe_id, int failed_block_id);
     bool recovery_one_block_with_plan(int stripe_id, int failed_block_id,
-        const std::vector<std::pair<int, std::vector<int>>> &plan);
+        const std::vector<std::pair<int, std::vector<int>>> &plan,
+        const std::vector<int> *custom_source_block_ids = nullptr);
     bool recovery_one_block_with_plan_breakdown(int stripe_id, int failed_block_id,
         const std::vector<std::pair<int, std::vector<int>>> &plan,
         coordinator_proto::RecoveryReply *breakdown_reply);

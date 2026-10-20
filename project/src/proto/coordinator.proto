@@ -45,6 +45,8 @@ service coordinatorService {
   // recovery
   rpc getRecovery(KeyAndClientIP) returns (RecoveryReply) {};
   rpc getRecoveryBreakdown(KeyAndClientIP) returns (RecoveryReply) {};
+  rpc customRecovery(CustomRecoveryRequest) returns (RecoveryReply) {};
+  rpc customDoubleRecovery(CustomDoubleRecoveryRequest) returns (RecoveryReply) {};
   rpc fullNodeRecovery(NodeIdFromClient) returns (RepBlockNum) {};
   rpc twoNodeRecovery(TwoNodeIdsFromClient) returns (RepBlockNum) {};
   rpc globalRecovery(StripeIdAndBlockIDsFromClient) returns (RecoveryReply) {};
@@ -159,6 +161,25 @@ message MaintenanceReadRequest {
   int32 clientport = 5;
 }
 
+message CustomRecoveryRequest {
+  int32 stripe_id = 1;
+  int32 failed_block_id = 2;
+  repeated int32 source_block_ids = 3;
+}
+
+message CustomRepairTask {
+  // The first failed block owns the proxy that reads and decodes this task.
+  repeated int32 failed_block_ids = 1;
+  repeated int32 source_block_ids = 2;
+}
+
+message CustomDoubleRecoveryRequest {
+  int32 stripe_id = 1;
+  // Independent tasks are launched concurrently. A task containing two failed
+  // blocks reads its source set once and reconstructs both blocks at one proxy.
+  repeated CustomRepairTask tasks = 2;
+}
+
 message NodeIdFromClient {
   int32 node_id = 1;
 }
@@ -199,4 +220,7 @@ message RecoveryReply {
   // the failed rack). The client prints this so measured numbers are known to be post-fallback.
   bool maintenance_fell_back = 6;
   string maintenance_note = 7;
+  // Coordinator-side elapsed time for custom recovery, measured from RPC handler entry
+  // through validation, solvability checking, source reads, decode, and write-back.
+  double custom_recovery_time = 8;
 }

@@ -186,6 +186,8 @@ message DegradedReadRequest{
   // [uint32 tag (0=global batch, 1=local fill)][uint32 nblocks] so the dest can route/route-size
   // connections that may interleave on its single acceptor.
   bool maintenance_header = 14;
+  // Full fixed-order source list for an explicit single-block repair plan.
+  repeated int32 custom_source_block_ids = 17;
   // ---- Maintenance-robust two-phase read: strict GF local fill (helper side) ----
   // leftover_block_ids: the leftover DATA block(s) the dest reconstructs by strict GF solve
   //   (1 for AzureLRC/OptimalLRC/UniformLRC, up to 2 for LotusLRC).
@@ -294,6 +296,12 @@ message RecoveryRequest{
   repeated int32 source_proxy_ports = 34;
   repeated string replaced_proxy_ips = 35;
   repeated int32 replaced_proxy_ports = 36;
+  // Full fixed-order source list for an explicit custom repair plan.
+  repeated int32 custom_source_block_ids = 37;
+  // Custom multi-output repair destinations, aligned with failed_block_ids.
+  repeated string custom_failed_block_keys = 38;
+  repeated string custom_target_proxy_ips = 39;
+  repeated int32 custom_target_proxy_ports = 40;
 }
 
 message MultipleRecoveryRequest{

@@ -684,12 +684,53 @@ void ECProject::decode_uniform_lrc(const int k, const int r, const int z, const 
     delete[] res_ptr_ptr;
 }
 
-void ECProject::decode_lotus_lrc(const int k, const int r, const int z, const int block_num,
+bool ECProject::decode_lotus_lrc(const int k, const int r, const int z, const int block_num,
                                  const std::vector<int> *block_indexes, unsigned char **block_ptrs, unsigned char *res_ptr, int block_size,
-                                 int failed_block_id)
+                                 int failed_block_id, const std::vector<int> *full_source_block_ids)
 {
-    decode_block_via_generator("LotusLRC", k, r, z, block_num, block_indexes, block_ptrs,
-                               res_ptr, block_size, failed_block_id);
+    memset(res_ptr, 0, block_size);
+    if (block_num == 0 || block_indexes == nullptr ||
+        static_cast<int>(block_indexes->size()) != block_num)
+        return false;
+
+    if (full_source_block_ids == nullptr || full_source_block_ids->empty())
+    {
+        decode_block_via_generator("LotusLRC", k, r, z, block_num, block_indexes,
+                                   block_ptrs, res_ptr, block_size, failed_block_id);
+        return true;
+    }
+
+    const std::vector<int> &sources = *full_source_block_ids;
+    std::vector<unsigned char> coefficients;
+    if (!get_local_fill_plan(k, r, z, "LotusLRC", {failed_block_id}, sources, coefficients))
+    {
+        std::cerr << "[decode] LotusLRC custom sources cannot recover block "
+                  << failed_block_id << std::endl;
+        return false;
+    }
+
+    std::unordered_map<int, unsigned char> coefficient_by_block;
+    for (size_t i = 0; i < sources.size(); ++i)
+        coefficient_by_block[sources[i]] = coefficients[i];
+
+    std::vector<unsigned char> local_coefficients(static_cast<size_t>(block_num), 0);
+    for (int i = 0; i < block_num; ++i)
+    {
+        auto it = coefficient_by_block.find(block_indexes->at(i));
+        if (it == coefficient_by_block.end())
+        {
+            std::cerr << "[decode] LotusLRC received block " << block_indexes->at(i)
+                      << " outside the custom source set" << std::endl;
+            return false;
+        }
+        local_coefficients[static_cast<size_t>(i)] = it->second;
+    }
+
+    std::vector<unsigned char> tables(static_cast<size_t>(block_num) * 32);
+    ec_init_tables(block_num, 1, local_coefficients.data(), tables.data());
+    unsigned char *output[1] = {res_ptr};
+    ec_encode_data_avx2(block_size, block_num, 1, tables.data(), block_ptrs, output);
+    return true;
 }
 
 void

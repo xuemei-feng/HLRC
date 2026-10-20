@@ -2,14 +2,14 @@
 <Configuration>
     <AlignedSize>4096</AlignedSize>
     <UnitSize>8192</UnitSize>
-    <BlockSize>67108864</BlockSize>
+    <BlockSize>1048576</BlockSize>
     <CoordinatorIP>127.0.0.1</CoordinatorIP>
     <CoordinatorPort>55555</CoordinatorPort>
     <AppendMode>UNILRC_MODE</AppendMode>
     <alpha>2</alpha>
     <CodeType>LotusLRC</CodeType>
-    <k>96</k>
-    <r>4</r>
+    <k>48</k>
+    <r>2</r>
     <z>8</z>
     <NodeNum>108</NodeNum>
 </Configuration>

@@ -652,6 +652,60 @@ namespace ECProject
     return true;
   }
 
+  bool Client::recovery_with_sources(int stripe_id, int failed_block_id,
+                                     const std::vector<int> &source_block_ids,
+                                     double &recovery_time)
+  {
+    grpc::ClientContext context;
+    coordinator_proto::CustomRecoveryRequest request;
+    request.set_stripe_id(stripe_id);
+    request.set_failed_block_id(failed_block_id);
+    for (int block_id : source_block_ids)
+      request.add_source_block_ids(block_id);
+
+    coordinator_proto::RecoveryReply reply;
+    grpc::Status status = m_coordinator_ptr->customRecovery(&context, request, &reply);
+    recovery_time = reply.custom_recovery_time();
+    if (!status.ok())
+    {
+      std::cout << "[Client] custom recovery failed: " << status.error_message() << std::endl;
+      return false;
+    }
+    return true;
+  }
+
+  bool Client::double_recovery_with_sources(
+      int stripe_id, const std::vector<std::vector<int>> &failed_block_ids,
+      const std::vector<std::vector<int>> &source_block_ids, double &recovery_time)
+  {
+    recovery_time = 0.0;
+    if (failed_block_ids.size() != source_block_ids.size() || failed_block_ids.empty())
+      return false;
+
+    grpc::ClientContext context;
+    coordinator_proto::CustomDoubleRecoveryRequest request;
+    request.set_stripe_id(stripe_id);
+    for (size_t i = 0; i < failed_block_ids.size(); ++i)
+    {
+      auto *task = request.add_tasks();
+      for (int block_id : failed_block_ids[i])
+        task->add_failed_block_ids(block_id);
+      for (int block_id : source_block_ids[i])
+        task->add_source_block_ids(block_id);
+    }
+
+    coordinator_proto::RecoveryReply reply;
+    grpc::Status status = m_coordinator_ptr->customDoubleRecovery(&context, request, &reply);
+    recovery_time = reply.custom_recovery_time();
+    if (!status.ok())
+    {
+      std::cout << "[Client] custom double recovery failed: "
+                << status.error_message() << std::endl;
+      return false;
+    }
+    return true;
+  }
+
   bool Client::recovery_breakdown(int stripe_id, int failed_block_id, double &disk_read_time, double &network_time, double &decode_time, double &disk_write_time)
   {
     grpc::ClientContext context;
@@ -1128,6 +1182,21 @@ namespace ECProject
       return true;
     }
     return false;
+  }
+
+  std::vector<int> Client::list_stripes()
+  {
+    grpc::ClientContext context;
+    coordinator_proto::RequestToCoordinator request;
+    request.set_name(m_clientID);
+    coordinator_proto::RepStripeIds reply;
+    grpc::Status status = m_coordinator_ptr->listStripes(&context, request, &reply);
+    if (!status.ok())
+    {
+      std::cout << "[Client] list stripes failed: " << status.error_message() << std::endl;
+      return {};
+    }
+    return std::vector<int>(reply.stripe_ids().begin(), reply.stripe_ids().end());
   }
 
   std::vector<int> Client::get_parameters()

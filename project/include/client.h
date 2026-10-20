@@ -75,6 +75,12 @@ namespace ECProject
     std::shared_ptr<char[]> get_degraded_read_block_breakdown(int stripe_id, int failed_block_id, double &total_time, double &disk_io_time, double &network_time, double &encode_time);
     bool recovery_breakdown(int stripe_id, int failed_block_id, double &disk_read_time, double &network_time, double &decode_time, double &disk_write_time);
     bool recovery(int stripe_id, int failed_block_id);
+    bool recovery_with_sources(int stripe_id, int failed_block_id,
+                               const std::vector<int> &source_block_ids,
+                               double &recovery_time);
+    bool double_recovery_with_sources(
+        int stripe_id, const std::vector<std::vector<int>> &failed_block_ids,
+        const std::vector<std::vector<int>> &source_block_ids, double &recovery_time);
     // all_failed_block_ids: full failed set for decode plan; recovery_block_ids: subset to repair (empty = repair all)
     bool multi_block_recovery(int stripe_id, std::vector<int> all_failed_block_ids,
                               const std::vector<int> &recovery_block_ids = {});
@@ -108,6 +114,7 @@ namespace ECProject
     void get_cached_parity_slices(std::vector<char *> &global_parity_ptr_array, std::vector<char *> &local_parity_ptr_array, const int parity_slice_size, const int parity_slice_offset);
     void cache_latest_parity_slices(std::vector<char *> &global_parity_ptr_array, std::vector<char *> &local_parity_ptr_array, const int parity_slice_size, const int parity_slice_offset);
     std::vector<int> get_parameters();
+    std::vector<int> list_stripes();
     bool decode_test(int stripe_id, int failed_block_id, std::string client_ip, int client_port, double &decode_time);
 
   private:

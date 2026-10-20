@@ -1675,7 +1675,13 @@ namespace ECProject
         else if (code_type == "LotusLRC")
         {
           std::cout << "[Proxy" << m_self_node_id << "][Degrade read] decode_lotus_lrc" << std::endl;
-          decode_lotus_lrc(m_sys_config->k, m_sys_config->r, m_sys_config->z, request_copy->datanodeip_size(), &block_idxs, block_ptrs.data(), reinterpret_cast<unsigned char *>(res_buf), m_sys_config->BlockSize, request_copy->failed_block_id());
+          std::vector<int> custom_sources(request_copy->custom_source_block_ids().begin(),
+                                          request_copy->custom_source_block_ids().end());
+          if (!decode_lotus_lrc(m_sys_config->k, m_sys_config->r, m_sys_config->z,
+                                request_copy->datanodeip_size(), &block_idxs, block_ptrs.data(),
+                                reinterpret_cast<unsigned char *>(res_buf), m_sys_config->BlockSize,
+                                request_copy->failed_block_id(), &custom_sources))
+            throw std::runtime_error("LotusLRC custom-source decode failed");
           std::cout << "[Proxy" << m_self_node_id << "][Degrade read] decode_lotus_lrc success!" << std::endl;
         }
         else
@@ -2192,7 +2198,13 @@ namespace ECProject
       }
       else if (code_type == "LotusLRC")
       {
-        decode_lotus_lrc(m_sys_config->k, m_sys_config->r, m_sys_config->z, recovery_request->datanodeip_size(), &block_idxs, block_ptrs.data(), reinterpret_cast<unsigned char *>(res_buf), m_sys_config->BlockSize, failed_block_id);
+        std::vector<int> custom_sources(recovery_request->custom_source_block_ids().begin(),
+                                        recovery_request->custom_source_block_ids().end());
+        if (!decode_lotus_lrc(m_sys_config->k, m_sys_config->r, m_sys_config->z,
+                              recovery_request->datanodeip_size(), &block_idxs, block_ptrs.data(),
+                              reinterpret_cast<unsigned char *>(res_buf), m_sys_config->BlockSize,
+                              failed_block_id, &custom_sources))
+          throw std::runtime_error("LotusLRC custom-source decode failed");
       }
       else
       {
@@ -2513,6 +2525,158 @@ namespace ECProject
 
       std::string code_type = m_sys_config->CodeType;
       int cross_rack_num = recovery_request->cross_rack_num();
+
+      // Explicit custom repair without placement groups. The destination proxy fetches
+      // each raw source block once, reconstructs one or more failed blocks locally, then
+      // writes every result through its owner proxy.
+      if (recovery_request->custom_source_block_ids_size() > 0 &&
+          recovery_request->source_proxy_ips_size() > 0)
+      {
+        const int source_num = recovery_request->custom_source_block_ids_size();
+        const bool multi_output = recovery_request->failed_block_ids_size() > 0;
+        const int output_num = multi_output ? recovery_request->failed_block_ids_size() : 1;
+        if (code_type != "LotusLRC" ||
+            recovery_request->source_proxy_ips_size() != source_num ||
+            recovery_request->source_proxy_ports_size() != source_num ||
+            recovery_request->blockkeys_size() != source_num ||
+            recovery_request->blockids_size() != source_num || output_num <= 0 ||
+            (multi_output &&
+             (recovery_request->custom_failed_block_keys_size() != output_num ||
+              recovery_request->custom_target_proxy_ips_size() != output_num ||
+              recovery_request->custom_target_proxy_ports_size() != output_num)))
+          return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT,
+                              "invalid direct custom recovery request");
+
+        std::vector<int> source_ids;
+        source_ids.reserve(static_cast<size_t>(source_num));
+        std::vector<char *> source_bufs(static_cast<size_t>(source_num), nullptr);
+        std::unique_ptr<bool[]> read_ok(new bool[source_num]);
+        std::fill_n(read_ok.get(), source_num, false);
+        std::vector<std::thread> read_threads;
+        read_threads.reserve(static_cast<size_t>(source_num));
+
+        for (int i = 0; i < source_num; ++i)
+        {
+          const int source_id = recovery_request->custom_source_block_ids(i);
+          if (source_id != recovery_request->blockids(i))
+          {
+            for (char *buffer : source_bufs)
+              std::free(buffer);
+            return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT,
+                                "source block order mismatch");
+          }
+          source_ids.push_back(source_id);
+          source_bufs[static_cast<size_t>(i)] = static_cast<char *>(
+              std::aligned_alloc(32, m_sys_config->BlockSize));
+          if (source_bufs[static_cast<size_t>(i)] == nullptr)
+          {
+            for (char *buffer : source_bufs)
+              std::free(buffer);
+            return grpc::Status(grpc::StatusCode::RESOURCE_EXHAUSTED,
+                                "cannot allocate source block buffer");
+          }
+
+          const std::string source_proxy_ip = recovery_request->source_proxy_ips(i);
+          const int source_proxy_port = recovery_request->source_proxy_ports(i);
+          const std::string block_key = recovery_request->blockkeys(i);
+          read_threads.emplace_back([this, &source_bufs, &read_ok, i, source_proxy_ip,
+                                     source_proxy_port, block_key]() {
+            read_ok[i] = GetFromOwnerProxy(source_proxy_ip, source_proxy_port, block_key,
+                                           source_bufs[static_cast<size_t>(i)],
+                                           m_sys_config->BlockSize);
+          });
+        }
+        for (auto &thread : read_threads)
+          thread.join();
+
+        const bool all_read = std::all_of(read_ok.get(), read_ok.get() + source_num,
+                                           [](bool value) { return value; });
+        if (!all_read)
+        {
+          for (char *buffer : source_bufs)
+            std::free(buffer);
+          return grpc::Status(grpc::StatusCode::INTERNAL,
+                              "failed to read a custom source block from its owner proxy");
+        }
+
+        std::vector<int> failed_ids;
+        failed_ids.reserve(static_cast<size_t>(output_num));
+        if (multi_output)
+          for (int i = 0; i < output_num; ++i)
+            failed_ids.push_back(recovery_request->failed_block_ids(i));
+        else
+          failed_ids.push_back(recovery_request->failed_block_id());
+
+        const size_t recovered_size = static_cast<size_t>(output_num) * m_sys_config->BlockSize;
+        char *recovered = static_cast<char *>(std::aligned_alloc(32, recovered_size));
+        if (recovered == nullptr)
+        {
+          for (char *buffer : source_bufs)
+            std::free(buffer);
+          return grpc::Status(grpc::StatusCode::RESOURCE_EXHAUSTED,
+                              "cannot allocate recovery buffer");
+        }
+
+        std::vector<unsigned char> coefficients;
+        const bool solvable = get_local_fill_plan(
+            m_sys_config->k, m_sys_config->r, m_sys_config->z, code_type,
+            failed_ids, source_ids, coefficients);
+        if (!solvable)
+        {
+          for (char *buffer : source_bufs)
+            std::free(buffer);
+          std::free(recovered);
+          return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT,
+                              "custom source blocks cannot recover the failed blocks");
+        }
+
+        std::vector<unsigned char *> source_ptrs = convertToUnsignedCharArray(source_bufs);
+        std::vector<unsigned char *> output_ptrs(static_cast<size_t>(output_num));
+        for (int i = 0; i < output_num; ++i)
+          output_ptrs[static_cast<size_t>(i)] = reinterpret_cast<unsigned char *>(
+              recovered + static_cast<size_t>(i) * m_sys_config->BlockSize);
+        std::vector<unsigned char> tables(
+            static_cast<size_t>(source_num) * output_num * 32);
+        ec_init_tables(source_num, output_num, coefficients.data(), tables.data());
+        ec_encode_data_avx2(m_sys_config->BlockSize, source_num, output_num,
+                            tables.data(), source_ptrs.data(), output_ptrs.data());
+        for (char *buffer : source_bufs)
+          std::free(buffer);
+
+        std::unique_ptr<bool[]> write_ok(new bool[output_num]);
+        std::fill_n(write_ok.get(), output_num, false);
+        std::vector<std::thread> write_threads;
+        write_threads.reserve(static_cast<size_t>(output_num));
+        for (int i = 0; i < output_num; ++i)
+        {
+          const int failed_id = failed_ids[static_cast<size_t>(i)];
+          const std::string key = multi_output
+              ? recovery_request->custom_failed_block_keys(i)
+              : recovery_request->failed_block_key();
+          const std::string target_ip = multi_output
+              ? recovery_request->custom_target_proxy_ips(i)
+              : proxy_ip_port.substr(0, proxy_ip_port.rfind(':'));
+          const int target_port = multi_output
+              ? recovery_request->custom_target_proxy_ports(i)
+              : std::stoi(proxy_ip_port.substr(proxy_ip_port.rfind(':') + 1));
+          write_threads.emplace_back([this, &write_ok, recovered, i, failed_id,
+                                      key, target_ip, target_port]() {
+            write_ok[i] = RecoveryToDatanode(
+                key.c_str(), failed_id,
+                recovered + static_cast<size_t>(i) * m_sys_config->BlockSize,
+                target_ip.c_str(), target_port);
+          });
+        }
+        for (auto &thread : write_threads)
+          thread.join();
+        const bool all_written = std::all_of(write_ok.get(), write_ok.get() + output_num,
+                                              [](bool value) { return value; });
+        std::free(recovered);
+        if (!all_written)
+          return grpc::Status(grpc::StatusCode::INTERNAL,
+                              "failed to write a reconstructed block");
+        return grpc::Status::OK;
+      }
 
       // Maintenance-robust two-phase read: (1) reconstruct the global batch (failed_block_ids) in
       // memory from tag=0 cross-rack partials; (2) in-memory local-fill the leftover block(s) from
@@ -2970,7 +3134,13 @@ namespace ECProject
         }
         else if (code_type == "LotusLRC")
         {
-          decode_lotus_lrc(m_sys_config->k, m_sys_config->r, m_sys_config->z, recovery_request->datanodeip_size(), &block_idxs, block_ptrs.data(), reinterpret_cast<unsigned char *>(res_buf), m_sys_config->BlockSize, failed_block_id);
+          std::vector<int> custom_sources(recovery_request->custom_source_block_ids().begin(),
+                                          recovery_request->custom_source_block_ids().end());
+          if (!decode_lotus_lrc(m_sys_config->k, m_sys_config->r, m_sys_config->z,
+                                recovery_request->datanodeip_size(), &block_idxs, block_ptrs.data(),
+                                reinterpret_cast<unsigned char *>(res_buf), m_sys_config->BlockSize,
+                                failed_block_id, &custom_sources))
+            throw std::runtime_error("LotusLRC custom-source decode failed");
         }
         else
         {
@@ -3314,7 +3484,13 @@ namespace ECProject
         }
         else if (code_type == "LotusLRC")
         {
-          decode_lotus_lrc(m_sys_config->k, m_sys_config->r, m_sys_config->z, recovery_request->datanodeip_size(), &block_idxs, block_ptrs.data(), reinterpret_cast<unsigned char *>(res_buf), m_sys_config->BlockSize, failed_block_id);
+          std::vector<int> custom_sources(recovery_request->custom_source_block_ids().begin(),
+                                          recovery_request->custom_source_block_ids().end());
+          if (!decode_lotus_lrc(m_sys_config->k, m_sys_config->r, m_sys_config->z,
+                                recovery_request->datanodeip_size(), &block_idxs, block_ptrs.data(),
+                                reinterpret_cast<unsigned char *>(res_buf), m_sys_config->BlockSize,
+                                failed_block_id, &custom_sources))
+            throw std::runtime_error("LotusLRC custom-source decode failed");
         }
         else
         {

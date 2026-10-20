@@ -1664,7 +1664,8 @@ namespace ECProject
   }
 
   bool CoordinatorImpl::recovery_one_block_with_plan(int stripe_id, int failed_block_id,
-      const std::vector<std::pair<int, std::vector<int>>> &plan)
+      const std::vector<std::pair<int, std::vector<int>>> &plan,
+      const std::vector<int> *custom_source_block_ids)
   {
     Stripe &t_stripe = m_stripe_table[stripe_id];
     grpc::Status status;
@@ -1687,6 +1688,9 @@ namespace ECProject
         recovery_request.set_replaced_node_ip(m_node_table[t_node_id].proxy_ip);
         recovery_request.set_replaced_node_port(m_node_table[t_node_id].proxy_port);
         recovery_request.set_cross_rack_num(0);
+        if (custom_source_block_ids != nullptr)
+          for (int source_id : *custom_source_block_ids)
+            recovery_request.add_custom_source_block_ids(source_id);
         add_block_list_to_recovery_request(t_stripe, block_ids, &recovery_request);
         status = m_proxy_ptrs[chosen_proxy]->recovery(&recovery_context, recovery_request, &recovery_reply);
         if (status.ok())
@@ -1704,6 +1708,8 @@ namespace ECProject
       std::vector<std::string> chosen_proxies;
       for (size_t i = 0; i < plan.size(); i++)
         chosen_proxies.push_back(m_node_table[get_node_id_by_group_id(t_stripe, plan[i].first)].proxy_ip + ":" + std::to_string(m_node_table[get_node_id_by_group_id(t_stripe, plan[i].first)].proxy_port));
+      const std::vector<int> custom_sources =
+          custom_source_block_ids == nullptr ? std::vector<int>() : *custom_source_block_ids;
       std::vector<std::thread> threads;
       int cross_rack_num = 0;
       for (size_t i = 0; i < plan.size(); i++)
@@ -1712,7 +1718,7 @@ namespace ECProject
           continue;
         std::vector<int> block_ids = plan[i].second;
         std::string proxy_key = chosen_proxies[i];
-        threads.push_back(std::thread([this, &t_stripe, proxy_key, block_ids, failed_block_id, dest_proxy_ip, dest_proxy_port]() {
+        threads.push_back(std::thread([this, &t_stripe, proxy_key, block_ids, failed_block_id, dest_proxy_ip, dest_proxy_port, custom_sources]() {
           grpc::ClientContext degraded_read_context;
           proxy_proto::DegradedReadRequest degraded_read_request;
           proxy_proto::DegradedReadReply degraded_read_reply;
@@ -1720,6 +1726,8 @@ namespace ECProject
           degraded_read_request.set_clientport(dest_proxy_port + ECProject::PROXY_PORT_SHIFT);
           degraded_read_request.set_failed_block_id(failed_block_id);
           degraded_read_request.set_failed_block_key(t_stripe.blocks[failed_block_id]->block_key);
+          for (int source_id : custom_sources)
+            degraded_read_request.add_custom_source_block_ids(source_id);
           add_block_list_to_degraded_read_request(t_stripe, block_ids, &degraded_read_request);
           grpc::Status st = m_proxy_ptrs[proxy_key]->degradedRead(&degraded_read_context, degraded_read_request, &degraded_read_reply);
           if (st.ok())
@@ -1738,7 +1746,7 @@ namespace ECProject
         }
       bool dest_success = false;
       std::mutex dest_mutex;
-      threads.push_back(std::thread([this, &t_stripe, dest_proxy_ip, dest_proxy_port, dest_node_id, stripe_id, failed_block_id, cross_rack_num, dest_group_id, dest_block_ids, &plan, &dest_success, &dest_mutex]() {
+      threads.push_back(std::thread([this, &t_stripe, dest_proxy_ip, dest_proxy_port, dest_node_id, stripe_id, failed_block_id, cross_rack_num, dest_group_id, dest_block_ids, &plan, &dest_success, &dest_mutex, custom_sources]() {
         grpc::ClientContext recovery_context;
         proxy_proto::RecoveryRequest recovery_request;
         proxy_proto::RecoveryReply recovery_reply;
@@ -1749,6 +1757,8 @@ namespace ECProject
         recovery_request.set_replaced_node_ip(m_node_table[t_node_id].proxy_ip);
         recovery_request.set_replaced_node_port(m_node_table[t_node_id].proxy_port);
         recovery_request.set_cross_rack_num(cross_rack_num);
+        for (int source_id : custom_sources)
+          recovery_request.add_custom_source_block_ids(source_id);
         for (size_t i = 0; i < plan.size(); i++)
           if (plan[i].first != dest_group_id)
           {
@@ -1950,6 +1960,222 @@ namespace ECProject
     if (recovery_one_block_with_plan_breakdown(stripe_id, failed_block_id, plan, recoveryReply))
       return grpc::Status::OK;
     return grpc::Status(grpc::StatusCode::INTERNAL, "Recovery failed!");
+  }
+
+  grpc::Status CoordinatorImpl::customRecovery(
+      grpc::ServerContext *context,
+      const coordinator_proto::CustomRecoveryRequest *request,
+      coordinator_proto::RecoveryReply *recoveryReply)
+  {
+    (void)context;
+    const auto custom_recovery_start = std::chrono::steady_clock::now();
+    auto finish = [&](grpc::Status status) {
+      const auto custom_recovery_end = std::chrono::steady_clock::now();
+      recoveryReply->set_custom_recovery_time(
+          std::chrono::duration<double>(custom_recovery_end - custom_recovery_start).count());
+      return status;
+    };
+    const int stripe_id = request->stripe_id();
+    const int failed_block_id = request->failed_block_id();
+    auto stripe_it = m_stripe_table.find(stripe_id);
+    if (stripe_it == m_stripe_table.end())
+      return finish(grpc::Status(grpc::StatusCode::NOT_FOUND, "stripe does not exist"));
+
+    Stripe &stripe = stripe_it->second;
+    if (failed_block_id < 0 || failed_block_id >= stripe.n)
+      return finish(grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, "failed block id is out of range"));
+    if (request->source_block_ids_size() == 0)
+      return finish(grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, "source block list is empty"));
+
+    std::unordered_set<int> seen;
+    std::vector<int> custom_sources;
+    custom_sources.reserve(static_cast<size_t>(request->source_block_ids_size()));
+    for (int i = 0; i < request->source_block_ids_size(); ++i)
+    {
+      const int block_id = request->source_block_ids(i);
+      if (block_id < 0 || block_id >= stripe.n)
+        return finish(grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, "source block id is out of range"));
+      if (block_id == failed_block_id)
+        return finish(grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, "failed block cannot be a source"));
+      if (!seen.insert(block_id).second)
+        return finish(grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, "duplicate source block id"));
+      custom_sources.push_back(block_id);
+    }
+
+    std::vector<unsigned char> coefficients;
+    if (!ECProject::get_local_fill_plan(m_sys_config->k, m_sys_config->r, m_sys_config->z,
+                                        m_sys_config->CodeType, {failed_block_id},
+                                        custom_sources, coefficients))
+      return finish(grpc::Status(grpc::StatusCode::INVALID_ARGUMENT,
+                                 "custom source blocks cannot recover the failed block"));
+
+    Block *failed_block = stripe.blocks[failed_block_id];
+    const int failed_node_id = failed_block->map2node;
+    const std::string failed_proxy_ip = m_node_table[failed_node_id].proxy_ip;
+    const int failed_proxy_port = m_node_table[failed_node_id].proxy_port;
+
+    proxy_proto::RecoveryRequest proxy_request;
+    proxy_request.set_failed_block_id(failed_block_id);
+    proxy_request.set_failed_block_key(failed_block->block_key);
+    proxy_request.set_replaced_node_ip(failed_proxy_ip);
+    proxy_request.set_replaced_node_port(failed_proxy_port);
+    proxy_request.set_cross_rack_num(0);
+    for (int source_id : custom_sources)
+    {
+      Block *source_block = stripe.blocks[source_id];
+      const int source_node_id = source_block->map2node;
+      proxy_request.add_custom_source_block_ids(source_id);
+      proxy_request.add_blockids(source_id);
+      proxy_request.add_blockkeys(source_block->block_key);
+      proxy_request.add_source_proxy_ips(m_node_table[source_node_id].proxy_ip);
+      proxy_request.add_source_proxy_ports(m_node_table[source_node_id].proxy_port);
+    }
+
+    grpc::ClientContext proxy_context;
+    proxy_proto::RecoveryReply proxy_reply;
+    grpc::Status status = m_proxy_ptrs[failed_proxy_ip + ":" + std::to_string(failed_proxy_port)]->recovery(
+        &proxy_context, proxy_request, &proxy_reply);
+    if (status.ok())
+      return finish(grpc::Status::OK);
+    return finish(grpc::Status(grpc::StatusCode::INTERNAL,
+                               "custom recovery failed: " + status.error_message()));
+  }
+
+  grpc::Status CoordinatorImpl::customDoubleRecovery(
+      grpc::ServerContext *context,
+      const coordinator_proto::CustomDoubleRecoveryRequest *request,
+      coordinator_proto::RecoveryReply *recoveryReply)
+  {
+    (void)context;
+    const auto start = std::chrono::steady_clock::now();
+    auto finish = [&](grpc::Status status) {
+      recoveryReply->set_custom_recovery_time(std::chrono::duration<double>(
+          std::chrono::steady_clock::now() - start).count());
+      return status;
+    };
+
+    auto stripe_it = m_stripe_table.find(request->stripe_id());
+    if (stripe_it == m_stripe_table.end())
+      return finish(grpc::Status(grpc::StatusCode::NOT_FOUND, "stripe does not exist"));
+    Stripe &stripe = stripe_it->second;
+    if (request->tasks_size() == 0)
+      return finish(grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, "repair task list is empty"));
+
+    std::unordered_set<int> all_failed;
+    std::vector<proxy_proto::RecoveryRequest> proxy_requests;
+    std::vector<std::string> destination_proxies;
+    proxy_requests.reserve(static_cast<size_t>(request->tasks_size()));
+    destination_proxies.reserve(static_cast<size_t>(request->tasks_size()));
+
+    for (int task_index = 0; task_index < request->tasks_size(); ++task_index)
+    {
+      const auto &task = request->tasks(task_index);
+      if (task.failed_block_ids_size() == 0 || task.source_block_ids_size() == 0)
+        return finish(grpc::Status(grpc::StatusCode::INVALID_ARGUMENT,
+                                   "failed block and source block lists must not be empty"));
+
+      std::vector<int> failed_ids;
+      std::vector<int> source_ids;
+      std::unordered_set<int> task_sources;
+      for (int i = 0; i < task.failed_block_ids_size(); ++i)
+      {
+        const int id = task.failed_block_ids(i);
+        if (id < 0 || id >= stripe.n)
+          return finish(grpc::Status(grpc::StatusCode::INVALID_ARGUMENT,
+                                     "failed block id is out of range"));
+        if (!all_failed.insert(id).second)
+          return finish(grpc::Status(grpc::StatusCode::INVALID_ARGUMENT,
+                                     "duplicate failed block id"));
+        failed_ids.push_back(id);
+      }
+      for (int i = 0; i < task.source_block_ids_size(); ++i)
+      {
+        const int id = task.source_block_ids(i);
+        if (id < 0 || id >= stripe.n)
+          return finish(grpc::Status(grpc::StatusCode::INVALID_ARGUMENT,
+                                     "source block id is out of range"));
+        if (std::find(failed_ids.begin(), failed_ids.end(), id) != failed_ids.end())
+          return finish(grpc::Status(grpc::StatusCode::INVALID_ARGUMENT,
+                                     "failed block cannot be a source"));
+        if (!task_sources.insert(id).second)
+          return finish(grpc::Status(grpc::StatusCode::INVALID_ARGUMENT,
+                                     "duplicate source block id"));
+        source_ids.push_back(id);
+      }
+
+      std::vector<unsigned char> coefficients;
+      if (!ECProject::get_local_fill_plan(m_sys_config->k, m_sys_config->r, m_sys_config->z,
+                                          m_sys_config->CodeType, failed_ids,
+                                          source_ids, coefficients))
+        return finish(grpc::Status(grpc::StatusCode::INVALID_ARGUMENT,
+                                   "custom sources cannot recover the requested blocks"));
+
+      proxy_proto::RecoveryRequest proxy_request;
+      proxy_request.set_cross_rack_num(0);
+      proxy_request.set_failed_block_id(failed_ids.front());
+      proxy_request.set_failed_block_key(stripe.blocks[failed_ids.front()]->block_key);
+      for (int failed_id : failed_ids)
+      {
+        Block *failed_block = stripe.blocks[failed_id];
+        const int node_id = failed_block->map2node;
+        proxy_request.add_failed_block_ids(failed_id);
+        proxy_request.add_custom_failed_block_keys(failed_block->block_key);
+        proxy_request.add_custom_target_proxy_ips(m_node_table[node_id].proxy_ip);
+        proxy_request.add_custom_target_proxy_ports(m_node_table[node_id].proxy_port);
+      }
+      for (int source_id : source_ids)
+      {
+        Block *source_block = stripe.blocks[source_id];
+        const int node_id = source_block->map2node;
+        proxy_request.add_custom_source_block_ids(source_id);
+        proxy_request.add_blockids(source_id);
+        proxy_request.add_blockkeys(source_block->block_key);
+        proxy_request.add_source_proxy_ips(m_node_table[node_id].proxy_ip);
+        proxy_request.add_source_proxy_ports(m_node_table[node_id].proxy_port);
+      }
+
+      const int destination_node_id = stripe.blocks[failed_ids.front()]->map2node;
+      const std::string destination_ip = m_node_table[destination_node_id].proxy_ip;
+      const int destination_port = m_node_table[destination_node_id].proxy_port;
+      destination_proxies.push_back(destination_ip + ":" + std::to_string(destination_port));
+      proxy_requests.push_back(std::move(proxy_request));
+    }
+
+    if (all_failed.size() != 2)
+      return finish(grpc::Status(grpc::StatusCode::INVALID_ARGUMENT,
+                                 "custom double recovery requires exactly two failed blocks"));
+
+    std::vector<proxy_proto::proxyService::Stub *> destination_stubs;
+    destination_stubs.reserve(destination_proxies.size());
+    for (const std::string &endpoint : destination_proxies)
+    {
+      auto stub_it = m_proxy_ptrs.find(endpoint);
+      if (stub_it == m_proxy_ptrs.end())
+        return finish(grpc::Status(grpc::StatusCode::INTERNAL,
+                                   "destination proxy is not registered"));
+      destination_stubs.push_back(stub_it->second.get());
+    }
+
+    std::vector<grpc::Status> statuses(static_cast<size_t>(request->tasks_size()));
+    std::vector<std::thread> workers;
+    workers.reserve(static_cast<size_t>(request->tasks_size()));
+    for (int i = 0; i < request->tasks_size(); ++i)
+    {
+      workers.emplace_back([&, i]() {
+        grpc::ClientContext proxy_context;
+        proxy_proto::RecoveryReply proxy_reply;
+        statuses[static_cast<size_t>(i)] = destination_stubs[static_cast<size_t>(i)]->recovery(
+            &proxy_context, proxy_requests[static_cast<size_t>(i)], &proxy_reply);
+      });
+    }
+    for (auto &worker : workers)
+      worker.join();
+
+    for (const auto &status : statuses)
+      if (!status.ok())
+        return finish(grpc::Status(grpc::StatusCode::INTERNAL,
+                                   "custom double recovery failed: " + status.error_message()));
+    return finish(grpc::Status::OK);
   }
 
   grpc::Status CoordinatorImpl::getRecovery(

@@ -136,7 +136,7 @@ aux_source_directory(${CMAKE_CURRENT_SOURCE_DIR}/src/   PROJECT_SRC)
 
 # Targets (client|server)
 foreach (_target
-       run_coordinator run_proxy run_datanode main_client)
+       run_coordinator run_proxy run_datanode main_client lotus_repair_benchmark)
     add_executable(${_target}
             ${cn_proto_srcs}
             ${cn_grpc_srcs}
@@ -179,65 +179,8 @@ target_include_directories(layout_test PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
 
-# 单块修复方案单元测试（get_recovery_group_and_block_ids）
-add_executable(recovery_plan_test
-    ${CMAKE_CURRENT_SOURCE_DIR}/tests/recovery_plan_test.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/encoder_layout.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/recovery_strategy.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/encoder.cpp
-    ${ASM_SOURCES}
-)
-
-# LotusLRC 同本地组双块本地修复系数验证（纯 GF 数学，无 gRPC / cluster）
-add_executable(lotus_2block_verify
-    ${CMAKE_CURRENT_SOURCE_DIR}/tests/lotus_2block_verify.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/encoder_layout.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/recovery_strategy.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/encoder.cpp
-    ${ASM_SOURCES}
-)
-target_include_directories(lotus_2block_verify PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}/include
-)
-target_link_libraries(lotus_2block_verify
-    -lpthread
-    -lJerasure
-    -lgf_complete
-)
-
-# 全码型单块修复正确性审计(纯 GF + decode_*,无 gRPC / cluster)
-add_executable(recovery_audit
-    ${CMAKE_CURRENT_SOURCE_DIR}/tests/recovery_audit.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/encoder_layout.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/recovery_strategy.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/encoder.cpp
-    ${ASM_SOURCES}
-)
-target_include_directories(recovery_audit PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}/include
-)
-target_link_libraries(recovery_audit
-    -lpthread
-    -lJerasure
-    -lgf_complete
-)
-
-# Maintenance-robust read leftover local fill 严格 GF 解验证(纯 GF, 无 gRPC / cluster)
-add_executable(maintenance_local_fill_verify
-    ${CMAKE_CURRENT_SOURCE_DIR}/tests/maintenance_local_fill_verify.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/encoder_layout.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/recovery_strategy.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/encoder.cpp
-    ${ASM_SOURCES}
-)
-target_include_directories(maintenance_local_fill_verify PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}/include
-)
-target_link_libraries(maintenance_local_fill_verify
-    -lpthread
-    -lJerasure
-    -lgf_complete
-)
+# Legacy recovery-plan test executables are intentionally not built.
+# lotus_repair_benchmark is the only repair benchmark entry point.
 
 # Exp#7: pure encoding microbenchmark (no gRPC / cluster)
 add_executable(encode_benchmark
@@ -287,8 +230,5 @@ add_test(NAME proxy_gateway_integration COMMAND proxy_gateway_integration)
 set_tests_properties(proxy_gateway_integration PROPERTIES TIMEOUT 20)
 
 add_test(NAME layout_test COMMAND layout_test)
-add_test(NAME lotus_2block_verify COMMAND lotus_2block_verify)
-add_test(NAME recovery_audit COMMAND recovery_audit)
-add_test(NAME maintenance_local_fill_verify COMMAND maintenance_local_fill_verify)
-set_tests_properties(layout_test lotus_2block_verify recovery_audit maintenance_local_fill_verify
+set_tests_properties(layout_test
     PROPERTIES TIMEOUT 30)
