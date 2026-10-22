@@ -14,6 +14,18 @@ class ParameterConfigurationTest(unittest.TestCase):
             path.write_text(f"<Configuration>{body}</Configuration>", encoding="utf-8")
             return parse_code_parameters(path)
 
+    def test_lotus_k24_uses_four_local_parities(self):
+        self.assertEqual(self.parse("<CodeType>LotusLRC</CodeType><k>24</k><r>1</r><z>4</z>"),
+                         ("LotusLRC", 24, 1, 4, 29))
+
+    def test_lotus_k24_rejects_other_local_parity_counts(self):
+        with self.assertRaisesRegex(ValueError, "required r=1, z=4"):
+            self.parse("<CodeType>LotusLRC</CodeType><k>24</k><r>1</r><z>8</z>")
+
+    def test_lotus_rejects_odd_local_parity_count(self):
+        with self.assertRaisesRegex(ValueError, "positive even"):
+            self.parse("<CodeType>LotusLRC</CodeType><k>48</k><r>2</r><z>5</z>")
+
     def test_lotus_108(self):
         self.assertEqual(self.parse("<CodeType>LotusLRC</CodeType><k>96</k><r>4</r><z>8</z>"),
                          ("LotusLRC", 96, 4, 8, 108))

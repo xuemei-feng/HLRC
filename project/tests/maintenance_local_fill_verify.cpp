@@ -124,6 +124,8 @@ int main()
     bad += run_case("OptimalLRC", 30, 10, 2, 1);
     bad += run_case("UniformLRC", 30, 6, 6, 1);
     bad += run_case("UniLRC", 30, 6, 6, 1);
+    bad += run_case("LotusLRC", 24, 1, 4, 1);
+    bad += run_case("LotusLRC", 24, 1, 4, 2);
     bad += run_case("LotusLRC", 48, 2, 8, 1);
     bad += run_case("LotusLRC", 48, 2, 8, 2); // same-local-group 2-block leftover
     std::cout << (bad == 0 ? "ALL PASS" : "FAILED") << " (mismatches=" << bad << ")\n";

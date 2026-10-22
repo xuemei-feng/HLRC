@@ -158,6 +158,7 @@ int main()
     bad += run_code("UniformLRC", 30, 6, 6, 21);
     bad += run_code("UniformLRC", 48, 3, 4, 21);
     bad += run_code("UniformLRC", 72, 4, 8, 21);
+    bad += run_code("LotusLRC", 24, 1, 4, 21);
     bad += run_code("LotusLRC", 48, 2, 8, 21);
     bad += run_code("LotusLRC", 72, 3, 8, 21);
     std::cout << (bad == 0 ? "\nALL PASS" : "\nFAILURES PRESENT")

@@ -185,6 +185,7 @@ void dump_uniform_layout(int k, int r, int z)
 
 int main()
 {
+    audit("LotusLRC", 24, 1, 4);
     audit("LotusLRC", 48, 2, 8);
     audit("AzureLRC", 30, 6, 6);
     audit("OptimalLRC", 30, 10, 2);

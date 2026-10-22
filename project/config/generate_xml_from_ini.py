@@ -48,6 +48,13 @@ def parse_code_parameters(xml_path: Path) -> Tuple[str, int, int, int, int]:
     else:
         k = _positive_int(root, "k", code_type)
         r = _positive_int(root, "r", code_type)
+    if code_type == "LotusLRC":
+        if z % 2 != 0:
+            raise ValueError(f"invalid LotusLRC z: actual={z}, required positive even value")
+        if k == 24 and (r != 1 or z != 4):
+            raise ValueError(
+                f"invalid LotusLRC parameters for k=24: actual r={r}, z={z}, required r=1, z=4"
+            )
     return code_type, k, r, z, k + r + z
 
 

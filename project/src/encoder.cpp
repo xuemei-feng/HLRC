@@ -444,11 +444,11 @@ void ECProject::gen_uniform_lrc_matrix(unsigned char *encode_matrix, int k, int 
 
 void ECProject::gen_lotuslrc_matrix(unsigned char *encode_matrix, int k, int r, int z)
 {
-    assert(z % 2 == 0 && "z must be even");
+    if (z <= 0 || z % 2 != 0)
+        throw std::invalid_argument("LotusLRC requires a positive even z");
     int group_num = z / 2;
-    // Need local groups 0/1/2 so that L1,L2 (group0), L4 (group1 second),
-    // and L5 (group2 first) all exist.
-    assert(group_num >= 3 && "LotusLRC cross-group local fusion needs z/2 >= 3");
+    if (group_num < 2)
+        throw std::invalid_argument("LotusLRC requires at least two local groups");
     int m = k + r;
     memset(encode_matrix, 0, (m + z) * k);
     gf_gen_cauchy_matrix1(encode_matrix, m, k);
@@ -479,12 +479,11 @@ void ECProject::gen_lotuslrc_matrix(unsigned char *encode_matrix, int k, int r, 
     }
     assert(data_offset == k);
 
-    // First local group: split its data into two subgroups (more-first), then
-    //   L1 <- l11' * Da          (keep only first half of local_vector0)
-    //   L2 <- l21'' * Db         (keep only second half of local_vector1)
-    //   L4 ^= l21' * Da          (group1 second LP, keep its own coeffs)
-    //   L5 ^= l11'' * Db         (group2 first LP, keep its own coeffs)
-    // 1-based LP names: L1=m+0, L2=m+1, L4=m+3, L5=m+4.
+    // The two-group k=24,r=1,z=4 layout has exactly four local parities.
+    // Keep both local equations inside their own group. The cross-group fusion
+    // below needs a third group as the second destination and is therefore
+    // used only by layouts with at least three local groups.
+    if (group_num >= 3)
     {
         int data0 = data_block_num_per_local_group[0];
         int half0 = (data0 + 1) / 2; // more-first
@@ -497,12 +496,10 @@ void ECProject::gen_lotuslrc_matrix(unsigned char *encode_matrix, int k, int r, 
         unsigned char *row_l4 = encode_matrix + (m + 3) * k;
         unsigned char *row_l5 = encode_matrix + (m + 4) * k;
 
-        // L1 keeps only Da coeffs; move Db half of vector0 onto L5.
         memset(row_l1 + off_b, 0, half1 * sizeof(unsigned char));
         for (int j = 0; j < half1; j++)
             row_l5[off_b + j] ^= local_vector0[off_b + j];
 
-        // L2 keeps only Db coeffs; move Da half of vector1 onto L4.
         memset(row_l2 + off_a, 0, half0 * sizeof(unsigned char));
         for (int j = 0; j < half0; j++)
             row_l4[off_a + j] ^= local_vector1[off_a + j];

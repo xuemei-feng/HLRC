@@ -826,7 +826,7 @@ bool make_repair_plan(const std::string &code_type, int k,
   }
 
   plan.required_r = k / 24;
-  plan.required_z = 8;
+  plan.required_z = (k == 24) ? 4 : 8;
   if (configured_r != plan.required_r)
   {
     error = "LotusLRC k=" + std::to_string(k) + " requires r=" +

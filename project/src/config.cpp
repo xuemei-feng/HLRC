@@ -56,6 +56,13 @@ namespace ECProject
     if (CodeType == "UniLRC" && alpha <= 0)
       throw std::runtime_error("Invalid alpha for UniLRC: actual=" + std::to_string(alpha) +
                                ", required=positive integer");
+    if (CodeType == "LotusLRC" && z % 2 != 0)
+      throw std::runtime_error("Invalid LotusLRC z: actual=" + std::to_string(z) +
+                               ", required=positive even value");
+    if (CodeType == "LotusLRC" && k == 24 && (r != 1 || z != 4))
+      throw std::runtime_error("Invalid LotusLRC parameters for k=24: r=" +
+                               std::to_string(r) + ", z=" + std::to_string(z) +
+                               ", required=r=1,z=4");
     if (NodeNum < n)
       throw std::runtime_error("Insufficient NodeNum for code type " + CodeType +
                                ": actual=" + std::to_string(NodeNum) +

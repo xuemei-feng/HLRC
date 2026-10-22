@@ -205,6 +205,25 @@ target_link_libraries(encode_benchmark
 )
 
 
+# LotusLRC k=24,r=1,z=4 matrix and registered repair-plan verification.
+add_executable(lotus_k24_z4_verify
+    ${CMAKE_CURRENT_SOURCE_DIR}/tests/lotus_k24_z4_verify.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/encoder.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/encoder_layout.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/recovery_strategy.cpp
+    ${ASM_SOURCES}
+)
+target_include_directories(lotus_k24_z4_verify PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
+target_link_libraries(lotus_k24_z4_verify
+    -lpthread
+    -lJerasure
+    -lgf_complete
+)
+add_test(NAME lotus_k24_z4_verify COMMAND lotus_k24_z4_verify)
+set_tests_properties(lotus_k24_z4_verify PROPERTIES TIMEOUT 30)
+
 # Two-node ASIO TCP write bandwidth microbenchmark (no gRPC / cluster)
 add_executable(asio_write_bench
     ${CMAKE_CURRENT_SOURCE_DIR}/tests/asio_write_benchmark.cpp

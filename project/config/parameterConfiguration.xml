@@ -7,9 +7,10 @@
     <CoordinatorPort>55555</CoordinatorPort>
     <AppendMode>UNILRC_MODE</AppendMode>
     <alpha>2</alpha>
-    <CodeType>UniformLRC</CodeType>
-    <k>96</k>
-    <r>5</r>
+    <CodeType>LotusLRC</CodeType>
+    <k>24</k>
+    <r>1</r>
     <z>4</z>
     <NodeNum>108</NodeNum>
+    <ClientIP>127.0.0.1</ClientIP>
 </Configuration>
