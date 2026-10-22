@@ -890,7 +890,10 @@ std::string config_path_from_executable(const char *argv0)
   std::string directory = executable.substr(0, slash);
   if (directory.empty() || directory.front() != '/')
     directory = std::string(cwd) + "/" + directory;
-  return directory + "/../config/parameterConfiguration.xml";
+  const std::string direct_build_path = directory + "/../config/parameterConfiguration.xml";
+  if (access(direct_build_path.c_str(), R_OK) == 0)
+    return direct_build_path;
+  return directory + "/../../config/parameterConfiguration.xml";
 }
 
 void print_ids(const std::vector<int> &ids)
@@ -976,7 +979,7 @@ int main(int argc, char **argv)
     return 1;
   }
 
-  const std::string client_ip = "127.0.0.1";
+  const std::string client_ip = config->ClientIP;
   const int client_port = 44444;
   ECProject::Client client(client_ip, client_port,
       config->CoordinatorIP + ":" + std::to_string(config->CoordinatorPort), config_path);

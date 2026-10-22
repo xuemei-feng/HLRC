@@ -31,6 +31,7 @@ namespace ECProject
     int r;
     int NodeNum;
     std::string CoordinatorIP;
+    std::string ClientIP;
     int CoordinatorPort;
     std::string AppendMode;
     std::string CodeType;

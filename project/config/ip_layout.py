@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Resolve a flat one-proxy/one-datanode localhost topology."""
+"""Resolve one-proxy/one-datanode layouts for localhost or real hosts."""
 from __future__ import annotations
 import argparse
 import configparser
@@ -30,34 +30,68 @@ def load_ini(path: Path) -> configparser.ConfigParser:
 def repo_root_from_ini(path: Path) -> Path:
     return path.resolve().parent.parent.parent
 
-def compute_layout(cfg: configparser.ConfigParser, _path: Path | None = None) -> NodeLayout:
+def _read_hosts(path: Path) -> list[str]:
+    hosts: list[str] = []
+    for raw in path.read_text(encoding="utf-8").splitlines():
+        host = raw.split("#", 1)[0].strip()
+        if host:
+            hosts.append(host)
+    if len(hosts) != len(set(hosts)):
+        raise ValueError(f"duplicate storage host in {path}")
+    return hosts
+
+def compute_layout(cfg: configparser.ConfigParser, path: Path | None = None) -> NodeLayout:
     section = cfg["topology"]
+    mode = section.get("mode", "localhost").strip().lower()
     count = section.getint("node_num")
-    host = section.get("host", "127.0.0.1").strip()
     proxy_start = section.getint("proxy_port_start")
     datanode_start = section.getint("datanode_port_start")
-    proxy_data_start = proxy_start + 1000
-    proxy_peer_start = proxy_start + 2000
-    datanode_data_start = datanode_start + 500
     if count <= 0:
         raise ValueError("node_num must be positive")
+
+    if mode == "localhost":
+        host = section.get("host", "127.0.0.1").strip()
+        hosts = [host] * count
+        proxy_ports = [proxy_start + i for i in range(count)]
+        datanode_ports = [datanode_start + i for i in range(count)]
+    elif mode == "distributed":
+        ini_path = (path or DEFAULT_INI).resolve()
+        host_file = Path(section.get("storage_hosts_file", "storage_nodes"))
+        if not host_file.is_absolute():
+            host_file = ini_path.parent / host_file
+        hosts = _read_hosts(host_file)
+        if len(hosts) != count:
+            raise ValueError(f"storage host count {len(hosts)} does not match node_num {count}")
+        proxy_ports = [proxy_start] * count
+        datanode_ports = [datanode_start] * count
+    else:
+        raise ValueError(f"unsupported topology mode: {mode!r}")
+
     ranges = {
-        "proxy grpc": (proxy_start, proxy_start + count - 1),
-        "proxy data": (proxy_data_start, proxy_data_start + count - 1),
-        "proxy peer": (proxy_peer_start, proxy_peer_start + count - 1),
-        "datanode grpc": (datanode_start, datanode_start + count - 1),
-        "datanode data": (datanode_data_start, datanode_data_start + count - 1),
+        "proxy grpc": proxy_start,
+        "proxy data": proxy_start + 1000,
+        "proxy peer": proxy_start + 2000,
+        "datanode grpc": datanode_start,
+        "datanode data": datanode_start + 500,
     }
-    for name, (lo, hi) in ranges.items():
-        if lo < 1 or hi > 65535:
-            raise ValueError(f"{name} port range {lo}-{hi} is invalid")
-    items = list(ranges.items())
-    for i, (left_name, (left_lo, left_hi)) in enumerate(items):
-        for right_name, (right_lo, right_hi) in items[i + 1:]:
-            if max(left_lo, right_lo) <= min(left_hi, right_hi):
-                raise ValueError(f"port ranges overlap: {left_name} and {right_name}")
-    nodes = [NodeEndpoint(i, f"{host}:{proxy_start+i}", f"{host}:{datanode_start+i}") for i in range(count)]
-    return NodeLayout(section.get("client_ip", host).strip(), section.get("coordinator_ip", host).strip(), nodes)
+    if any(port < 1 or port > 65535 for port in ranges.values()):
+        raise ValueError(f"invalid service port: {ranges}")
+    if len(set(ranges.values())) != len(ranges):
+        raise ValueError(f"service ports overlap: {ranges}")
+    if mode == "localhost":
+        high_ports = [proxy_start + count - 1, proxy_start + 1000 + count - 1,
+                      proxy_start + 2000 + count - 1, datanode_start + count - 1,
+                      datanode_start + 500 + count - 1]
+        if any(port > 65535 for port in high_ports):
+            raise ValueError("localhost port range exceeds 65535")
+
+    nodes = [NodeEndpoint(i, f"{host}:{proxy_ports[i]}", f"{host}:{datanode_ports[i]}")
+             for i, host in enumerate(hosts)]
+    client_ip = section.get("client_ip", "127.0.0.1").strip()
+    coordinator_ip = section.get("coordinator_ip", "127.0.0.1").strip()
+    if not client_ip or not coordinator_ip:
+        raise ValueError("client_ip and coordinator_ip must be non-empty")
+    return NodeLayout(client_ip, coordinator_ip, nodes)
 
 def write_lines(path: Path, lines: list[str], header: str | None = None) -> None:
     values = ([f"# {header}"] if header else []) + lines

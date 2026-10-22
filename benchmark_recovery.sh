@@ -2,14 +2,14 @@
 # Reproduce CloudLab-style recovery comparison on Aliyun:
 #   - sync CodeType config to every node
 #   - full cluster restart
-#   - mandatory inter-rack bandwidth limit (default 1Gb)
+#   - mandatory proxy-to-proxy bandwidth limit (default 1Gb)
 #   - coordinator ready check, then main_client
 #
 # Usage:
 #   ./benchmark_recovery.sh lotus
 #   ./benchmark_recovery.sh uniform
 #   ./benchmark_recovery.sh compare          # lotus then uniform (two full restarts)
-#   ./benchmark_recovery.sh lotus 0.5        # inter-rack 0.5Gb (stronger separation)
+#   ./benchmark_recovery.sh lotus 0.5        # proxy-to-proxy 0.5Gb (stronger separation)
 #   ./benchmark_recovery.sh lotus 1 no-limit # skip tc (baseline only)
 
 set -euo pipefail
@@ -119,7 +119,7 @@ EOF
 run_one_benchmark() {
     local preset="$1"
     echo ""
-    echo "======== benchmark: $preset (inter-rack=${INTER_GB}Gb, limit=$APPLY_LIMIT) ========"
+    echo "======== benchmark: $preset (proxy-to-proxy=${INTER_GB}Gb, limit=$APPLY_LIMIT) ========"
     set_code_preset "$preset"
     sync_config
 

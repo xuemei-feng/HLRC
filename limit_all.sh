@@ -1,17 +1,16 @@
 #!/bin/bash
+set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 # shellcheck disable=SC1091
 source "$SCRIPT_DIR/limit_common.sh"
 
-INPUT_GB="${1:-}"
-if [ -z "$INPUT_GB" ]; then
-    echo "Usage: $0 <inter_rack_gb> [no-intra]" >&2
-    echo "  allowed inter-rack: 0.5, 1, 2, 5, 10" >&2
-    echo "  default: intra-rack proxy<->datanode fixed at ${INTRA_RACK_GB}Gb/s (HTB egress)" >&2
-    echo "  add 'no-intra' to disable intra-rack limits (datanode unlimited)" >&2
+PROXY_GB="${1:-}"
+if [ -z "$PROXY_GB" ]; then
+    echo "Usage: $0 <proxy_to_proxy_gb>" >&2
+    echo "  allowed rates: 0.5, 1, 2, 5, 10 Gb/s" >&2
     exit 1
 fi
 
-shift
-run_limit_all_remote "$INPUT_GB" "$@"
+gb_to_kbps "$PROXY_GB" >/dev/null
+run_limit_all_remote "$PROXY_GB"

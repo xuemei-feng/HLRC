@@ -7,9 +7,9 @@
     <CoordinatorPort>55555</CoordinatorPort>
     <AppendMode>UNILRC_MODE</AppendMode>
     <alpha>2</alpha>
-    <CodeType>LotusLRC</CodeType>
-    <k>48</k>
-    <r>2</r>
-    <z>8</z>
+    <CodeType>UniformLRC</CodeType>
+    <k>96</k>
+    <r>5</r>
+    <z>4</z>
     <NodeNum>108</NodeNum>
 </Configuration>

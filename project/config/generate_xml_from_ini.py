@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Generate flat node topology and synchronize runtime endpoints."""
 import re
+import sys
 import xml.etree.ElementTree as ET
 from pathlib import Path
 from typing import Tuple
@@ -63,7 +64,7 @@ def write_node_xml(nodes) -> None:
     ET.ElementTree(root).write(NODE_XML_PATH, encoding="utf-8", xml_declaration=True)
 
 
-def update_parameters(node_num: int, coordinator_ip: str) -> None:
+def update_parameters(node_num: int, coordinator_ip: str, client_ip: str) -> None:
     tree = ET.parse(PARAM_XML_PATH)
     root = tree.getroot()
     node_elem = root.find("NodeNum")
@@ -74,18 +75,23 @@ def update_parameters(node_num: int, coordinator_ip: str) -> None:
     if coordinator_elem is None:
         raise ValueError("missing CoordinatorIP in parameterConfiguration.xml")
     coordinator_elem.text = coordinator_ip
+    client_elem = root.find("ClientIP")
+    if client_elem is None:
+        client_elem = ET.SubElement(root, "ClientIP")
+    client_elem.text = client_ip
     ET.indent(root, space="    ")
     tree.write(PARAM_XML_PATH, encoding="utf-8", xml_declaration=True)
 
 
 def main() -> None:
-    cfg = load_ini(INI_PATH)
-    layout = compute_layout(cfg, INI_PATH)
+    ini_path = Path(sys.argv[1]).resolve() if len(sys.argv) > 1 else INI_PATH
+    cfg = load_ini(ini_path)
+    layout = compute_layout(cfg, ini_path)
     code_type, _, _, _, required = parse_code_parameters(PARAM_XML_PATH)
     validate_node_capacity(len(layout.nodes), code_type, required)
 
     write_node_xml(layout.nodes)
-    update_parameters(len(layout.nodes), layout.coordinator_ip)
+    update_parameters(len(layout.nodes), layout.coordinator_ip, layout.client_ip)
     repo = repo_root_from_ini(INI_PATH)
     hosts = list(dict.fromkeys([layout.client_ip, layout.coordinator_ip] + [n.proxy.split(":", 1)[0] for n in layout.nodes]))
     write_lines(repo / "hosts", hosts, "localhost topology hosts")

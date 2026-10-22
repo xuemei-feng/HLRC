@@ -7,6 +7,9 @@ find_package(Python3 REQUIRED COMPONENTS Interpreter)
 add_test(NAME parameter_configuration_test
     COMMAND ${Python3_EXECUTABLE} -m unittest test_generate_xml_from_ini.py
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/config)
+add_test(NAME ip_layout_test
+    COMMAND ${Python3_EXECUTABLE} -m unittest test_ip_layout.py
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/config)
 
 
 # 启用汇编语言支持（NASM）

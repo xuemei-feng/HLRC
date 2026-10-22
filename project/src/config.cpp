@@ -113,6 +113,8 @@ namespace ECProject
 
     NodeNum = requiredPositiveInt(root, "NodeNum", configPath);
     CoordinatorIP = requiredElement(root, "CoordinatorIP", configPath)->GetText();
+    const tinyxml2::XMLElement *client = root->FirstChildElement("ClientIP");
+    ClientIP = client && client->GetText() ? client->GetText() : "127.0.0.1";
     CoordinatorPort = requiredPositiveInt(root, "CoordinatorPort", configPath);
     AppendMode = requiredElement(root, "AppendMode", configPath)->GetText();
   }
@@ -131,6 +133,7 @@ namespace ECProject
     std::cout << "  (n, k, r, z): (" << n << ", " << k << ", " << r << ", " << z << ")" << std::endl;
     std::cout << "  NodeNum: " << NodeNum << " nodes" << std::endl;
     std::cout << "  CoordinatorIP: " << CoordinatorIP << std::endl;
+    std::cout << "  ClientIP: " << ClientIP << std::endl;
     std::cout << "  CoordinatorPort: " << CoordinatorPort << std::endl;
     std::cout << "  AppendMode: " << AppendMode << std::endl;
     std::cout << "  CodeType: " << CodeType << std::endl;
