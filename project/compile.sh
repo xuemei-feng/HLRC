@@ -6,4 +6,4 @@ cd $CRT_DIR
 mkdir -p cmake/build
 cd cmake/build
 cmake ../..
-make -j
+make -j"${MAKE_JOBS:-2}"

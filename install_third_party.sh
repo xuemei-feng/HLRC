@@ -20,7 +20,7 @@ rm -rf asio-1.24.0
 tar -xvzf asio.tar.gz
 cd $ASIO_DIR
 ./configure --prefix=$ASIO_INSTALL_DIR
-make -j6
+make -j"${MAKE_JOBS:-2}"
 make install
 
 # grpc
@@ -37,7 +37,7 @@ cmake -DgRPC_INSTALL=ON \
     -DgRPC_BUILD_TESTS=OFF \
     -DCMAKE_INSTALL_PREFIX=$GRPC_INSTALL_DIR \
     ../..
-make -j6
+make -j"${MAKE_JOBS:-2}"
 make install
 
 # gf-complete
@@ -50,7 +50,7 @@ tar -xvzf gf-complete.tar.gz
 cd $GF_DIR
 autoreconf -if
 ./configure --prefix=$GF_INSTALL_DIR
-make -j6
+make -j"${MAKE_JOBS:-2}"
 make install
 
 # jerasure
@@ -63,6 +63,6 @@ tar -xvzf jerasure.tar.gz
 cd $JERASURE_DIR
 autoreconf -if
 ./configure --prefix=$JERASURE_INSTALL_DIR LDFLAGS=-L$GF_INSTALL_DIR/lib CPPFLAGS=-I$GF_INSTALL_DIR/include
-make -j6
+make -j"${MAKE_JOBS:-2}"
 make install
 
