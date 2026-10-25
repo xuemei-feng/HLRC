@@ -54,7 +54,7 @@ namespace ECProject
   {
     constexpr uint32_t kPeerMagic = 0x484c5243;
     constexpr uint16_t kPeerVersion = 1;
-    enum class PeerOperation : uint16_t { Put = 1, Get = 2, Delete = 3, RecoveryPut = 4 };
+    enum class PeerOperation : uint16_t { Put = 1, Get = 2, Delete = 3, RecoveryPut = 4, Append = 5 };
 
     struct PeerFrameHeader
     {
@@ -64,6 +64,8 @@ namespace ECProject
       uint32_t key_size;
       uint64_t payload_size;
       int32_t block_id;
+      int32_t append_offset = 0;
+      uint32_t flags = 0;
     };
 
     void write_all(asio::ip::tcp::socket &socket, const void *data, size_t size)
@@ -147,12 +149,19 @@ namespace ECProject
       {
         case PeerOperation::Put:
         case PeerOperation::RecoveryPut:
+        case PeerOperation::Append:
         {
           std::vector<char> payload(header.payload_size);
           if (!payload.empty()) read_all(socket, payload.data(), payload.size());
-          ok = static_cast<PeerOperation>(header.operation) == PeerOperation::RecoveryPut
-              ? RecoveryToDatanode(key.c_str(), header.block_id, payload.data(), local.first.c_str(), local.second)
-              : SetToDatanode(key.c_str(), key.size(), payload.data(), payload.size(), local.first.c_str(), local.second, 0);
+          const auto operation = static_cast<PeerOperation>(header.operation);
+          if (operation == PeerOperation::RecoveryPut)
+            ok = RecoveryToDatanode(key.c_str(), header.block_id, payload.data(), local.first.c_str(), local.second);
+          else if (operation == PeerOperation::Append)
+            ok = AppendToDatanode(key.c_str(), header.block_id, payload.size(), payload.data(),
+                                  header.append_offset, local.first.c_str(), local.second,
+                                  (header.flags & 1U) != 0);
+          else
+            ok = SetToDatanode(key.c_str(), key.size(), payload.data(), payload.size(), local.first.c_str(), local.second, 0);
           break;
         }
         case PeerOperation::Get:
@@ -201,6 +210,33 @@ namespace ECProject
       return status == 1;
     }
     catch (const std::exception &e) { std::cerr << "Peer put failed: " << e.what() << std::endl; return false; }
+  }
+
+  bool ProxyImpl::AppendToOwnerProxy(const std::string &proxy_ip, int proxy_port, const std::string &key,
+                                     int block_id, const char *data, size_t size, int append_offset,
+                                     bool is_serialized)
+  {
+    try
+    {
+      asio::io_context context;
+      asio::ip::tcp::socket socket(context);
+      asio::ip::tcp::resolver resolver(context);
+      asio::connect(socket, resolver.resolve(proxy_ip, std::to_string(proxy_port + PROXY_PEER_PORT_SHIFT)));
+      PeerFrameHeader header{kPeerMagic, kPeerVersion, static_cast<uint16_t>(PeerOperation::Append),
+          static_cast<uint32_t>(key.size()), static_cast<uint64_t>(size), block_id,
+          append_offset, is_serialized ? 1U : 0U};
+      write_all(socket, &header, sizeof(header));
+      write_all(socket, key.data(), key.size());
+      if (size) write_all(socket, data, size);
+      uint8_t status = 0;
+      read_all(socket, &status, sizeof(status));
+      return status == 1;
+    }
+    catch (const std::exception &e)
+    {
+      std::cerr << "Peer append failed: " << e.what() << std::endl;
+      return false;
+    }
   }
 
   bool ProxyImpl::GetFromOwnerProxy(const std::string &proxy_ip, int proxy_port, const std::string &key,
@@ -293,6 +329,29 @@ namespace ECProject
   // slice_offset is the physical offset of the data block
   bool ProxyImpl::AppendToDatanode(const char *block_key, int block_id, size_t slice_size, const char *slice_buf, int slice_offset, const char *ip, int port, bool is_serialized)
   {
+    const std::string endpoint = std::string(ip) + ":" + std::to_string(port);
+    if (endpoint == proxy_ip_port)
+    {
+      const auto local = paired_datanode_endpoint();
+      return AppendToDatanode(block_key, block_id, slice_size, slice_buf, slice_offset,
+                              local.first.c_str(), local.second, is_serialized);
+    }
+    if (endpoint != m_paired_datanode)
+    {
+      auto owner = m_datanode_owner_proxies.find(endpoint);
+      std::string owner_endpoint;
+      if (owner != m_datanode_owner_proxies.end()) owner_endpoint = owner->second;
+      else if (m_proxy_owned_datanodes.count(endpoint)) owner_endpoint = endpoint;
+      else
+      {
+        std::cerr << "No owner proxy for append endpoint " << endpoint << std::endl;
+        return false;
+      }
+      const auto sep = owner_endpoint.rfind(':');
+      return AppendToOwnerProxy(owner_endpoint.substr(0, sep), std::stoi(owner_endpoint.substr(sep + 1)),
+                                block_key, block_id, slice_buf, slice_size, slice_offset, is_serialized);
+    }
+
     try
     {
       grpc::ClientContext context;
@@ -303,41 +362,33 @@ namespace ECProject
       append_info.set_append_size(slice_size);
       append_info.set_append_offset(slice_offset);
       append_info.set_is_serialized(is_serialized);
-      std::string node_ip_port = std::string(ip) + ":" + std::to_string(port);
-      grpc::Status stat = m_datanode_ptrs.at(node_ip_port)->handleAppend(&context, append_info, &result);
+      grpc::Status status;
+      std::thread notify_thread([this, &context, &append_info, &result, &status, &endpoint]() {
+        status = m_datanode_ptrs.at(endpoint)->handleAppend(&context, append_info, &result);
+      });
 
-      asio::error_code error;
-      asio::io_context io_context;
-      asio::ip::tcp::socket socket(io_context);
-      asio::ip::tcp::resolver resolver(io_context);
-      asio::error_code con_error;
-      asio::connect(socket, resolver.resolve({std::string(ip), std::to_string(port + ECProject::DATANODE_PORT_SHIFT)}), con_error);
-      if (!con_error && IF_DEBUG)
+      asio::io_context socket_context;
+      asio::ip::tcp::socket socket(socket_context);
+      asio::ip::tcp::resolver resolver(socket_context);
+      asio::connect(socket, resolver.resolve(std::string(ip), std::to_string(port + ECProject::DATANODE_PORT_SHIFT)));
+      write_all(socket, slice_buf, slice_size);
+      asio::error_code ignored;
+      socket.shutdown(asio::ip::tcp::socket::shutdown_both, ignored);
+      socket.close(ignored);
+      notify_thread.join();
+      if (!status.ok() || !result.message())
       {
-        std::cout << "Connect to " << ip << ":" << port + ECProject::DATANODE_PORT_SHIFT << " success! block_key: " << block_key << " block_id: " << block_id << " slice_size: " << slice_size << " slice_offset: " << slice_offset << " is_serialized: " << is_serialized << std::endl;
+        std::cerr << "Append failed for " << block_key << " on " << endpoint
+                  << ": " << status.error_message() << std::endl;
+        return false;
       }
-      else if (IF_DEBUG)
-      {
-        std::cout << "Connect to " << ip << ":" << port + ECProject::DATANODE_PORT_SHIFT << " failed! block_key: " << block_key << " block_id: " << block_id << " slice_size: " << slice_size << " slice_offset: " << slice_offset << " is_serialized: " << is_serialized << std::endl;
-        exit(-1);
-      }
-      asio::write(socket, asio::buffer(slice_buf, slice_size), error);
-      asio::error_code ignore_ec;
-      socket.shutdown(asio::ip::tcp::socket::shutdown_both, ignore_ec);
-      socket.close(ignore_ec);
-      if (IF_DEBUG)
-      {
-        std::cout << "[Proxy" << m_self_node_id << "][Append139]"
-                  << "Append to " << block_key << " with length of " << slice_size << std::endl;
-      }
+      return true;
     }
     catch (const std::exception &e)
     {
-      std::cerr << e.what() << '\n';
+      std::cerr << "Append failed for " << block_key << " on " << endpoint << ": " << e.what() << std::endl;
       return false;
     }
-
-    return true;
   }
 
   bool ProxyImpl::RecoveryToDatanode(const char *block_key, int block_id, const char *buf, const char *ip, int port)
@@ -921,25 +972,28 @@ namespace ECProject
 
         std::vector<char *> slices = m_toolbox->splitCharPointer(append_buf.data(), placement_copy);
 
-        auto append_to_datanode = [this](const char *block_key, int block_id, size_t slice_size, const char *slice_buf, int slice_offset, const char *ip, int port, bool is_serialized)
+        std::vector<uint8_t> append_results(slice_num, 0);
+        auto append_to_datanode = [this, &append_results](int index, const char *block_key, int block_id, size_t slice_size, const char *slice_buf, int slice_offset, const char *ip, int port, bool is_serialized)
         {
           if (IF_DEBUG)
           {
             std::cout << "[Proxy" << m_self_node_id << "][Append353]"
                       << "Append to Block " << block_key << " of block_id " << block_id << " at the offset of " << slice_offset << " with length of " << slice_size << std::endl;
           }
-          AppendToDatanode(block_key, block_id, slice_size, slice_buf, slice_offset, ip, port, is_serialized);
+          append_results[index] = AppendToDatanode(block_key, block_id, slice_size, slice_buf,
+                                                    slice_offset, ip, port, is_serialized);
         };
 
         std::vector<std::thread> senders;
         for (int j = 0; j < slice_num; j++)
         {
-          senders.push_back(std::thread(append_to_datanode, placement_copy->blockkeys(j).c_str(), placement_copy->blockids(j), placement_copy->sizes(j), slices[j], placement_copy->offsets(j), placement_copy->datanodeip(j).c_str(), placement_copy->datanodeport(j), is_serialized));
+          senders.push_back(std::thread(append_to_datanode, j, placement_copy->blockkeys(j).c_str(), placement_copy->blockids(j), placement_copy->sizes(j), slices[j], placement_copy->offsets(j), placement_copy->datanodeip(j).c_str(), placement_copy->datanodeport(j), is_serialized));
         }
-        for (int j = 0; j < int(senders.size()); j++)
+        for (auto &sender : senders)
         {
-          senders[j].join();
+          sender.join();
         }
+        bool append_ok = std::all_of(append_results.begin(), append_results.end(), [](uint8_t result) { return result != 0; });
 
         if (IF_DEBUG)
         {
@@ -953,7 +1007,7 @@ namespace ECProject
           {
             if (placement_copy->blockids(j) >= m_sys_config->k)
             {
-              MergeParityOnDatanode(placement_copy->blockkeys(j).c_str(), placement_copy->blockids(j), placement_copy->datanodeip(j).c_str(), placement_copy->datanodeport(j), placement_copy->append_mode());
+              append_ok = MergeParityOnDatanode(placement_copy->blockkeys(j).c_str(), placement_copy->blockids(j), placement_copy->datanodeip(j).c_str(), placement_copy->datanodeport(j), placement_copy->append_mode()) && append_ok;
             }
           }
 
@@ -972,7 +1026,7 @@ namespace ECProject
         commit_abort_key.set_opp(opp);
         commit_abort_key.set_key(placement_copy->key());
         commit_abort_key.set_stripe_id(stripe_id);
-        commit_abort_key.set_ifcommitmetadata(true);
+        commit_abort_key.set_ifcommitmetadata(append_ok);
         grpc::Status status;
         status = m_coordinator_ptr->reportCommitAbort(&context, commit_abort_key, &result);
         if (status.ok() && IF_DEBUG)

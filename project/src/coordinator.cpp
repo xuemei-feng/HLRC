@@ -620,6 +620,7 @@ namespace ECProject
     {
       m_mutex.lock();
       m_object_commit_table.erase(plan.key());
+      m_object_abort_table.erase(plan.key());
       m_mutex.unlock();
     }
 
@@ -778,6 +779,7 @@ namespace ECProject
     {
       m_mutex.lock();
       m_object_commit_table.erase(plan.key());
+      m_object_abort_table.erase(plan.key());
       m_mutex.unlock();
     }
 
@@ -840,6 +842,7 @@ namespace ECProject
     {
       m_mutex.lock();
       m_object_commit_table.erase(plan.key());
+      m_object_abort_table.erase(plan.key());
       m_mutex.unlock();
     }
 
@@ -4246,6 +4249,8 @@ namespace ECProject
       else
       {
         m_object_updating_table.erase(key);
+        m_object_abort_table.insert(key);
+        cv.notify_all();
       }
     }
     catch (std::exception &e)
@@ -4267,9 +4272,15 @@ namespace ECProject
     int stripe_id = key_opp->stripe_id();
     if (opp == SET || opp == APPEND)
     {
-      while (m_object_commit_table.find(key) == m_object_commit_table.end())
+      while (m_object_commit_table.find(key) == m_object_commit_table.end() &&
+             m_object_abort_table.find(key) == m_object_abort_table.end())
       {
         cv.wait(lck);
+      }
+      if (m_object_abort_table.erase(key) > 0)
+      {
+        reply->set_ifcommit(false);
+        return grpc::Status::OK;
       }
     }
     else if (opp == DEL)

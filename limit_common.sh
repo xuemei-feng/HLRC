@@ -1,7 +1,9 @@
 #!/bin/bash
 # Shared helpers for proxy-to-proxy bandwidth limiting with Linux tc and IFB.
-# Outbound traffic is classified on the physical interface by destination IP/port.
-# Inbound traffic is redirected to IFB and classified by source IP and destination port.
+# Outbound traffic is classified on the physical interface by peer IP + sport/dport.
+# Inbound traffic is redirected to IFB and classified by peer IP + sport/dport.
+# Matching both sport and dport is required so request and response bulk payloads
+# (peer Get/Put return path uses an ephemeral client port) are rate-limited.
 
 IFB_DEV="${IFB_DEV:-ifb0}"
 PROXY_DATA_PORT_SHIFT=1000
@@ -184,10 +186,17 @@ add_proxy_filters() {
     for remote_ip in "$@"; do
         [ "$remote_ip" = "$local_ip" ] && continue
         for port in "${ports[@]}"; do
+            # Request path: local -> remote:proxy_port (dport match).
             tc filter add dev "$dev" protocol ip parent "$parent" prio 10 u32 \
                 match ip protocol 6 0xff \
                 match ip "$address_field" "$remote_ip/32" \
                 match ip dport "$port" 0xffff \
+                flowid 1:10 || return 1
+            # Response / bulk return path: remote:proxy_port -> local:ephemeral (sport match).
+            tc filter add dev "$dev" protocol ip parent "$parent" prio 10 u32 \
+                match ip protocol 6 0xff \
+                match ip "$address_field" "$remote_ip/32" \
+                match ip sport "$port" 0xffff \
                 flowid 1:10 || return 1
         done
     done
@@ -238,7 +247,64 @@ apply_bandwidth_limits() {
         return 1
     fi
 
-    echo "ok | proxy=$local_ip iface=$iface | proxy-to-proxy=${label} aggregate | ports=${PROXY_PORT},$((PROXY_PORT + PROXY_DATA_PORT_SHIFT)),$((PROXY_PORT + PROXY_PEER_PORT_SHIFT)) | egress+ingress"
+    echo "ok | proxy=$local_ip iface=$iface | proxy-to-proxy=${label} aggregate | ports=${PROXY_PORT},$((PROXY_PORT + PROXY_DATA_PORT_SHIFT)),$((PROXY_PORT + PROXY_PEER_PORT_SHIFT)) sport+dport | egress+ingress"
+}
+
+# Sync the limit/unlimit runtime onto each proxy's ssh.remote_root.
+# cluster_remote.sh deploy only ships project binaries/config, so limit scripts
+# must be pushed explicitly before pdsh runs them under /opt/hlrc (or similar).
+sync_limit_runtime_to_proxies() {
+    local script_dir="$1" config_file hosts_file
+    local user port remote_root rsync_ssh host
+    local -a sync_files
+
+    config_file="${script_dir}/project/config/cluster.ini"
+    load_proxy_topology "$config_file" "$script_dir" || return 1
+
+    hosts_file="${script_dir}/proxy_hosts"
+    {
+        echo "# proxy hosts"
+        printf '%s\n' "${PROXY_IPS[@]}"
+    } >"$hosts_file"
+
+    user=$(get_ini ssh user "$config_file")
+    port=$(get_ini ssh port "$config_file")
+    remote_root=$(get_ini ssh remote_root "$config_file")
+    user="${user:-root}"
+    port="${port:-22}"
+    remote_root="${remote_root:-$script_dir}"
+    rsync_ssh="ssh -p $port -o BatchMode=yes -o ConnectTimeout=8 -o StrictHostKeyChecking=accept-new"
+
+    sync_files=(
+        "$script_dir/limit.sh"
+        "$script_dir/limit_common.sh"
+        "$script_dir/unlimit.sh"
+        "$script_dir/limit_0.5Gb.sh"
+        "$script_dir/limit_1Gb.sh"
+        "$script_dir/limit_2Gb.sh"
+        "$script_dir/limit_5Gb.sh"
+        "$script_dir/limit_10Gb.sh"
+    )
+
+    echo ">> sync limit runtime to ${#PROXY_IPS[@]} proxy hosts under $remote_root ..."
+    local pids=() host_status=0
+    for host in "${PROXY_IPS[@]}"; do
+        (
+            ssh -p "$port" -o BatchMode=yes -o ConnectTimeout=8 -o StrictHostKeyChecking=accept-new \
+                "$user@$host" "mkdir -p '$remote_root/project/config'" || exit 1
+            rsync -a -e "$rsync_ssh" "${sync_files[@]}" "$user@$host:$remote_root/" || exit 1
+            rsync -a -e "$rsync_ssh" \
+                "$script_dir/project/config/cluster.ini" \
+                "$script_dir/project/config/ip_layout.py" \
+                "$script_dir/project/config/storage_nodes" \
+                "$user@$host:$remote_root/project/config/" || exit 1
+        ) &
+        pids+=("$!")
+    done
+    for pid in "${pids[@]}"; do
+        wait "$pid" || host_status=1
+    done
+    [ "$host_status" -eq 0 ] || return 1
 }
 
 run_limit_all_remote() {
@@ -247,14 +313,9 @@ run_limit_all_remote() {
 
     script_dir="$(cd "$(dirname "$0")" && pwd)"
     config_file="${script_dir}/project/config/cluster.ini"
-    load_proxy_topology "$config_file" "$script_dir" || return 1
+    sync_limit_runtime_to_proxies "$script_dir" || return 1
 
     hosts_file="${script_dir}/proxy_hosts"
-    if [ ! -f "$hosts_file" ]; then
-        echo "Proxy hosts file not found: $hosts_file; run generate_xml_from_ini.py first" >&2
-        return 1
-    fi
-
     user=$(get_ini ssh user "$config_file")
     port=$(get_ini ssh port "$config_file")
     remote_root=$(get_ini ssh remote_root "$config_file")
@@ -267,6 +328,33 @@ run_limit_all_remote() {
     pdsh_output=$(sudo pdsh -R ssh -w ^"$hosts_file" -l "$user" -f 5 -x "-p $port" "$remote_cmd" 2>&1)
     echo "$pdsh_output"
     if echo "$pdsh_output" | grep -qE 'ssh exited with exit code|fail \||Bandwidth limiting requires|Invalid topology'; then
+        echo ">> failed on some proxy hosts" >&2
+        return 1
+    fi
+    echo ">> done"
+}
+
+run_unlimit_all_remote() {
+    local script_dir config_file hosts_file
+    local user port remote_root remote_cmd pdsh_output
+
+    script_dir="$(cd "$(dirname "$0")" && pwd)"
+    config_file="${script_dir}/project/config/cluster.ini"
+    sync_limit_runtime_to_proxies "$script_dir" || return 1
+
+    hosts_file="${script_dir}/proxy_hosts"
+    user=$(get_ini ssh user "$config_file")
+    port=$(get_ini ssh port "$config_file")
+    remote_root=$(get_ini ssh remote_root "$config_file")
+    user="${user:-root}"
+    port="${port:-22}"
+    remote_root="${remote_root:-$script_dir}"
+    remote_cmd="cd '$remote_root' && bash unlimit.sh"
+
+    echo ">> clear proxy bandwidth limits ..."
+    pdsh_output=$(sudo pdsh -R ssh -w ^"$hosts_file" -l "$user" -f 5 -x "-p $port" "$remote_cmd" 2>&1)
+    echo "$pdsh_output"
+    if echo "$pdsh_output" | grep -qE 'ssh exited with exit code|fail \|'; then
         echo ">> failed on some proxy hosts" >&2
         return 1
     fi

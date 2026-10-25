@@ -840,7 +840,7 @@ RequestToCoordinator::RequestToCoordinator(const RequestToCoordinator& from)
     _impl_.name_.Set("", GetArenaForAllocation());
   #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
   if (!from._internal_name().empty()) {
-    _this->_impl_.name_.Set(from._internal_name(),
+    _this->_impl_.name_.Set(from._internal_name(), 
       _this->GetArenaForAllocation());
   }
   // @@protoc_insertion_point(copy_constructor:coordinator_proto.RequestToCoordinator)
@@ -1043,7 +1043,7 @@ ReplyFromCoordinator::ReplyFromCoordinator(const ReplyFromCoordinator& from)
     _impl_.message_.Set("", GetArenaForAllocation());
   #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
   if (!from._internal_message().empty()) {
-    _this->_impl_.message_.Set(from._internal_message(),
+    _this->_impl_.message_.Set(from._internal_message(), 
       _this->GetArenaForAllocation());
   }
   // @@protoc_insertion_point(copy_constructor:coordinator_proto.ReplyFromCoordinator)
@@ -1248,7 +1248,7 @@ RequestProxyIPPort::RequestProxyIPPort(const RequestProxyIPPort& from)
     _impl_.key_.Set("", GetArenaForAllocation());
   #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
   if (!from._internal_key().empty()) {
-    _this->_impl_.key_.Set(from._internal_key(),
+    _this->_impl_.key_.Set(from._internal_key(), 
       _this->GetArenaForAllocation());
   }
   _impl_.append_mode_.InitDefault();
@@ -1256,7 +1256,7 @@ RequestProxyIPPort::RequestProxyIPPort(const RequestProxyIPPort& from)
     _impl_.append_mode_.Set("", GetArenaForAllocation());
   #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
   if (!from._internal_append_mode().empty()) {
-    _this->_impl_.append_mode_.Set(from._internal_append_mode(),
+    _this->_impl_.append_mode_.Set(from._internal_append_mode(), 
       _this->GetArenaForAllocation());
   }
   _this->_impl_.valuesizebytes_ = from._impl_.valuesizebytes_;
@@ -1527,7 +1527,7 @@ ReplyProxyIPPort::ReplyProxyIPPort(const ReplyProxyIPPort& from)
     _impl_.proxyip_.Set("", GetArenaForAllocation());
   #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
   if (!from._internal_proxyip().empty()) {
-    _this->_impl_.proxyip_.Set(from._internal_proxyip(),
+    _this->_impl_.proxyip_.Set(from._internal_proxyip(), 
       _this->GetArenaForAllocation());
   }
   _this->_impl_.proxyport_ = from._impl_.proxyport_;
@@ -1759,7 +1759,7 @@ CommitAbortKey::CommitAbortKey(const CommitAbortKey& from)
     _impl_.key_.Set("", GetArenaForAllocation());
   #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
   if (!from._internal_key().empty()) {
-    _this->_impl_.key_.Set(from._internal_key(),
+    _this->_impl_.key_.Set(from._internal_key(), 
       _this->GetArenaForAllocation());
   }
   ::memcpy(&_impl_.ifcommitmetadata_, &from._impl_.ifcommitmetadata_,
@@ -2427,7 +2427,7 @@ AskIfSuccess::AskIfSuccess(const AskIfSuccess& from)
     _impl_.key_.Set("", GetArenaForAllocation());
   #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
   if (!from._internal_key().empty()) {
-    _this->_impl_.key_.Set(from._internal_key(),
+    _this->_impl_.key_.Set(from._internal_key(), 
       _this->GetArenaForAllocation());
   }
   ::memcpy(&_impl_.opp_, &from._impl_.opp_,
@@ -2868,7 +2868,7 @@ KeyAndClientIP::KeyAndClientIP(const KeyAndClientIP& from)
     _impl_.key_.Set("", GetArenaForAllocation());
   #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
   if (!from._internal_key().empty()) {
-    _this->_impl_.key_.Set(from._internal_key(),
+    _this->_impl_.key_.Set(from._internal_key(), 
       _this->GetArenaForAllocation());
   }
   _impl_.clientip_.InitDefault();
@@ -2876,7 +2876,7 @@ KeyAndClientIP::KeyAndClientIP(const KeyAndClientIP& from)
     _impl_.clientip_.Set("", GetArenaForAllocation());
   #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
   if (!from._internal_clientip().empty()) {
-    _this->_impl_.clientip_.Set(from._internal_clientip(),
+    _this->_impl_.clientip_.Set(from._internal_clientip(), 
       _this->GetArenaForAllocation());
   }
   _this->_impl_.clientport_ = from._impl_.clientport_;
@@ -3361,7 +3361,7 @@ BlockIDsAndClientIP::BlockIDsAndClientIP(const BlockIDsAndClientIP& from)
     _impl_.clientip_.Set("", GetArenaForAllocation());
   #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
   if (!from._internal_clientip().empty()) {
-    _this->_impl_.clientip_.Set(from._internal_clientip(),
+    _this->_impl_.clientip_.Set(from._internal_clientip(), 
       _this->GetArenaForAllocation());
   }
   ::memcpy(&_impl_.start_block_id_, &from._impl_.start_block_id_,
@@ -3668,7 +3668,7 @@ KeyFromClient::KeyFromClient(const KeyFromClient& from)
     _impl_.key_.Set("", GetArenaForAllocation());
   #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
   if (!from._internal_key().empty()) {
-    _this->_impl_.key_.Set(from._internal_key(),
+    _this->_impl_.key_.Set(from._internal_key(), 
       _this->GetArenaForAllocation());
   }
   // @@protoc_insertion_point(copy_constructor:coordinator_proto.KeyFromClient)
@@ -4317,7 +4317,7 @@ MaintenanceReadRequest::MaintenanceReadRequest(const MaintenanceReadRequest& fro
     _impl_.clientip_.Set("", GetArenaForAllocation());
   #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
   if (!from._internal_clientip().empty()) {
-    _this->_impl_.clientip_.Set(from._internal_clientip(),
+    _this->_impl_.clientip_.Set(from._internal_clientip(), 
       _this->GetArenaForAllocation());
   }
   ::memcpy(&_impl_.stripe_id_, &from._impl_.stripe_id_,
@@ -6643,7 +6643,7 @@ RecoveryReply::RecoveryReply(const RecoveryReply& from)
     _impl_.maintenance_note_.Set("", GetArenaForAllocation());
   #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
   if (!from._internal_maintenance_note().empty()) {
-    _this->_impl_.maintenance_note_.Set(from._internal_maintenance_note(),
+    _this->_impl_.maintenance_note_.Set(from._internal_maintenance_note(), 
       _this->GetArenaForAllocation());
   }
   ::memcpy(&_impl_.disk_read_time_, &from._impl_.disk_read_time_,

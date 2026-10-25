@@ -2,8 +2,8 @@
 <Configuration>
     <AlignedSize>4096</AlignedSize>
     <UnitSize>8192</UnitSize>
-    <BlockSize>1048576</BlockSize>
-    <CoordinatorIP>127.0.0.1</CoordinatorIP>
+    <BlockSize>8388608</BlockSize>
+    <CoordinatorIP>172.16.2.34</CoordinatorIP>
     <CoordinatorPort>55555</CoordinatorPort>
     <AppendMode>UNILRC_MODE</AppendMode>
     <alpha>2</alpha>
@@ -11,6 +11,6 @@
     <k>24</k>
     <r>1</r>
     <z>4</z>
-    <NodeNum>108</NodeNum>
-    <ClientIP>127.0.0.1</ClientIP>
+    <NodeNum>29</NodeNum>
+    <ClientIP>172.16.2.33</ClientIP>
 </Configuration>

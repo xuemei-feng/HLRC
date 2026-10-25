@@ -231,6 +231,7 @@ namespace ECProject
     int m_cur_stripe_id = 0;
     std::unordered_map<std::string, ObjectInfo> m_object_commit_table;
     std::unordered_map<std::string, ObjectInfo> m_object_updating_table;
+    std::unordered_set<std::string> m_object_abort_table;
     std::map<int, Node> m_node_table;
     std::map<int, Stripe> m_stripe_table;
     std::map<std::string, StripeOffset> m_cur_offset_table;
@@ -278,6 +279,7 @@ namespace ECProject
       m_coordinatorImpl.m_cur_stripe_id = 0;
       m_coordinatorImpl.m_object_commit_table.clear();
       m_coordinatorImpl.m_object_updating_table.clear();
+      m_coordinatorImpl.m_object_abort_table.clear();
       for (auto it = m_coordinatorImpl.m_node_table.begin(); it != m_coordinatorImpl.m_node_table.end(); it++)
       {
         Node &t_node = it->second;

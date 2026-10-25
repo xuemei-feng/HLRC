@@ -76,6 +76,12 @@ case "$ACTION" in
     require_distributed
     for host in "${STORAGE_IPS[@]}"; do remote "$host" "pkill -9 run_datanode 2>/dev/null || true; pkill -9 run_proxy 2>/dev/null || true"; done
     remote "$COORD_IP" "pkill -9 run_coordinator 2>/dev/null || true"
+    hosts=("$CLIENT_IP" "$COORD_IP" "${STORAGE_IPS[@]}")
+    mapfile -t hosts < <(printf '%s\n' "${hosts[@]}" | awk '!seen[$0]++')
+    for host in "${hosts[@]}"; do
+      remote "$host" "rm -rf '$REMOTE_ROOT/storage' '$REMOTE_ROOT/project/cmake/build/storage'"
+    done
+    echo "Cluster stopped; storage cleaned on ${#hosts[@]} hosts."
     ;;
   status)
     require_distributed

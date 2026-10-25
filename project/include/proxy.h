@@ -112,6 +112,9 @@ namespace ECProject
     bool DelInDatanode(std::string key, std::string node_ip_port);
     bool PutToOwnerProxy(const std::string &proxy_ip, int proxy_port, const std::string &key,
                          int block_id, const char *data, size_t size, bool recovery);
+    bool AppendToOwnerProxy(const std::string &proxy_ip, int proxy_port, const std::string &key,
+                            int block_id, const char *data, size_t size, int append_offset,
+                            bool is_serialized);
     bool GetFromOwnerProxy(const std::string &proxy_ip, int proxy_port, const std::string &key,
                            char *data, size_t size);
     bool DeleteFromOwnerProxy(const std::string &proxy_ip, int proxy_port, const std::string &key);

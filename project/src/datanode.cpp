@@ -254,12 +254,12 @@ namespace ECProject
             if (block_id < m_sys_config->k)
             {
                 std::thread my_thread(dataBlockHandler, block_key, append_size, append_offset);
-                my_thread.detach();
+                my_thread.join();
             }
             else
             {
                 std::thread my_thread(ParityBlockHandler, block_key, append_size, append_offset, is_serialized);
-                my_thread.detach();
+                my_thread.join();
             }
             response->set_message(true);
         }
