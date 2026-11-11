@@ -78,6 +78,10 @@ namespace ECProject
     bool recovery_with_sources(int stripe_id, int failed_block_id,
                                const std::vector<int> &source_block_ids,
                                double &recovery_time);
+    bool multi_recovery_with_sources(
+        int stripe_id, const std::vector<std::vector<int>> &failed_block_ids,
+        const std::vector<std::vector<int>> &source_block_ids, double &recovery_time,
+        bool optimal_g0_d0_chain = false);
     bool double_recovery_with_sources(
         int stripe_id, const std::vector<std::vector<int>> &failed_block_ids,
         const std::vector<std::vector<int>> &source_block_ids, double &recovery_time,

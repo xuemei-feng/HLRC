@@ -200,6 +200,8 @@ namespace ECProject
     std::vector<int> get_local_parity_block_num_per_group(int k, int r, int z, const std::string &code_type);
 
     /* Per-code-type layout functions */
+    std::vector<int> get_azure_lrc_local_group_sizes(int k, int z);
+    std::vector<std::pair<int, int>> get_azure_lrc_local_group_bounds(int k, int z);
     std::vector<int> get_data_block_num_per_group_azurelrc(int k, int r, int z);
     std::vector<int> get_global_parity_block_num_per_group_azurelrc(int k, int r, int z);
     std::vector<int> get_local_parity_block_num_per_group_azurelrc(int k, int r, int z);

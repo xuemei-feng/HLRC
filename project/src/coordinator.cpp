@@ -32,6 +32,16 @@ inline int rand_num(int range)
   return num;
 };
 
+inline int get_azure_local_source_limit(int k, int r, int z, int failed_block_id)
+{
+  const auto sizes = ECProject::get_azure_lrc_local_group_sizes(k, z);
+  if (failed_block_id < k)
+    return sizes[ECProject::get_azurelrc_block_id_to_local_group_id(k, r, z, failed_block_id)];
+  if (failed_block_id >= k + r)
+    return sizes[failed_block_id - k - r];
+  return *std::max_element(sizes.begin(), sizes.end());
+}
+
 inline bool get_legacy_encode_type(const std::string &code_type, ECProject::EncodeType &encode_type)
 {
   if (code_type == "AzureLRC")
@@ -888,7 +898,7 @@ namespace ECProject
       }
       else
       {
-        recovery_group_ids.push_back(failed_block_id / (k / z));
+        recovery_group_ids.push_back(ECProject::get_azurelrc_block_id_to_local_group_id(k, r, z, failed_block_id));
       }
     }
     else if (code_type == "UniLRC")
@@ -1496,7 +1506,9 @@ namespace ECProject
           std::vector<int> blockids = t_stripe.group_to_blocks[recovery_group_ids[i]];
           for (int j = 0; j < int(blockids.size()); j++)
           {
-            if(m_sys_config->CodeType == "AzureLRC" && degraded_read_request.blockids_size() == (m_sys_config->k / m_sys_config->z))
+            if (m_sys_config->CodeType == "AzureLRC" &&
+                degraded_read_request.blockids_size() == get_azure_local_source_limit(
+                    m_sys_config->k, m_sys_config->r, m_sys_config->z, failed_block_id))
               break;
 
             if ((m_sys_config->CodeType == "AzureLRC" && blockids[j] >= m_sys_config->k + m_sys_config->r) || blockids[j] == failed_block_id)
@@ -1553,7 +1565,9 @@ namespace ECProject
         std::vector<int> blockids = t_stripe.group_to_blocks[dest_group_id];
         for (int i = 0; i < int(blockids.size()); i++)
         {
-          if(m_sys_config->CodeType == "AzureLRC" && recovery_request.blockids_size() == (m_sys_config->k / m_sys_config->z))
+          if (m_sys_config->CodeType == "AzureLRC" &&
+              recovery_request.blockids_size() == get_azure_local_source_limit(
+                  m_sys_config->k, m_sys_config->r, m_sys_config->z, failed_block_id))
             break;
 
           if (blockids[i] == failed_block_id)
@@ -2265,9 +2279,9 @@ namespace ECProject
       proxy_requests.push_back(std::move(proxy_request));
     }
 
-    if (all_failed.size() != 2)
+    if (all_failed.size() < 2)
       return finish(grpc::Status(grpc::StatusCode::INVALID_ARGUMENT,
-                                 "custom double recovery requires exactly two failed blocks"));
+                                 "custom multi recovery requires at least two failed blocks"));
 
     std::vector<proxy_proto::proxyService::Stub *> destination_stubs;
     destination_stubs.reserve(destination_proxies.size());
@@ -2298,7 +2312,7 @@ namespace ECProject
     for (const auto &status : statuses)
       if (!status.ok())
         return finish(grpc::Status(grpc::StatusCode::INTERNAL,
-                                   "custom double recovery failed: " + status.error_message()));
+                                   "custom multi recovery failed: " + status.error_message()));
     return finish(grpc::Status::OK);
   }
 
@@ -2416,7 +2430,9 @@ namespace ECProject
           std::vector<int> blockids = t_stripe.group_to_blocks[recovery_group_ids[i]];
           for (int j = 0; j < int(blockids.size()); j++)
           {
-            if(m_sys_config->CodeType == "AzureLRC" && degraded_read_request.blockids_size() == (m_sys_config->k / m_sys_config->z))
+            if (m_sys_config->CodeType == "AzureLRC" &&
+                degraded_read_request.blockids_size() == get_azure_local_source_limit(
+                    m_sys_config->k, m_sys_config->r, m_sys_config->z, failed_block_id))
               break;
 
             if ((m_sys_config->CodeType == "AzureLRC" && blockids[j] >= m_sys_config->k + m_sys_config->r) || blockids[j] == failed_block_id)
@@ -2467,7 +2483,9 @@ namespace ECProject
         std::vector<int> blockids = t_stripe.group_to_blocks[dest_group_id];
         for (int i = 0; i < int(blockids.size()); i++)
         {
-          if(m_sys_config->CodeType == "AzureLRC" && recovery_request.blockids_size() == (m_sys_config->k / m_sys_config->z))
+          if (m_sys_config->CodeType == "AzureLRC" &&
+              recovery_request.blockids_size() == get_azure_local_source_limit(
+                  m_sys_config->k, m_sys_config->r, m_sys_config->z, failed_block_id))
             break;
 
           if (blockids[i] == failed_block_id)

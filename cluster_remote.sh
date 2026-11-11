@@ -90,8 +90,8 @@ case "$ACTION" in
     ;;
   benchmark)
     require_distributed
-    K="${3:?Usage: $0 benchmark CONFIG K single|double|multi}"; FAILURE="${4:?missing failure type}"
+    K="${3:?Usage: $0 benchmark CONFIG K single|double|triple|quadruple}"; FAILURE="${4:?missing failure type}"
     remote "$CLIENT_IP" "cd '$REMOTE_ROOT'; env LD_LIBRARY_PATH='$RUNTIME_LIB' ./project/cmake/build/repair_benchmark '$K' '$FAILURE'"
     ;;
-  *) echo "Usage: $0 {generate|deploy|start|stop|status} [cluster.ini]"; echo "       $0 benchmark [cluster.ini] K {single|double|multi}"; exit 2;;
+  *) echo "Usage: $0 {generate|deploy|start|stop|status} [cluster.ini]"; echo "       $0 benchmark [cluster.ini] K {single|double|triple|quadruple}"; exit 2;;
 esac

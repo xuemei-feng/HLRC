@@ -378,9 +378,10 @@ void ECProject::gen_azure_lrc_matrix(unsigned char *encode_matrix, int k, int r,
     int m = k + r;
     memset(encode_matrix, 0, (m + z) * k);
     gf_gen_rs_matrix1(encode_matrix, m, k);
-    for(int i = 0; i < k; i++){
-        int row = i / (k / z);
-        encode_matrix[(m + row) * k + i] = 1;
+    const auto bounds = get_azure_lrc_local_group_bounds(k, z);
+    for (int group = 0; group < z; ++group) {
+        for (int i = bounds[group].first; i < bounds[group].second; ++i)
+            encode_matrix[(m + group) * k + i] = 1;
     }
 }
 

@@ -674,7 +674,7 @@ namespace ECProject
     return true;
   }
 
-  bool Client::double_recovery_with_sources(
+  bool Client::multi_recovery_with_sources(
       int stripe_id, const std::vector<std::vector<int>> &failed_block_ids,
       const std::vector<std::vector<int>> &source_block_ids, double &recovery_time,
       bool optimal_g0_d0_chain)
@@ -701,11 +701,20 @@ namespace ECProject
     recovery_time = reply.custom_recovery_time();
     if (!status.ok())
     {
-      std::cout << "[Client] custom double recovery failed: "
+      std::cout << "[Client] custom multi recovery failed: "
                 << status.error_message() << std::endl;
       return false;
     }
     return true;
+  }
+
+  bool Client::double_recovery_with_sources(
+      int stripe_id, const std::vector<std::vector<int>> &failed_block_ids,
+      const std::vector<std::vector<int>> &source_block_ids, double &recovery_time,
+      bool optimal_g0_d0_chain)
+  {
+    return multi_recovery_with_sources(stripe_id, failed_block_ids, source_block_ids,
+                                       recovery_time, optimal_g0_d0_chain);
   }
 
   bool Client::recovery_breakdown(int stripe_id, int failed_block_id, double &disk_read_time, double &network_time, double &decode_time, double &disk_write_time)

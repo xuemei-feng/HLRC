@@ -1,4 +1,5 @@
 #include <lrc.h>
+#include <encoder.h>
 
 void ECProject::dfs(std::vector<int> temp, std::shared_ptr<std::vector<std::vector<int>>> ans, int cur, int n, int k)
 {
@@ -74,13 +75,27 @@ bool ECProject::lrc_make_matrix(int k, int g, int real_l, int *final_matrix, Enc
         }
     }
 
-    for (int i = 0; i < real_l; i++)
+    if (encode_type == Azure_LRC)
     {
-        for (int j = 0; j < k; j++)
+        const auto bounds = get_azure_lrc_local_group_bounds(k, real_l);
+        for (int i = 0; i < real_l; i++)
         {
-            if (i * r <= j && j < (i + 1) * r)
+            for (int j = bounds[i].first; j < bounds[i].second; j++)
             {
                 final_matrix[(i + g) * k + j] = 1;
+            }
+        }
+    }
+    else
+    {
+        for (int i = 0; i < real_l; i++)
+        {
+            for (int j = 0; j < k; j++)
+            {
+                if (i * r <= j && j < (i + 1) * r)
+                {
+                    final_matrix[(i + g) * k + j] = 1;
+                }
             }
         }
     }

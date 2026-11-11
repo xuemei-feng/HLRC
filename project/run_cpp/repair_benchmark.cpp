@@ -1,5 +1,7 @@
 #include "client.h"
 #include "config.h"
+#include "encoder.h"
+#include "repair_benchmark_plan.h"
 
 #include <algorithm>
 #include <chrono>
@@ -13,25 +15,11 @@
 
 namespace {
 
-struct RepairCase
-{
-  std::string failed_name;
-  int failed_block_id;
-  std::vector<int> source_block_ids;
-};
-
-struct RepairTask
-{
-  std::vector<int> failed_block_ids;
-  std::vector<int> source_block_ids;
-};
-
-struct DoubleRepairCase
-{
-  std::string failed_name;
-  std::vector<RepairTask> tasks;
-  bool optimal_g0_d0_chain = false;
-};
+using ECProject::RepairBenchmark::DoubleRepairCase;
+using ECProject::RepairBenchmark::TripleRepairCase;
+using ECProject::RepairBenchmark::QuadrupleRepairCase;
+using ECProject::RepairBenchmark::RepairCase;
+using ECProject::RepairBenchmark::RepairTask;
 
 struct RepairPlan
 {
@@ -41,6 +29,8 @@ struct RepairPlan
   int required_z = 0;
   std::vector<RepairCase> single_cases;
   std::vector<DoubleRepairCase> double_cases;
+  std::vector<TripleRepairCase> triple_cases;
+  std::vector<QuadrupleRepairCase> quadruple_cases;
 };
 
 void append_range(std::vector<int> &ids, int first, int last)
@@ -343,33 +333,6 @@ std::vector<RepairCase> make_azure_k72_single_block_cases(int r)
   return cases;
 }
 
-std::vector<RepairCase> make_azure_k96_single_block_cases(int r)
-{
-  const int first_local_parity_id = 96 + r;
-  std::vector<RepairCase> cases;
-
-  RepairCase l0{"L0", first_local_parity_id, {}};
-  append_range(l0.source_block_ids, 0, 23);
-  cases.push_back(l0);
-
-  RepairCase g0{"G0", 96, {}};
-  append_range(g0.source_block_ids, 0, 95);
-  cases.push_back(g0);
-
-  return cases;
-}
-
-std::vector<DoubleRepairCase> make_azure_k96_double_block_cases()
-{
-  std::vector<DoubleRepairCase> cases;
-
-  RepairTask g0_g1{{96, 97}, {}};
-  append_range(g0_g1.source_block_ids, 0, 95);
-  cases.push_back({"G0+G1", {g0_g1}});
-
-  return cases;
-}
-
 std::vector<DoubleRepairCase> make_azure_k72_double_block_cases()
 {
   std::vector<DoubleRepairCase> cases;
@@ -600,6 +563,44 @@ bool make_repair_plan(const std::string &code_type, int k,
   plan.code_type = code_type;
   plan.k = k;
 
+  if (failure_type == "triple")
+  {
+    if (code_type != "AzureLRC" || k != 64)
+    {
+      error = "no repair plan is registered for CodeType=" + code_type +
+              ", k=" + std::to_string(k) + ", failure=triple";
+      return false;
+    }
+    plan.required_r = 3;
+    plan.required_z = 3;
+    if (configured_r != plan.required_r)
+    {
+      error = "AzureLRC k=64 triple requires r=3";
+      return false;
+    }
+    plan.triple_cases = ECProject::RepairBenchmark::make_azure_k64_triple_block_cases();
+    return true;
+  }
+
+  if (failure_type == "quadruple")
+  {
+    if (code_type != "AzureLRC" || k != 64)
+    {
+      error = "no repair plan is registered for CodeType=" + code_type +
+              ", k=" + std::to_string(k) + ", failure=quadruple";
+      return false;
+    }
+    plan.required_r = 3;
+    plan.required_z = 3;
+    if (configured_r != plan.required_r)
+    {
+      error = "AzureLRC k=64 quadruple requires r=3";
+      return false;
+    }
+    plan.quadruple_cases = ECProject::RepairBenchmark::make_azure_k64_quadruple_block_cases();
+    return true;
+  }
+
   if (code_type == "AzureLRC")
   {
     if (k == 24)
@@ -621,6 +622,23 @@ bool make_repair_plan(const std::string &code_type, int k,
         plan.single_cases = make_azure_k24_single_block_cases(configured_r);
       else
         plan.double_cases = make_azure_k24_double_block_cases();
+      return true;
+    }
+
+    if ((k == 64 || k == 128) && (failure_type == "single" || failure_type == "double"))
+    {
+      plan.required_r = 3;
+      plan.required_z = (k == 64 ? 3 : 5);
+      if (configured_r != plan.required_r)
+      {
+        error = "AzureLRC k=" + std::to_string(k) + " requires r=3";
+        return false;
+      }
+      if (failure_type == "single")
+        plan.single_cases = ECProject::RepairBenchmark::make_azure_uneven_single_block_cases(
+            k, configured_r, plan.required_z);
+      else
+        plan.double_cases = ECProject::RepairBenchmark::make_azure_double_block_cases(k);
       return true;
     }
 
@@ -658,17 +676,18 @@ bool make_repair_plan(const std::string &code_type, int k,
 
     if (k == 96 && (failure_type == "single" || failure_type == "double"))
     {
-      plan.required_r = 5;
+      plan.required_r = 3;
       plan.required_z = 4;
       if (configured_r != plan.required_r)
       {
-        error = "AzureLRC k=96 requires r=5";
+        error = "AzureLRC k=96 requires r=3";
         return false;
       }
       if (failure_type == "single")
-        plan.single_cases = make_azure_k96_single_block_cases(configured_r);
+        plan.single_cases = ECProject::RepairBenchmark::make_azure_uneven_single_block_cases(
+            k, configured_r, plan.required_z);
       else
-        plan.double_cases = make_azure_k96_double_block_cases();
+        plan.double_cases = ECProject::RepairBenchmark::make_azure_double_block_cases(k);
       return true;
     }
 
@@ -868,12 +887,7 @@ bool make_repair_plan(const std::string &code_type, int k,
 
 bool is_supported_k(int k)
 {
-  return k == 24 || k == 48 || k == 72 || k == 96;
-}
-
-bool is_supported_failure_type(const std::string &failure_type)
-{
-  return failure_type == "single" || failure_type == "double" || failure_type == "multi";
+  return k == 24 || k == 48 || k == 64 || k == 72 || k == 96 || k == 128;
 }
 
 std::string config_path_from_executable(const char *argv0)
@@ -908,7 +922,7 @@ int main(int argc, char **argv)
 {
   if (argc != 3)
   {
-    std::cerr << "Usage: " << argv[0] << " <24|48|72|96> <single|double|multi>" << std::endl;
+    std::cerr << "Usage: " << argv[0] << " <24|48|64|72|96|128> <single|double|triple|quadruple>" << std::endl;
     return 2;
   }
 
@@ -922,7 +936,7 @@ int main(int argc, char **argv)
   }
   catch (const std::exception &)
   {
-    std::cerr << "Error: encoding parameter must be one of 24, 48, 72, or 96." << std::endl;
+    std::cerr << "Error: encoding parameter must be one of 24, 48, 64, 72, 96, or 128." << std::endl;
     return 2;
   }
 
@@ -930,13 +944,13 @@ int main(int argc, char **argv)
   if (!is_supported_k(requested_k))
   {
     std::cerr << "Error: unsupported encoding parameter " << requested_k
-              << "; expected 24, 48, 72, or 96." << std::endl;
+              << "; expected 24, 48, 64, 72, 96, or 128." << std::endl;
     return 2;
   }
-  if (!is_supported_failure_type(failure_type))
+  if (!ECProject::RepairBenchmark::is_supported_failure_type(failure_type))
   {
     std::cerr << "Error: unsupported failure type '" << failure_type
-              << "'; expected single, double, or multi." << std::endl;
+              << "'; expected single, double, triple, or quadruple." << std::endl;
     return 2;
   }
 
@@ -1028,7 +1042,7 @@ int main(int argc, char **argv)
       }
     }
   }
-  else
+  else if (failure_type == "double")
   {
     for (const DoubleRepairCase &test_case : repair_plan.double_cases)
     {
@@ -1050,6 +1064,68 @@ int main(int argc, char **argv)
       const bool succeeded = client.double_recovery_with_sources(
           stripe_id, failed_ids, source_ids, recovery_time,
           test_case.optimal_g0_d0_chain);
+      if (succeeded)
+        std::cout << "Result [" << repair_plan.code_type << "] " << test_case.failed_name << ": " << recovery_time << " s" << std::endl;
+      else
+      {
+        std::cout << "Result [" << repair_plan.code_type << "] " << test_case.failed_name << ": FAILED after "
+                  << recovery_time << " s" << std::endl;
+        all_succeeded = false;
+      }
+    }
+  }
+  else if (failure_type == "triple")
+  {
+    for (const TripleRepairCase &test_case : repair_plan.triple_cases)
+    {
+      std::cout << "Case " << test_case.failed_name << std::endl;
+      std::vector<std::vector<int>> failed_ids;
+      std::vector<std::vector<int>> source_ids;
+      for (const RepairTask &task : test_case.tasks)
+      {
+        std::cout << "  task failed=[";
+        print_ids(task.failed_block_ids);
+        std::cout << "], sources=[";
+        print_ids(task.source_block_ids);
+        std::cout << "]" << std::endl;
+        failed_ids.push_back(task.failed_block_ids);
+        source_ids.push_back(task.source_block_ids);
+      }
+
+      double recovery_time = 0.0;
+      const bool succeeded = client.multi_recovery_with_sources(
+          stripe_id, failed_ids, source_ids, recovery_time);
+      if (succeeded)
+        std::cout << "Result [" << repair_plan.code_type << "] " << test_case.failed_name << ": " << recovery_time << " s" << std::endl;
+      else
+      {
+        std::cout << "Result [" << repair_plan.code_type << "] " << test_case.failed_name << ": FAILED after "
+                  << recovery_time << " s" << std::endl;
+        all_succeeded = false;
+      }
+    }
+  }
+  else if (failure_type == "quadruple")
+  {
+    for (const QuadrupleRepairCase &test_case : repair_plan.quadruple_cases)
+    {
+      std::cout << "Case " << test_case.failed_name << std::endl;
+      std::vector<std::vector<int>> failed_ids;
+      std::vector<std::vector<int>> source_ids;
+      for (const RepairTask &task : test_case.tasks)
+      {
+        std::cout << "  task failed=[";
+        print_ids(task.failed_block_ids);
+        std::cout << "], sources=[";
+        print_ids(task.source_block_ids);
+        std::cout << "]" << std::endl;
+        failed_ids.push_back(task.failed_block_ids);
+        source_ids.push_back(task.source_block_ids);
+      }
+
+      double recovery_time = 0.0;
+      const bool succeeded = client.multi_recovery_with_sources(
+          stripe_id, failed_ids, source_ids, recovery_time);
       if (succeeded)
         std::cout << "Result [" << repair_plan.code_type << "] " << test_case.failed_name << ": " << recovery_time << " s" << std::endl;
       else

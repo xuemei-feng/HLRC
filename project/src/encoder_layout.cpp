@@ -58,42 +58,123 @@ namespace ECProject
   }
 
   /* ----- AzureLRC ----- */
-  std::vector<int> get_data_block_num_per_group_azurelrc(int k, int r, int z)
+  std::vector<int> get_azure_lrc_local_group_sizes(int k, int z)
   {
-    return get_data_block_num_per_group_optimal_lrc(k, r, z);
+    if (k <= 0 || z <= 0 || z > k)
+      throw std::invalid_argument("AzureLRC requires 0 < z <= k");
+    std::vector<int> sizes(z, k / z);
+    const int remainder = k % z;
+    for (int group = z - remainder; group < z; ++group)
+      sizes[group]++;
+    return sizes;
   }
 
-  std::vector<int> get_global_parity_block_num_per_group_azurelrc(int k, int r, int z)
+  std::vector<std::pair<int, int>> get_azure_lrc_local_group_bounds(int k, int z)
   {
-    return get_global_parity_block_num_per_group_optimal_lrc(k, r, z);
+    std::vector<std::pair<int, int>> bounds;
+    int begin = 0;
+    for (int size : get_azure_lrc_local_group_sizes(k, z))
+    {
+      bounds.push_back({begin, begin + size});
+      begin += size;
+    }
+    return bounds;
   }
 
-  std::vector<int> get_local_parity_block_num_per_group_azurelrc(int k, int r, int z)
+  namespace
   {
-    return get_local_parity_block_num_per_group_optimal_lrc(k, r, z); // AzureLRC is the same as OptimalLRC
-  }
-
-  std::unordered_map<int, int> get_azurelrc_block_id_to_group_id(int k, int r, int z)
-  {
-    return get_optimal_lrc_block_id_to_group_id(k, r, z);
+    std::vector<int> get_azure_lrc_groups_per_local_group(int k, int r, int z)
+    {
+      std::vector<int> result;
+      for (int data_size : get_azure_lrc_local_group_sizes(k, z))
+        result.push_back((data_size + 1 + r) / (r + 1));
+      return result;
+    }
   }
 
   std::unordered_map<int, std::vector<int>> get_azurelrc_group_id_to_block_ids(int k, int r, int z)
   {
-    return get_optimal_lrc_group_id_to_block_ids(k, r, z);
+    std::unordered_map<int, std::vector<int>> groups;
+    const auto bounds = get_azure_lrc_local_group_bounds(k, z);
+    const auto group_counts = get_azure_lrc_groups_per_local_group(k, r, z);
+    int group_id = 0;
+    for (int local = 0; local < z; ++local)
+    {
+      const int slots = bounds[local].second - bounds[local].first + 1;
+      const int count = group_counts[local];
+      const int base = slots / count;
+      const int extra = slots % count;
+      int data_id = bounds[local].first;
+      for (int part = 0; part < count; ++part)
+      {
+        const int part_slots = base + (part < extra ? 1 : 0);
+        const bool last = part == count - 1;
+        const int data_slots = part_slots - (last ? 1 : 0);
+        for (int i = 0; i < data_slots; ++i)
+          groups[group_id].push_back(data_id++);
+        if (last)
+          groups[group_id].push_back(k + r + local);
+        group_id++;
+      }
+    }
+    for (int global = 0; global < r; ++global)
+      groups[group_id].push_back(k + global);
+    return groups;
+  }
+
+  std::unordered_map<int, int> get_azurelrc_block_id_to_group_id(int k, int r, int z)
+  {
+    std::unordered_map<int, int> result;
+    for (const auto &entry : get_azurelrc_group_id_to_block_ids(k, r, z))
+      for (int block_id : entry.second)
+        result[block_id] = entry.first;
+    return result;
+  }
+
+  std::vector<int> get_data_block_num_per_group_azurelrc(int k, int r, int z)
+  {
+    std::vector<int> result;
+    const auto groups = get_azurelrc_group_id_to_block_ids(k, r, z);
+    for (size_t group = 0; group < groups.size(); ++group)
+      result.push_back(std::count_if(groups.at(group).begin(), groups.at(group).end(),
+                                     [k](int id) { return id < k; }));
+    return result;
+  }
+
+  std::vector<int> get_global_parity_block_num_per_group_azurelrc(int k, int r, int z)
+  {
+    std::vector<int> result;
+    const auto groups = get_azurelrc_group_id_to_block_ids(k, r, z);
+    for (size_t group = 0; group < groups.size(); ++group)
+      result.push_back(std::count_if(groups.at(group).begin(), groups.at(group).end(),
+                                     [k, r](int id) { return id >= k && id < k + r; }));
+    return result;
+  }
+
+  std::vector<int> get_local_parity_block_num_per_group_azurelrc(int k, int r, int z)
+  {
+    std::vector<int> result;
+    const auto groups = get_azurelrc_group_id_to_block_ids(k, r, z);
+    for (size_t group = 0; group < groups.size(); ++group)
+      result.push_back(std::count_if(groups.at(group).begin(), groups.at(group).end(),
+                                     [k, r](int id) { return id >= k + r; }));
+    return result;
   }
 
   int get_azurelrc_block_id_to_local_group_id(int k, int r, int z, int block_id)
   {
-    int local_group_size = k / z;
-    if(block_id < k)
-      return block_id / local_group_size;
-    else if(block_id < k + r)
-      return -1; // global parity blocks do not belong to any local group, return -1 to indicate this
-    else
-      return (block_id - k - r);
-    throw std::runtime_error("block id is out of range");
-    return -1;
+    if (block_id < 0 || block_id >= k + r + z)
+      throw std::runtime_error("block id is out of range");
+    if (block_id < k)
+    {
+      const auto bounds = get_azure_lrc_local_group_bounds(k, z);
+      for (int group = 0; group < z; ++group)
+        if (block_id < bounds[group].second)
+          return group;
+    }
+    if (block_id < k + r)
+      return -1;
+    return block_id - k - r;
   }
 
   /* ----- OptimalLRC ----- */
