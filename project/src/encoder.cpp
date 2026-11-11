@@ -392,9 +392,10 @@ void ECProject::gen_optimal_lrc_matrix(unsigned char *encode_matrix, int k, int 
     gf_gen_cauchy_matrix1(encode_matrix, m, k);
     unsigned char *local_vector = new unsigned char[k];
     gf_gen_local_vector(local_vector, k, r);
-    for(int i = 0; i < k; i++){
-        int row = i / (k / z);
-        encode_matrix[(m + row) * k + i] = local_vector[i];
+    const auto bounds = get_optimal_lrc_local_group_bounds(k, z);
+    for (int group = 0; group < z; ++group) {
+        for (int i = bounds[group].first; i < bounds[group].second; ++i)
+            encode_matrix[(m + group) * k + i] = local_vector[i];
     }
     for(int i = 0; i < z; i++){
         for(int j = 0; j < k; j++){

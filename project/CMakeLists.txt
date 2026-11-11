@@ -244,6 +244,26 @@ target_link_libraries(azure_uneven_verify
 add_test(NAME azure_uneven_verify COMMAND azure_uneven_verify)
 set_tests_properties(azure_uneven_verify PROPERTIES TIMEOUT 30)
 
+# OptimalLRC uneven local-group matrix, layout, legacy, and repair verification.
+add_executable(optimal_uneven_verify
+    ${CMAKE_CURRENT_SOURCE_DIR}/tests/optimal_uneven_verify.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/lrc.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/encoder.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/encoder_layout.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/recovery_strategy.cpp
+    ${ASM_SOURCES}
+)
+target_include_directories(optimal_uneven_verify PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
+target_link_libraries(optimal_uneven_verify
+    -lpthread
+    -lJerasure
+    -lgf_complete
+)
+add_test(NAME optimal_uneven_verify COMMAND optimal_uneven_verify)
+set_tests_properties(optimal_uneven_verify PROPERTIES TIMEOUT 30)
+
 # Two-node ASIO TCP write bandwidth microbenchmark (no gRPC / cluster)
 add_executable(asio_write_bench
     ${CMAKE_CURRENT_SOURCE_DIR}/tests/asio_write_benchmark.cpp

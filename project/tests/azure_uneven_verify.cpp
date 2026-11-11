@@ -307,12 +307,13 @@ void verify_legacy_make_matrix(int k, int r, int z, const std::vector<int> &expe
     std::fill(matrix.begin(), matrix.end(), 0);
     check(ECProject::lrc_make_matrix(k, r, z, matrix.data(), ECProject::Optimal_Cauchy_LRC),
           "Optimal Cauchy lrc_make_matrix failed for k=" + std::to_string(k));
-    const int legacy_width = (k + z - 1) / z;
-    for (int group = 0; group < z; ++group) {
+    std::vector<unsigned char> optimal_matrix(static_cast<size_t>(k + r + z) * k);
+    ECProject::gen_optimal_lrc_matrix(optimal_matrix.data(), k, r, z);
+    for (int parity = 0; parity < r + z; ++parity) {
         for (int data = 0; data < k; ++data) {
-            const bool covered = group * legacy_width <= data && data < (group + 1) * legacy_width;
-            check(matrix[static_cast<size_t>(r + group) * k + data] == (covered ? 1 : 0),
-                  "Optimal Cauchy local row behavior changed for k=" + std::to_string(k));
+            check(matrix[static_cast<size_t>(parity) * k + data] ==
+                      optimal_matrix[static_cast<size_t>(k + parity) * k + data],
+                  "Optimal Cauchy legacy/main matrix mismatch for k=" + std::to_string(k));
         }
     }
 }

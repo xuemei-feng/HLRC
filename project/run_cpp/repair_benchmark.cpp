@@ -205,43 +205,6 @@ std::vector<DoubleRepairCase> make_optimal_k72_double_block_cases()
   return cases;
 }
 
-std::vector<DoubleRepairCase> make_optimal_k96_double_block_cases()
-{
-  std::vector<DoubleRepairCase> cases;
-
-  RepairTask recover_g0{{96}, {}};
-  append_range(recover_g0.source_block_ids, 24, 47);
-  recover_g0.source_block_ids.push_back(97);
-  recover_g0.source_block_ids.push_back(98);
-  recover_g0.source_block_ids.push_back(99);
-  recover_g0.source_block_ids.push_back(100);
-  recover_g0.source_block_ids.push_back(102);
-  RepairTask recover_d0{{0}, {}};
-  append_range(recover_d0.source_block_ids, 1, 23);
-  recover_d0.source_block_ids.push_back(101);
-  cases.push_back({"G0+D0", {recover_g0, recover_d0}, true});
-
-  RepairTask g0_g1{{96, 97}, {}};
-  append_range(g0_g1.source_block_ids, 0, 95);
-  cases.push_back({"G0+G1", {g0_g1}, false});
-
-  return cases;
-}
-
-std::vector<RepairCase> make_optimal_k96_single_block_cases(int r)
-{
-  const int first_local_parity_id = 96 + r;
-  std::vector<RepairCase> cases;
-
-  RepairCase l0{"L0", first_local_parity_id, {}};
-  append_range(l0.source_block_ids, 0, 23);
-  for (int global_id = 96; global_id < 96 + r; ++global_id)
-    l0.source_block_ids.push_back(global_id);
-  cases.push_back(l0);
-
-  return cases;
-}
-
 std::vector<RepairCase> make_optimal_k72_single_block_cases(int r)
 {
   const int first_local_parity_id = 72 + r;
@@ -565,7 +528,7 @@ bool make_repair_plan(const std::string &code_type, int k,
 
   if (failure_type == "triple")
   {
-    if (code_type != "AzureLRC" || k != 64)
+    if ((code_type != "AzureLRC" && code_type != "OptimalLRC") || k != 64)
     {
       error = "no repair plan is registered for CodeType=" + code_type +
               ", k=" + std::to_string(k) + ", failure=triple";
@@ -575,10 +538,13 @@ bool make_repair_plan(const std::string &code_type, int k,
     plan.required_z = 3;
     if (configured_r != plan.required_r)
     {
-      error = "AzureLRC k=64 triple requires r=3";
+      error = code_type + " k=64 triple requires r=3";
       return false;
     }
-    plan.triple_cases = ECProject::RepairBenchmark::make_azure_k64_triple_block_cases();
+    if (code_type == "AzureLRC")
+      plan.triple_cases = ECProject::RepairBenchmark::make_azure_k64_triple_block_cases();
+    else
+      plan.triple_cases = ECProject::RepairBenchmark::make_optimal_k64_triple_block_cases();
     return true;
   }
 
@@ -698,6 +664,30 @@ bool make_repair_plan(const std::string &code_type, int k,
 
   if (code_type == "OptimalLRC")
   {
+    if ((k == 64 || k == 128) && (failure_type == "single" || failure_type == "double"))
+    {
+      plan.required_r = 3;
+      plan.required_z = k == 64 ? 3 : 5;
+      if (configured_r != plan.required_r)
+      {
+        error = "OptimalLRC k=" + std::to_string(k) + " requires r=3";
+        return false;
+      }
+      if (failure_type == "single") {
+        if (k == 64)
+          plan.single_cases = ECProject::RepairBenchmark::make_optimal_k64_single_block_cases();
+        else
+          plan.single_cases = ECProject::RepairBenchmark::make_optimal_uneven_single_block_cases(
+              k, configured_r, plan.required_z);
+      } else {
+        if (k == 64)
+          plan.double_cases = ECProject::RepairBenchmark::make_optimal_k64_double_block_cases();
+        else
+          plan.double_cases = ECProject::RepairBenchmark::make_optimal_uneven_double_block_cases(k);
+      }
+      return true;
+    }
+
     if (k == 24 && (failure_type == "single" || failure_type == "double"))
     {
       plan.required_r = 2;
@@ -748,17 +738,18 @@ bool make_repair_plan(const std::string &code_type, int k,
 
     if (k == 96 && (failure_type == "single" || failure_type == "double"))
     {
-      plan.required_r = 5;
+      plan.required_r = 3;
       plan.required_z = 4;
       if (configured_r != plan.required_r)
       {
-        error = "OptimalLRC k=96 requires r=5";
+        error = "OptimalLRC k=96 requires r=3";
         return false;
       }
       if (failure_type == "single")
-        plan.single_cases = make_optimal_k96_single_block_cases(configured_r);
+        plan.single_cases = ECProject::RepairBenchmark::make_optimal_uneven_single_block_cases(
+            k, configured_r, plan.required_z);
       else
-        plan.double_cases = make_optimal_k96_double_block_cases();
+        plan.double_cases = ECProject::RepairBenchmark::make_optimal_uneven_double_block_cases(k);
       return true;
     }
 

@@ -918,44 +918,31 @@ namespace ECProject
     }
     else if (code_type == "OptimalLRC")
     {
+      const auto block_to_group = ECProject::get_optimal_lrc_block_id_to_group_id(k, r, z);
       if (failed_block_id >= k && failed_block_id < k + r)
       {
-        int group_num = (k / z / (r + 1) + (bool)(k / z % (r + 1))) * z + 1;
-        recovery_group_ids.push_back(group_num - 1);
-        for (int i = 0; i < group_num / z; i++)
-        {
-          recovery_group_ids.push_back(i);
+        recovery_group_ids.push_back(block_to_group.at(failed_block_id));
+        const auto bounds = ECProject::get_optimal_lrc_local_group_bounds(k, z);
+        for (int id = bounds[0].first; id < bounds[0].second; ++id) {
+          const int group = block_to_group.at(id);
+          if (std::find(recovery_group_ids.begin(), recovery_group_ids.end(), group) == recovery_group_ids.end())
+            recovery_group_ids.push_back(group);
         }
-      }
-      else if (failed_block_id >= k + r)
-      {
-        int local_group_size = k / z;
-        int local_group_id = (failed_block_id - k - r);
-        int group_num_of_one_local_group = local_group_size / (r + 1) + 1;
-        int group_num = z * group_num_of_one_local_group + 1;
-        recovery_group_ids.push_back((local_group_id + 1) * group_num_of_one_local_group - 1);
-        for (int i = local_group_id * group_num_of_one_local_group; i < (local_group_id + 1) * group_num_of_one_local_group - 1; i++)
-        {
-          recovery_group_ids.push_back(i);
-        }
-        recovery_group_ids.push_back(group_num - 1);
+        recovery_group_ids.push_back(block_to_group.at(k + r));
       }
       else
       {
-        int local_group_size = k / z;
-        int group_num_of_one_local_group = local_group_size / (r + 1) + 1;
-        int local_group_id = failed_block_id / local_group_size;
-        int group_id_in_local_group = failed_block_id % local_group_size / (r + 1);
-        recovery_group_ids.push_back(local_group_id * group_num_of_one_local_group + group_id_in_local_group);
-        for (int i = 0; i < group_num_of_one_local_group; i++)
-        {
-          if (i != group_id_in_local_group)
-          {
-            recovery_group_ids.push_back(local_group_id * group_num_of_one_local_group + i);
-          }
+        const int local = ECProject::get_optimal_lrc_block_id_to_local_group_id(k, r, z, failed_block_id);
+        const auto bounds = ECProject::get_optimal_lrc_local_group_bounds(k, z);
+        for (int id = bounds[local].first; id < bounds[local].second; ++id) {
+          const int group = block_to_group.at(id);
+          if (std::find(recovery_group_ids.begin(), recovery_group_ids.end(), group) == recovery_group_ids.end())
+            recovery_group_ids.push_back(group);
         }
-        int group_num = z * group_num_of_one_local_group + 1;
-        recovery_group_ids.push_back(group_num - 1);
+        const int local_group = block_to_group.at(k + r + local);
+        if (std::find(recovery_group_ids.begin(), recovery_group_ids.end(), local_group) == recovery_group_ids.end())
+          recovery_group_ids.push_back(local_group);
+        recovery_group_ids.push_back(block_to_group.at(k));
       }
     }
     else if (code_type == "UniformLRC")
@@ -2086,8 +2073,7 @@ namespace ECProject
       if (m_sys_config->CodeType != "OptimalLRC" ||
           !((k == 24 && r == 2 && z == 2) ||
             (k == 48 && r == 3 && z == 4) ||
-            (k == 72 && r == 4 && z == 4) ||
-            (k == 96 && r == 5 && z == 4)) ||
+            (k == 72 && r == 4 && z == 4)) ||
           request->tasks_size() != 2 ||
           request->tasks(0).failed_block_ids_size() != 1 ||
           request->tasks(0).failed_block_ids(0) != k ||

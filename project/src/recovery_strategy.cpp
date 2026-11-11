@@ -646,9 +646,9 @@ std::vector<std::pair<int, std::vector<int>>> get_recovery_group_and_block_ids_o
   std::vector<int> recovery_block_ids;
   if(failed_block_id < k)
   {
-    int local_group_size = k / z;
-    int local_group_id = failed_block_id / local_group_size;
-    for (int i = local_group_id * local_group_size; i < (local_group_id + 1) * local_group_size; i++)
+    const auto bounds = get_optimal_lrc_local_group_bounds(k, z);
+    int local_group_id = get_optimal_lrc_block_id_to_local_group_id(k, r, z, failed_block_id);
+    for (int i = bounds[local_group_id].first; i < bounds[local_group_id].second; i++)
     {
       if (i != failed_block_id)
         recovery_block_ids.push_back(i);
@@ -662,7 +662,8 @@ std::vector<std::pair<int, std::vector<int>>> get_recovery_group_and_block_ids_o
   else if(failed_block_id < k + r)
   {
     // use the first local group for recovery
-    for(int i = 0; i < k / z; i++)
+    const auto bounds = get_optimal_lrc_local_group_bounds(k, z);
+    for(int i = bounds[0].first; i < bounds[0].second; i++)
     {
       recovery_block_ids.push_back(i);
     }
@@ -675,9 +676,9 @@ std::vector<std::pair<int, std::vector<int>>> get_recovery_group_and_block_ids_o
   }
   else
   {
-    int local_group_size = k / z;
     int local_group_id = failed_block_id - k - r;
-    for (int i = local_group_id * local_group_size; i < (local_group_id + 1) * local_group_size; i++)
+    const auto bounds = get_optimal_lrc_local_group_bounds(k, z);
+    for (int i = bounds[local_group_id].first; i < bounds[local_group_id].second; i++)
     {
       if (i != failed_block_id)
         recovery_block_ids.push_back(i);

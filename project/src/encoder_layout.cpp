@@ -10,6 +10,31 @@
 #include <numeric>
 namespace ECProject
 {
+  namespace
+  {
+    std::vector<int> get_uneven_group_sizes(int k, int z, const char *code_type)
+    {
+      if (k <= 0 || z <= 0 || z > k)
+        throw std::invalid_argument(std::string(code_type) + " requires 0 < z <= k");
+      std::vector<int> sizes(z, k / z);
+      const int remainder = k % z;
+      for (int group = z - remainder; group < z; ++group)
+        sizes[group]++;
+      return sizes;
+    }
+
+    std::vector<std::pair<int, int>> get_group_bounds(const std::vector<int> &sizes)
+    {
+      std::vector<std::pair<int, int>> bounds;
+      int begin = 0;
+      for (int size : sizes) {
+        bounds.push_back({begin, begin + size});
+        begin += size;
+      }
+      return bounds;
+    }
+  }
+
 
   /* ----- Dispatchers (by code_type) ----- */
   std::vector<int> get_data_block_num_per_group(int k, int r, int z, const std::string &code_type)
@@ -60,25 +85,12 @@ namespace ECProject
   /* ----- AzureLRC ----- */
   std::vector<int> get_azure_lrc_local_group_sizes(int k, int z)
   {
-    if (k <= 0 || z <= 0 || z > k)
-      throw std::invalid_argument("AzureLRC requires 0 < z <= k");
-    std::vector<int> sizes(z, k / z);
-    const int remainder = k % z;
-    for (int group = z - remainder; group < z; ++group)
-      sizes[group]++;
-    return sizes;
+    return get_uneven_group_sizes(k, z, "AzureLRC");
   }
 
   std::vector<std::pair<int, int>> get_azure_lrc_local_group_bounds(int k, int z)
   {
-    std::vector<std::pair<int, int>> bounds;
-    int begin = 0;
-    for (int size : get_azure_lrc_local_group_sizes(k, z))
-    {
-      bounds.push_back({begin, begin + size});
-      begin += size;
-    }
-    return bounds;
+    return get_group_bounds(get_azure_lrc_local_group_sizes(k, z));
   }
 
   namespace
@@ -178,109 +190,108 @@ namespace ECProject
   }
 
   /* ----- OptimalLRC ----- */
-  std::vector<int> get_data_block_num_per_group_optimal_lrc(int k, int r, int z)
+  std::vector<int> get_optimal_lrc_local_group_sizes(int k, int z)
   {
-    std::vector<int> data_block_num_per_group;
-    int group_size = r + 1;
-    int local_group_size = k / z;
-    int group_num_of_one_local_group = local_group_size / group_size + 1;
-    int group_num = z * group_num_of_one_local_group + 1;
-    // Evenly split (data + 1 local parity) per rack; last group holds the local parity slot.
-    int total_per_rack = local_group_size + 1;
-    int base = total_per_rack / group_num_of_one_local_group;
-    int rem = total_per_rack % group_num_of_one_local_group;
-    for (int i = 0; i < group_num - 1; i++)
+    return get_uneven_group_sizes(k, z, "OptimalLRC");
+  }
+
+  std::vector<std::pair<int, int>> get_optimal_lrc_local_group_bounds(int k, int z)
+  {
+    return get_group_bounds(get_optimal_lrc_local_group_sizes(k, z));
+  }
+
+  namespace
+  {
+    std::vector<int> get_optimal_groups_per_local_group(int k, int r, int z)
     {
-      int pos_in_rack = i % group_num_of_one_local_group;
-      int slots = base + (pos_in_rack < rem ? 1 : 0);
-      bool is_last_in_rack = (pos_in_rack == group_num_of_one_local_group - 1);
-      data_block_num_per_group.push_back(is_last_in_rack ? slots - 1 : slots);
+      std::vector<int> result;
+      for (int data_size : get_optimal_lrc_local_group_sizes(k, z))
+        result.push_back(data_size / (r + 1) + 1);
+      return result;
     }
-    data_block_num_per_group.push_back(0);
-    return data_block_num_per_group;
-  }
-
-  std::vector<int> get_global_parity_block_num_per_group_optimal_lrc(int k, int r, int z)
-  {
-    std::vector<int> global_parity_block_num_per_group;
-    int group_size = r + 1;
-    int local_group_size = k / z;
-    int group_num_of_one_local_group = local_group_size / group_size + 1;
-    int group_num = z * group_num_of_one_local_group + 1;
-    for (int i = 0; i < group_num - 1; i++)
-      global_parity_block_num_per_group.push_back(0);
-    global_parity_block_num_per_group.push_back(r);
-    return global_parity_block_num_per_group;
-  }
-
-  std::vector<int> get_local_parity_block_num_per_group_optimal_lrc(int k, int r, int z)
-  {
-    std::vector<int> local_parity_block_num_per_group;
-    int group_size = r + 1;
-    int local_group_size = k / z;
-    int group_num_of_one_local_group = local_group_size / group_size + 1;
-    int group_num = z * group_num_of_one_local_group + 1;
-    for (int i = 0; i < group_num - 1; i++)
-    {
-      if ((i + 1) % group_num_of_one_local_group)
-        local_parity_block_num_per_group.push_back(0);
-      else
-        local_parity_block_num_per_group.push_back(1);
-    }
-    local_parity_block_num_per_group.push_back(0);
-    return local_parity_block_num_per_group;
-  }
-
-  int get_optimal_lrc_block_id_to_local_group_id(int k, int r, int z, int block_id)
-  {
-    int local_group_size = k / z;
-    if(block_id < k)
-      return block_id / local_group_size;
-    else if(block_id < k + r)
-      return 0; // global parity blocks repeatedly belong to all local groups, use the first for recovery plan
-    else
-      return (block_id - k - r);
-    throw std::runtime_error("block id is out of range");
-    return -1;
-  }
-
-  std::unordered_map<int, int> get_optimal_lrc_block_id_to_group_id(int k, int r, int z)
-  {
-    std::unordered_map<int, int> block_id_to_group_id;
-    std::unordered_map<int, std::vector<int>> group_id_to_block_ids = get_optimal_lrc_group_id_to_block_ids(k, r, z);
-    for (size_t i = 0; i < group_id_to_block_ids.size(); i++)
-      for (size_t j = 0; j < group_id_to_block_ids[(int)i].size(); j++)
-        block_id_to_group_id[group_id_to_block_ids[(int)i][(int)j]] = (int)i;
-    return block_id_to_group_id;
   }
 
   std::unordered_map<int, std::vector<int>> get_optimal_lrc_group_id_to_block_ids(int k, int r, int z)
   {
-    std::unordered_map<int, std::vector<int>> group_id_to_block_ids;
-    std::vector<int> data_block_num_per_group = get_data_block_num_per_group_optimal_lrc(k, r, z);
-    std::vector<int> global_parity_block_num_per_group = get_global_parity_block_num_per_group_optimal_lrc(k, r, z);
-    std::vector<int> local_parity_block_num_per_group = get_local_parity_block_num_per_group_optimal_lrc(k, r, z);
-    int cur_data_block_id = 0;
-    int cur_global_parity_block_id = k;
-    int cur_local_parity_block_id = k + r;
-    for (size_t i = 0; i < data_block_num_per_group.size(); i++){
-      std::vector<int> block_ids;
-      for (int j = 0; j < data_block_num_per_group[i]; j++){
-        block_ids.push_back(cur_data_block_id);
-        cur_data_block_id++;
+    std::unordered_map<int, std::vector<int>> groups;
+    const auto bounds = get_optimal_lrc_local_group_bounds(k, z);
+    const auto group_counts = get_optimal_groups_per_local_group(k, r, z);
+    int group_id = 0;
+    for (int local = 0; local < z; ++local) {
+      const int slots = bounds[local].second - bounds[local].first + 1;
+      const int count = group_counts[local];
+      const int base = slots / count;
+      const int extra = slots % count;
+      int data_id = bounds[local].first;
+      for (int part = 0; part < count; ++part) {
+        const int part_slots = base + (part < extra ? 1 : 0);
+        const bool last = part == count - 1;
+        for (int i = 0; i < part_slots - (last ? 1 : 0); ++i)
+          groups[group_id].push_back(data_id++);
+        if (last)
+          groups[group_id].push_back(k + r + local);
+        group_id++;
       }
-      for (int j = 0; j < global_parity_block_num_per_group[i]; j++){
-        block_ids.push_back(cur_global_parity_block_id);
-        cur_global_parity_block_id++;
-      }
-      for (int j = 0; j < local_parity_block_num_per_group[i]; j++){
-        block_ids.push_back(cur_local_parity_block_id);
-        cur_local_parity_block_id++;
-      }
-      group_id_to_block_ids[(int)i] = block_ids;
     }
-    return group_id_to_block_ids;
+    for (int global = 0; global < r; ++global)
+      groups[group_id].push_back(k + global);
+    return groups;
   }
+
+  std::unordered_map<int, int> get_optimal_lrc_block_id_to_group_id(int k, int r, int z)
+  {
+    std::unordered_map<int, int> result;
+    for (const auto &entry : get_optimal_lrc_group_id_to_block_ids(k, r, z))
+      for (int block_id : entry.second)
+        result[block_id] = entry.first;
+    return result;
+  }
+
+  std::vector<int> get_data_block_num_per_group_optimal_lrc(int k, int r, int z)
+  {
+    std::vector<int> result;
+    const auto groups = get_optimal_lrc_group_id_to_block_ids(k, r, z);
+    for (size_t group = 0; group < groups.size(); ++group)
+      result.push_back(std::count_if(groups.at(group).begin(), groups.at(group).end(),
+                                     [k](int id) { return id < k; }));
+    return result;
+  }
+
+  std::vector<int> get_global_parity_block_num_per_group_optimal_lrc(int k, int r, int z)
+  {
+    std::vector<int> result;
+    const auto groups = get_optimal_lrc_group_id_to_block_ids(k, r, z);
+    for (size_t group = 0; group < groups.size(); ++group)
+      result.push_back(std::count_if(groups.at(group).begin(), groups.at(group).end(),
+                                     [k, r](int id) { return id >= k && id < k + r; }));
+    return result;
+  }
+
+  std::vector<int> get_local_parity_block_num_per_group_optimal_lrc(int k, int r, int z)
+  {
+    std::vector<int> result;
+    const auto groups = get_optimal_lrc_group_id_to_block_ids(k, r, z);
+    for (size_t group = 0; group < groups.size(); ++group)
+      result.push_back(std::count_if(groups.at(group).begin(), groups.at(group).end(),
+                                     [k, r](int id) { return id >= k + r; }));
+    return result;
+  }
+
+  int get_optimal_lrc_block_id_to_local_group_id(int k, int r, int z, int block_id)
+  {
+    if (block_id < 0 || block_id >= k + r + z)
+      throw std::runtime_error("block id is out of range");
+    if (block_id < k) {
+      const auto bounds = get_optimal_lrc_local_group_bounds(k, z);
+      for (int group = 0; group < z; ++group)
+        if (block_id < bounds[group].second)
+          return group;
+    }
+    if (block_id < k + r)
+      return 0;
+    return block_id - k - r;
+  }
+
   /* ----- UniformLRC ----- */
   std::vector<int> get_data_block_num_per_group_uniform_lrc(int k, int r, int z)
   {

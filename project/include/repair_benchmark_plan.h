@@ -62,6 +62,50 @@ inline std::vector<RepairCase> make_azure_uneven_single_block_cases(int k, int r
     return cases;
 }
 
+inline std::vector<RepairCase> make_optimal_uneven_single_block_cases(int k, int r, int z)
+{
+    std::vector<RepairCase> cases;
+    const auto bounds = get_optimal_lrc_local_group_bounds(k, z);
+    for (int local = 0; local < z; ++local) {
+        auto sources = inclusive_range(bounds[local].first, bounds[local].second - 1);
+        for (int global = 0; global < r; ++global)
+            sources.push_back(k + global);
+        cases.push_back({"L" + std::to_string(local), k + r + local, std::move(sources)});
+    }
+    cases.push_back({"G0", k, inclusive_range(0, k - 1)});
+    return cases;
+}
+
+inline std::vector<RepairCase> make_optimal_k64_single_block_cases()
+{
+    auto l0_sources = inclusive_range(0, 20);
+    l0_sources.insert(l0_sources.end(), {64, 65, 66});
+    auto l2_sources = inclusive_range(42, 63);
+    l2_sources.insert(l2_sources.end(), {64, 65, 66});
+    return {{"L0", 67, std::move(l0_sources)},
+            {"L2", 69, std::move(l2_sources)}};
+}
+
+inline std::vector<DoubleRepairCase> make_optimal_uneven_double_block_cases(int k)
+{
+    return {{"G0+G1", {{{k, k + 1}, inclusive_range(0, k - 1)}}}};
+}
+
+inline std::vector<DoubleRepairCase> make_optimal_k64_double_block_cases()
+{
+    auto l0_sources = inclusive_range(0, 20);
+    l0_sources.insert(l0_sources.end(), {64, 65, 66});
+    auto l1_sources = inclusive_range(21, 41);
+    l1_sources.insert(l1_sources.end(), {64, 65, 66});
+    auto l2_sources = inclusive_range(42, 63);
+    l2_sources.insert(l2_sources.end(), {64, 65, 66});
+    return {
+        {"L0+L1", {{{67}, l0_sources}, {{68}, std::move(l1_sources)}}},
+        {"L0+L2", {{{67}, std::move(l0_sources)}, {{69}, std::move(l2_sources)}}},
+        {"G0+G1", {{{64, 65}, inclusive_range(0, 63)}}},
+    };
+}
+
 inline std::vector<DoubleRepairCase> make_azure_double_block_cases(int k)
 {
     if (k == 64)
@@ -79,6 +123,11 @@ inline std::vector<DoubleRepairCase> make_azure_double_block_cases(int k)
 }
 
 inline std::vector<TripleRepairCase> make_azure_k64_triple_block_cases()
+{
+    return {{"G0+G1+G2", {{{64, 65, 66}, inclusive_range(0, 63)}}}};
+}
+
+inline std::vector<TripleRepairCase> make_optimal_k64_triple_block_cases()
 {
     return {{"G0+G1+G2", {{{64, 65, 66}, inclusive_range(0, 63)}}}};
 }

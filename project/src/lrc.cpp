@@ -47,59 +47,32 @@ bool ECProject::check_k_data(std::vector<int> erasures, int k)
 // generate encoding matrix for lrc
 bool ECProject::lrc_make_matrix(int k, int g, int real_l, int *final_matrix, EncodeType encode_type)
 {
-    int r = (k + real_l - 1) / real_l;
-    int *matrix = NULL;
-
-    if (encode_type == Azure_LRC){
-        matrix = reed_sol_vandermonde_coding_matrix(k, g + 1, 8); //(k, g, w)
-    }else if(encode_type == Optimal_Cauchy_LRC){
-        matrix = cauchy_good_general_coding_matrix(k, g + 1, 8); //(k, g, w)
-    }
-    
-    if (matrix == NULL)
+    if (final_matrix == nullptr)
+        return false;
+    if (encode_type == Optimal_Cauchy_LRC)
     {
-        std::cout << "matrix == NULL" << std::endl;
+        std::vector<unsigned char> matrix(static_cast<size_t>(k + g + real_l) * k);
+        gen_optimal_lrc_matrix(matrix.data(), k, g, real_l);
+        for (int row = 0; row < g + real_l; ++row)
+            for (int column = 0; column < k; ++column)
+                final_matrix[row * k + column] = matrix[(k + row) * k + column];
+        return true;
     }
+    if (encode_type != Azure_LRC)
+        return false;
 
-    if (final_matrix == NULL)
-    {
-        std::cout << "final_matrix == NULL" << std::endl;
-    }
+    int *matrix = reed_sol_vandermonde_coding_matrix(k, g + 1, 8);
+    if (matrix == nullptr)
+        return false;
     bzero(final_matrix, sizeof(int) * k * (g + real_l));
-
-    for (int i = 0; i < g; i++)
-    {
-        for (int j = 0; j < k; j++)
-        {
+    for (int i = 0; i < g; ++i)
+        for (int j = 0; j < k; ++j)
             final_matrix[i * k + j] = matrix[(i + 1) * k + j];
-        }
-    }
 
-    if (encode_type == Azure_LRC)
-    {
-        const auto bounds = get_azure_lrc_local_group_bounds(k, real_l);
-        for (int i = 0; i < real_l; i++)
-        {
-            for (int j = bounds[i].first; j < bounds[i].second; j++)
-            {
-                final_matrix[(i + g) * k + j] = 1;
-            }
-        }
-    }
-    else
-    {
-        for (int i = 0; i < real_l; i++)
-        {
-            for (int j = 0; j < k; j++)
-            {
-                if (i * r <= j && j < (i + 1) * r)
-                {
-                    final_matrix[(i + g) * k + j] = 1;
-                }
-            }
-        }
-    }
-
+    const auto bounds = get_azure_lrc_local_group_bounds(k, real_l);
+    for (int i = 0; i < real_l; ++i)
+        for (int j = bounds[i].first; j < bounds[i].second; ++j)
+            final_matrix[(i + g) * k + j] = 1;
     free(matrix);
     return true;
 }
