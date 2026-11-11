@@ -947,74 +947,19 @@ namespace ECProject
     }
     else if (code_type == "UniformLRC")
     {
-      if (failed_block_id >= k + r)
-      {
-        int larger_local_group_num = (k + r) % z;
-        int local_group_id = failed_block_id - k - r;
-        int local_group_size = (k + r) / z;
-        int group_num_of_one_local_group = local_group_size / r + bool(local_group_size % r);
-        if (local_group_id + larger_local_group_num < z)
-        {
-          recovery_group_ids.push_back((local_group_id + 1) * group_num_of_one_local_group - 1);
-          for (int i = local_group_id * group_num_of_one_local_group; i < (local_group_id + 1) * group_num_of_one_local_group - 1; i++)
-          {
-            recovery_group_ids.push_back(i);
-          }
-        }
-        else
-        {
-          int smaller_local_group_num = z - larger_local_group_num;
-          int group_num_of_all_small_group = smaller_local_group_num * group_num_of_one_local_group;
-          local_group_size++;
-          group_num_of_one_local_group = local_group_size / r + (bool)(local_group_size % r);
-          local_group_id = local_group_id - smaller_local_group_num;
-          recovery_group_ids.push_back(group_num_of_all_small_group + (local_group_id + 1) * group_num_of_one_local_group - 1);
-          for (int i = group_num_of_all_small_group + local_group_id * group_num_of_one_local_group; i < group_num_of_all_small_group + (local_group_id + 1) * group_num_of_one_local_group - 1; i++)
-          {
-            recovery_group_ids.push_back(i);
-          }
-        }
+      const int local = ECProject::get_uniform_lrc_block_id_to_local_group_id(k, r, z, failed_block_id);
+      const auto bounds = ECProject::get_uniform_lrc_data_like_group_bounds(k, r, z);
+      const auto block_to_group = ECProject::get_uniform_lrc_block_id_to_group_id(k, r, z);
+      const int failed_group = block_to_group.at(failed_block_id);
+      recovery_group_ids.push_back(failed_group);
+      for (int block = bounds[local].first; block < bounds[local].second; ++block) {
+        const int group = block_to_group.at(block);
+        if (std::find(recovery_group_ids.begin(), recovery_group_ids.end(), group) == recovery_group_ids.end())
+          recovery_group_ids.push_back(group);
       }
-      else if (failed_block_id < k + r)
-      {
-        int larger_local_group_num = (k + r) % z;
-        int smaller_local_group_num = z - larger_local_group_num;
-        int local_group_size = (k + r) / z;
-        int group_num_of_one_local_group = local_group_size / r + bool(local_group_size % r);
-        int block_num_of_smaller_local_group = (z - larger_local_group_num) * local_group_size;
-        int group_num_of_smaller_local_group = smaller_local_group_num * group_num_of_one_local_group;
-        int local_group_id = 0;
-        if (failed_block_id < block_num_of_smaller_local_group)
-        {
-          local_group_id = failed_block_id / local_group_size;
-          int block_num_in_previous_local_group = local_group_id * local_group_size;
-          int group_id = local_group_id * group_num_of_one_local_group + (failed_block_id - block_num_in_previous_local_group) / r;
-          recovery_group_ids.push_back(group_id);
-          for (int i = local_group_id * group_num_of_one_local_group; i < local_group_id * group_num_of_one_local_group + group_num_of_one_local_group; i++)
-          {
-            if (i != group_id)
-            {
-              recovery_group_ids.push_back(i);
-            }
-          }
-        }
-        else
-        {
-          local_group_size++;
-          group_num_of_one_local_group = local_group_size / r + bool(local_group_size % r);
-          local_group_id = (failed_block_id - block_num_of_smaller_local_group) / local_group_size;
-          int block_num_in_previous_local_group = local_group_id * local_group_size + block_num_of_smaller_local_group;
-          int group_id = local_group_id * group_num_of_one_local_group + (failed_block_id - block_num_in_previous_local_group) / r;
-          recovery_group_ids.push_back(group_id + group_num_of_smaller_local_group);
-          for (int i = local_group_id * group_num_of_one_local_group; i < local_group_id * group_num_of_one_local_group + group_num_of_one_local_group; i++)
-          {
-            if (i != group_id)
-            {
-              recovery_group_ids.push_back(i + group_num_of_smaller_local_group);
-            }
-          }
-        }
-      }
+      const int local_parity_group = block_to_group.at(k + r + local);
+      if (std::find(recovery_group_ids.begin(), recovery_group_ids.end(), local_parity_group) == recovery_group_ids.end())
+        recovery_group_ids.push_back(local_parity_group);
     }
 
     return recovery_group_ids;

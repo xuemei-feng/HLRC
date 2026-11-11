@@ -91,6 +91,39 @@ inline std::vector<DoubleRepairCase> make_optimal_uneven_double_block_cases(int 
     return {{"G0+G1", {{{k, k + 1}, inclusive_range(0, k - 1)}}}};
 }
 
+inline std::vector<RepairCase> make_uniform_k64_single_block_cases()
+{
+    return {{"L0", 67, inclusive_range(0, 21)},
+            {"L2", 69, inclusive_range(44, 66)}};
+}
+
+inline std::vector<RepairCase> make_uniform_uneven_single_block_cases(int k, int r, int z)
+{
+    std::vector<RepairCase> cases;
+    const auto bounds = get_uniform_lrc_data_like_group_bounds(k, r, z);
+    for (int local = 0; local < z; ++local)
+        cases.push_back({"L" + std::to_string(local), k + r + local,
+                         inclusive_range(bounds[local].first, bounds[local].second - 1)});
+    cases.push_back({"G0", k, inclusive_range(0, k - 1)});
+    return cases;
+}
+
+inline std::vector<DoubleRepairCase> make_uniform_k64_double_block_cases()
+{
+    return {
+        {"L0+L1", {{{67}, inclusive_range(0, 21)},
+                     {{68}, inclusive_range(22, 43)}}},
+        {"L0+L2", {{{67}, inclusive_range(0, 21)},
+                     {{69}, inclusive_range(44, 66)}}},
+        {"G0+G1", {{{64, 65}, inclusive_range(0, 63)}}},
+    };
+}
+
+inline std::vector<DoubleRepairCase> make_uniform_uneven_double_block_cases(int k)
+{
+    return {{"G0+G1", {{{k, k + 1}, inclusive_range(0, k - 1)}}}};
+}
+
 inline std::vector<DoubleRepairCase> make_optimal_k64_double_block_cases()
 {
     auto l0_sources = inclusive_range(0, 20);
@@ -122,6 +155,11 @@ inline std::vector<DoubleRepairCase> make_azure_double_block_cases(int k)
     return {{"G0+G1", {{{k, k + 1}, inclusive_range(0, k - 1)}}}};
 }
 
+inline std::vector<TripleRepairCase> make_uniform_k64_triple_block_cases()
+{
+    return {{"G0+G1+G2", {{{64, 65, 66}, inclusive_range(0, 63)}}}};
+}
+
 inline std::vector<TripleRepairCase> make_azure_k64_triple_block_cases()
 {
     return {{"G0+G1+G2", {{{64, 65, 66}, inclusive_range(0, 63)}}}};
@@ -130,6 +168,11 @@ inline std::vector<TripleRepairCase> make_azure_k64_triple_block_cases()
 inline std::vector<TripleRepairCase> make_optimal_k64_triple_block_cases()
 {
     return {{"G0+G1+G2", {{{64, 65, 66}, inclusive_range(0, 63)}}}};
+}
+
+inline std::vector<QuadrupleRepairCase> make_uniform_k64_quadruple_block_cases()
+{
+    return {{"G0+G1+G2+L0", {{{64, 65, 66, 67}, inclusive_range(0, 63)}}}};
 }
 
 inline std::vector<QuadrupleRepairCase> make_azure_k64_quadruple_block_cases()

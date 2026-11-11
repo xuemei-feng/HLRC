@@ -420,25 +420,15 @@ void ECProject::gen_uniform_lrc_matrix(unsigned char *encode_matrix, int k, int 
     // (run sizes (k+r)/z, with the last (k+r)%z groups holding one extra), so that globals fall
     // into the last local group(s). A data member d contributes local_vector[d]*data[d]; a global
     // member gp contributes 1*global[gp] (its Cauchy row XORed into the group's local parity row).
-    auto datalike_group = [&](int b) -> int {
-        int base = (k + r) / z;
-        int larger = (k + r) % z;          // last `larger` groups hold one extra data-like block
-        int cur = 0;
-        for (int g = 0; g < z; g++) {
-            int run = base + (g >= z - larger ? 1 : 0);
-            if (b < cur + run) return g;
-            cur += run;
-        }
-        return z - 1;
-    };
-    for(int d = 0; d < k; d++){
-        int row = datalike_group(d);
-        encode_matrix[(m + row) * k + d] = local_vector[d];
-    }
-    for(int gp = k; gp < k + r; gp++){
-        int row = datalike_group(gp);
-        for(int j = 0; j < k; j++){
-            encode_matrix[(m + row) * k + j] ^= encode_matrix[gp * k + j];
+    const auto bounds = get_uniform_lrc_data_like_group_bounds(k, r, z);
+    for (int group = 0; group < z; ++group) {
+        for (int block = bounds[group].first; block < bounds[group].second; ++block) {
+            if (block < k) {
+                encode_matrix[(m + group) * k + block] = local_vector[block];
+            } else {
+                for (int data = 0; data < k; ++data)
+                    encode_matrix[(m + group) * k + data] ^= encode_matrix[block * k + data];
+            }
         }
     }
     delete[] local_vector;

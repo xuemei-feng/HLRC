@@ -338,15 +338,18 @@ namespace ECProject
     return local_parity_block_num_per_group;
   }
 
+  std::vector<std::pair<int, int>> get_uniform_lrc_data_like_group_bounds(int k, int r, int z)
+  {
+    if (k <= 0 || r < 0 || z <= 0 || z > k + r)
+      throw std::invalid_argument("UniformLRC requires k > 0, r >= 0, and 0 < z <= k+r");
+    return get_group_bounds(get_uneven_group_sizes(k + r, z, "UniformLRC"));
+  }
+
   std::vector<int> get_uniform_lrc_local_group_sizes(int k, int r, int z)
   {
     std::vector<int> local_group_sizes;
-    int group_size = (k + r) / z + 1; // plus 1 for local parity blocks
-    int larger_group_num = (k + r) % z;
-    for (int i = 0; i < z - larger_group_num; i++)
-      local_group_sizes.push_back(group_size);
-    for (int i = 0; i < larger_group_num; i++) // put larger local groups in the last positions
-      local_group_sizes.push_back(group_size + 1);
+    for (const auto &bound : get_uniform_lrc_data_like_group_bounds(k, r, z))
+      local_group_sizes.push_back(bound.second - bound.first + 1); // include local parity
     return local_group_sizes;
   }
 
@@ -355,15 +358,11 @@ namespace ECProject
     if(block_id >= k + r)
       return (block_id - k - r);
     else{
-      std::vector<int> local_group_sizes = get_uniform_lrc_local_group_sizes(k, r, z);
-      int cur_start = 0;
-      for (size_t i = 0; i < local_group_sizes.size(); i++){
-        if(block_id < cur_start + local_group_sizes[i] - 1)
-          return i;
-        cur_start += local_group_sizes[i] - 1; // exclude the local parity block
-      }
+      const auto bounds = get_uniform_lrc_data_like_group_bounds(k, r, z);
+      for (int group = 0; group < z; ++group)
+        if (block_id >= bounds[group].first && block_id < bounds[group].second)
+          return group;
       throw std::runtime_error("block id is out of range");
-      return -1;
     }
   }
 

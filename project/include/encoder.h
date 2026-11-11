@@ -221,6 +221,8 @@ namespace ECProject
     std::vector<int> get_data_block_num_per_group_uniform_lrc(int k, int r, int z);
     std::vector<int> get_global_parity_block_num_per_group_uniform_lrc(int k, int r, int z);
     std::vector<int> get_local_parity_block_num_per_group_uniform_lrc(int k, int r, int z);
+    // Data-like bounds partition block IDs [0, k+r); local parity is excluded.
+    std::vector<std::pair<int, int>> get_uniform_lrc_data_like_group_bounds(int k, int r, int z);
     std::vector<int> get_uniform_lrc_local_group_sizes(int k, int r, int z);
     std::vector<int> get_uniform_lrc_group_sizes(int k, int r, int z);
     std::vector<int> get_uniform_lrc_group_num_per_local_group(int k, int r, int z);

@@ -39,36 +39,6 @@ void append_range(std::vector<int> &ids, int first, int last)
     ids.push_back(id);
 }
 
-std::vector<DoubleRepairCase> make_uniform_k96_double_block_cases()
-{
-  std::vector<DoubleRepairCase> cases;
-
-  RepairTask g0_g1{{96, 97}, {}};
-  append_range(g0_g1.source_block_ids, 0, 95);
-  cases.push_back({"G0+G1", {g0_g1}, false});
-
-  return cases;
-}
-
-std::vector<RepairCase> make_uniform_k96_single_block_cases(int r)
-{
-  const int first_global_parity_id = 96;
-  const int first_local_parity_id = 96 + r;
-  std::vector<RepairCase> cases;
-
-  RepairCase l0{"L0", first_local_parity_id, {}};
-  append_range(l0.source_block_ids, 0, 24);
-  cases.push_back(l0);
-
-  RepairCase l3{"L3", first_local_parity_id + 3, {}};
-  append_range(l3.source_block_ids, 75, 95);
-  append_range(l3.source_block_ids, first_global_parity_id,
-               first_global_parity_id + r - 1);
-  cases.push_back(l3);
-
-  return cases;
-}
-
 std::vector<DoubleRepairCase> make_uniform_k72_double_block_cases()
 {
   std::vector<DoubleRepairCase> cases;
@@ -528,7 +498,8 @@ bool make_repair_plan(const std::string &code_type, int k,
 
   if (failure_type == "triple")
   {
-    if ((code_type != "AzureLRC" && code_type != "OptimalLRC") || k != 64)
+    if ((code_type != "AzureLRC" && code_type != "OptimalLRC" &&
+         code_type != "UniformLRC") || k != 64)
     {
       error = "no repair plan is registered for CodeType=" + code_type +
               ", k=" + std::to_string(k) + ", failure=triple";
@@ -543,14 +514,16 @@ bool make_repair_plan(const std::string &code_type, int k,
     }
     if (code_type == "AzureLRC")
       plan.triple_cases = ECProject::RepairBenchmark::make_azure_k64_triple_block_cases();
-    else
+    else if (code_type == "OptimalLRC")
       plan.triple_cases = ECProject::RepairBenchmark::make_optimal_k64_triple_block_cases();
+    else
+      plan.triple_cases = ECProject::RepairBenchmark::make_uniform_k64_triple_block_cases();
     return true;
   }
 
   if (failure_type == "quadruple")
   {
-    if (code_type != "AzureLRC" || k != 64)
+    if ((code_type != "AzureLRC" && code_type != "UniformLRC") || k != 64)
     {
       error = "no repair plan is registered for CodeType=" + code_type +
               ", k=" + std::to_string(k) + ", failure=quadruple";
@@ -560,10 +533,13 @@ bool make_repair_plan(const std::string &code_type, int k,
     plan.required_z = 3;
     if (configured_r != plan.required_r)
     {
-      error = "AzureLRC k=64 quadruple requires r=3";
+      error = code_type + " k=64 quadruple requires r=3";
       return false;
     }
-    plan.quadruple_cases = ECProject::RepairBenchmark::make_azure_k64_quadruple_block_cases();
+    if (code_type == "AzureLRC")
+      plan.quadruple_cases = ECProject::RepairBenchmark::make_azure_k64_quadruple_block_cases();
+    else
+      plan.quadruple_cases = ECProject::RepairBenchmark::make_uniform_k64_quadruple_block_cases();
     return true;
   }
 
@@ -760,6 +736,30 @@ bool make_repair_plan(const std::string &code_type, int k,
 
   if (code_type == "UniformLRC")
   {
+    if ((k == 64 || k == 96 || k == 128) && (failure_type == "single" || failure_type == "double"))
+    {
+      plan.required_r = 3;
+      plan.required_z = (k == 64) ? 3 : (k == 96 ? 4 : 5);
+      if (configured_r != plan.required_r)
+      {
+        error = "UniformLRC k=" + std::to_string(k) + " requires r=3";
+        return false;
+      }
+      if (failure_type == "single") {
+        if (k == 64)
+          plan.single_cases = ECProject::RepairBenchmark::make_uniform_k64_single_block_cases();
+        else
+          plan.single_cases = ECProject::RepairBenchmark::make_uniform_uneven_single_block_cases(
+              k, configured_r, plan.required_z);
+      } else {
+        if (k == 64)
+          plan.double_cases = ECProject::RepairBenchmark::make_uniform_k64_double_block_cases();
+        else
+          plan.double_cases = ECProject::RepairBenchmark::make_uniform_uneven_double_block_cases(k);
+      }
+      return true;
+    }
+
     if (k == 24 && (failure_type == "single" || failure_type == "double"))
     {
       plan.required_r = 2;
@@ -808,21 +808,6 @@ bool make_repair_plan(const std::string &code_type, int k,
       return true;
     }
 
-    if (k == 96 && (failure_type == "single" || failure_type == "double"))
-    {
-      plan.required_r = 5;
-      plan.required_z = 4;
-      if (configured_r != plan.required_r)
-      {
-        error = "UniformLRC k=96 requires r=5";
-        return false;
-      }
-      if (failure_type == "single")
-        plan.single_cases = make_uniform_k96_single_block_cases(configured_r);
-      else
-        plan.double_cases = make_uniform_k96_double_block_cases();
-      return true;
-    }
 
     error = "no repair plan is registered for CodeType=UniformLRC, k=" +
             std::to_string(k) + ", failure=" + failure_type;
