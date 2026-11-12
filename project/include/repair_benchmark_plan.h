@@ -311,6 +311,19 @@ inline std::vector<DoubleRepairCase> make_azure_double_block_cases(int k)
         };
     }
 
+    if (k == 128)
+    {
+        return {
+            {"L0+L1", {{{131}, inclusive_range(0, 24)},
+                         {{132}, inclusive_range(25, 49)}}},
+            {"L0+L2", {{{131}, inclusive_range(0, 24)},
+                         {{133}, inclusive_range(50, 75)}}},
+            {"L2+L3", {{{133}, inclusive_range(50, 75)},
+                         {{134}, inclusive_range(76, 101)}}},
+            {"G0+G1", {{{128, 129}, inclusive_range(0, 127)}}},
+        };
+    }
+
     return {{"G0+G1", {{{k, k + 1}, inclusive_range(0, k - 1)}}}};
 }
 
@@ -328,6 +341,21 @@ inline std::vector<TripleRepairCase> make_azure_triple_block_cases(int k)
                             {{100}, inclusive_range(24, 47)},
                             {{101}, inclusive_range(48, 71)}}},
             {"G0+G1+G2", {{{96, 97, 98}, inclusive_range(0, 95)}}},
+        };
+    }
+    if (k == 128)
+    {
+        return {
+            {"L0+L1+L2", {{{131}, inclusive_range(0, 24)},
+                            {{132}, inclusive_range(25, 49)},
+                            {{133}, inclusive_range(50, 75)}}},
+            {"L1+L2+L3", {{{132}, inclusive_range(25, 49)},
+                            {{133}, inclusive_range(50, 75)},
+                            {{134}, inclusive_range(76, 101)}}},
+            {"L2+L3+L4", {{{133}, inclusive_range(50, 75)},
+                            {{134}, inclusive_range(76, 101)},
+                            {{135}, inclusive_range(102, 127)}}},
+            {"G0+G1+G2", {{{128, 129, 130}, inclusive_range(0, 127)}}},
         };
     }
     return {{"G0+G1+G2", {{{64, 65, 66}, inclusive_range(0, 63)}}}};
@@ -353,6 +381,21 @@ inline std::vector<QuadrupleRepairCase> make_azure_quadruple_block_cases(int k)
     if (k == 96)
         return {{"G0+G1+G2+L0",
                  {{{96, 97, 98, 99}, inclusive_range(0, 95)}}}};
+    if (k == 128)
+    {
+        return {
+            {"L0+L1+L2+L3", {{{131}, inclusive_range(0, 24)},
+                               {{132}, inclusive_range(25, 49)},
+                               {{133}, inclusive_range(50, 75)},
+                               {{134}, inclusive_range(76, 101)}}},
+            {"L1+L2+L3+L4", {{{132}, inclusive_range(25, 49)},
+                               {{133}, inclusive_range(50, 75)},
+                               {{134}, inclusive_range(76, 101)},
+                               {{135}, inclusive_range(102, 127)}}},
+            {"G0+G1+G2+L0",
+             {{{128, 129, 130, 131}, inclusive_range(0, 127)}}},
+        };
+    }
     return {{"G0+G1+G2+L0", {{{64, 65, 66, 67}, inclusive_range(0, 63)}}}};
 }
 

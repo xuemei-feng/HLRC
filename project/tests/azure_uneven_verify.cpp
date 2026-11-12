@@ -259,6 +259,50 @@ void verify_k96_benchmark_triple_cases()
     }
 }
 
+void verify_k128_benchmark_triple_cases()
+{
+    const auto cases = ECProject::RepairBenchmark::make_azure_triple_block_cases(128);
+    check(cases.size() == 4, "k=128 triple plan must contain four cases");
+    if (cases.size() != 4)
+        return;
+
+    const std::vector<std::string> names = {
+        "L0+L1+L2", "L1+L2+L3", "L2+L3+L4"};
+    const std::vector<std::vector<int>> failed = {
+        {131, 132, 133}, {132, 133, 134}, {133, 134, 135}};
+    const std::vector<std::vector<std::vector<int>>> sources = {
+        {range(0, 25), range(25, 50), range(50, 76)},
+        {range(25, 50), range(50, 76), range(76, 102)},
+        {range(50, 76), range(76, 102), range(102, 128)}};
+    for (size_t case_index = 0; case_index < names.size(); ++case_index) {
+        check(cases[case_index].failed_name == names[case_index] &&
+                  cases[case_index].tasks.size() == 3,
+              "k=128 local triple case changed: " + names[case_index]);
+        if (cases[case_index].tasks.size() != 3)
+            continue;
+        for (size_t task_index = 0; task_index < 3; ++task_index) {
+            const auto &task = cases[case_index].tasks[task_index];
+            check(task.failed_block_ids ==
+                      std::vector<int>({failed[case_index][task_index]}),
+                  "k=128 local triple failed ID changed");
+            check(task.source_block_ids == sources[case_index][task_index],
+                  "k=128 local triple sources changed");
+            verify_double_task_recoverable(128, 3, 5, task, names[case_index]);
+        }
+    }
+
+    check(cases[3].failed_name == "G0+G1+G2" && cases[3].tasks.size() == 1,
+          "k=128 global triple case changed");
+    if (cases[3].tasks.size() == 1) {
+        const auto &task = cases[3].tasks[0];
+        check(task.failed_block_ids == std::vector<int>({128, 129, 130}),
+              "k=128 global triple failed IDs changed");
+        check(task.source_block_ids == range(0, 128),
+              "k=128 global triple sources changed");
+        verify_double_task_recoverable(128, 3, 5, task, "G0+G1+G2");
+    }
+}
+
 void verify_k64_benchmark_quadruple_cases()
 {
     const auto cases = ECProject::RepairBenchmark::make_azure_k64_quadruple_block_cases();
@@ -318,10 +362,52 @@ void verify_k96_benchmark_quadruple_case()
           "k=96 quadruple recovery matrix must contain four output rows");
 }
 
+void verify_k128_benchmark_quadruple_cases()
+{
+    const auto cases = ECProject::RepairBenchmark::make_azure_quadruple_block_cases(128);
+    check(cases.size() == 3, "k=128 quadruple plan must contain three cases");
+    if (cases.size() != 3)
+        return;
+
+    const std::vector<std::string> names = {"L0+L1+L2+L3", "L1+L2+L3+L4"};
+    const std::vector<std::vector<int>> failed = {
+        {131, 132, 133, 134}, {132, 133, 134, 135}};
+    const std::vector<std::vector<std::vector<int>>> sources = {
+        {range(0, 25), range(25, 50), range(50, 76), range(76, 102)},
+        {range(25, 50), range(50, 76), range(76, 102), range(102, 128)}};
+    for (size_t case_index = 0; case_index < names.size(); ++case_index) {
+        check(cases[case_index].failed_name == names[case_index] &&
+                  cases[case_index].tasks.size() == 4,
+              "k=128 local quadruple case changed: " + names[case_index]);
+        if (cases[case_index].tasks.size() != 4)
+            continue;
+        for (size_t task_index = 0; task_index < 4; ++task_index) {
+            const auto &task = cases[case_index].tasks[task_index];
+            check(task.failed_block_ids ==
+                      std::vector<int>({failed[case_index][task_index]}),
+                  "k=128 local quadruple failed ID changed");
+            check(task.source_block_ids == sources[case_index][task_index],
+                  "k=128 local quadruple sources changed");
+            verify_double_task_recoverable(128, 3, 5, task, names[case_index]);
+        }
+    }
+
+    check(cases[2].failed_name == "G0+G1+G2+L0" && cases[2].tasks.size() == 1,
+          "k=128 global quadruple case changed");
+    if (cases[2].tasks.size() == 1) {
+        const auto &task = cases[2].tasks[0];
+        check(task.failed_block_ids == std::vector<int>({128, 129, 130, 131}),
+              "k=128 global quadruple failed IDs changed");
+        check(task.source_block_ids == range(0, 128),
+              "k=128 global quadruple sources changed");
+        verify_double_task_recoverable(128, 3, 5, task, "G0+G1+G2+L0");
+    }
+}
+
 void verify_larger_azure_double_cases(int k, int r, int z)
 {
     const auto cases = ECProject::RepairBenchmark::make_azure_double_block_cases(k);
-    const size_t expected_count = k == 96 ? 2U : 1U;
+    const size_t expected_count = k == 96 ? 2U : (k == 128 ? 4U : 1U);
     check(cases.size() == expected_count,
           "Azure k=" + std::to_string(k) + " double case count changed");
     if (cases.size() != expected_count)
@@ -342,6 +428,31 @@ void verify_larger_azure_double_cases(int k, int r, int z)
             verify_double_task_recoverable(k, r, z, cases[0].tasks[1], "L0+L1/L1");
         }
         global_index = 1;
+    } else if (k == 128) {
+        const std::vector<std::string> names = {"L0+L1", "L0+L2", "L2+L3"};
+        const std::vector<std::vector<int>> failed = {
+            {131, 132}, {131, 133}, {133, 134}};
+        const std::vector<std::vector<std::vector<int>>> sources = {
+            {range(0, 25), range(25, 50)},
+            {range(0, 25), range(50, 76)},
+            {range(50, 76), range(76, 102)}};
+        for (size_t case_index = 0; case_index < names.size(); ++case_index) {
+            check(cases[case_index].failed_name == names[case_index] &&
+                      cases[case_index].tasks.size() == 2,
+                  "Azure k=128 local double case changed: " + names[case_index]);
+            if (cases[case_index].tasks.size() != 2)
+                continue;
+            for (size_t task_index = 0; task_index < 2; ++task_index) {
+                const auto &task = cases[case_index].tasks[task_index];
+                check(task.failed_block_ids ==
+                          std::vector<int>({failed[case_index][task_index]}),
+                      "Azure k=128 local double failed ID changed");
+                check(task.source_block_ids == sources[case_index][task_index],
+                      "Azure k=128 local double sources changed");
+                verify_double_task_recoverable(k, r, z, task, names[case_index]);
+            }
+        }
+        global_index = 3;
     }
 
     check(cases[global_index].failed_name == "G0+G1",
@@ -456,8 +567,10 @@ int main()
     verify_k64_benchmark_double_cases();
     verify_k64_benchmark_triple_cases();
     verify_k96_benchmark_triple_cases();
+    verify_k128_benchmark_triple_cases();
     verify_k64_benchmark_quadruple_cases();
     verify_k96_benchmark_quadruple_case();
+    verify_k128_benchmark_quadruple_cases();
     verify_larger_azure_double_cases(96, 3, 4);
     verify_larger_azure_double_cases(128, 3, 5);
     verify_uneven_benchmark_coverage(96, 3, 4);
