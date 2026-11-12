@@ -814,6 +814,31 @@ bool make_repair_plan(const std::string &code_type, int k,
     return false;
   }
 
+  if (code_type == "NLRC")
+  {
+    if (k != 64 || (failure_type != "single" && failure_type != "double" &&
+                    failure_type != "triple"))
+    {
+      error = "no repair plan is registered for CodeType=NLRC, k=" +
+              std::to_string(k) + ", failure=" + failure_type;
+      return false;
+    }
+    plan.required_r = 3;
+    plan.required_z = 5;
+    if (configured_r != plan.required_r)
+    {
+      error = "NLRC k=64 requires r=3";
+      return false;
+    }
+    if (failure_type == "single")
+      plan.single_cases = ECProject::RepairBenchmark::make_nlrc_k64_single_block_cases();
+    else if (failure_type == "double")
+      plan.double_cases = ECProject::RepairBenchmark::make_nlrc_k64_double_block_cases();
+    else
+      plan.triple_cases = ECProject::RepairBenchmark::make_nlrc_k64_triple_block_cases();
+    return true;
+  }
+
   if (code_type == "HLRC")
   {
     if (k != 64 || (failure_type != "single" && failure_type != "double" &&

@@ -51,7 +51,13 @@ namespace ECProject
 
     void encode_hlrc(int k, int r, int z, unsigned char **data_ptrs, unsigned char **parity_ptrs, int block_size);
 
+    void encode_nlrc(int k, int r, int z, unsigned char **data_ptrs, unsigned char **parity_ptrs, int block_size);
+
+    void partial_encode_nlrc(int k, int r, int z, int data_block_num, unsigned char **data_ptrs, unsigned char **parity_ptrs, int block_size);
+
     void gen_hlrc_matrix(unsigned char *encode_matrix, int k, int r, int z);
+
+    void gen_nlrc_matrix(unsigned char *encode_matrix, int k, int r, int z);
 
     void encode_lotuslrc(int k, int r, int z, unsigned char **data_ptrs, unsigned char **parity_ptrs, int block_size);
 
@@ -91,6 +97,10 @@ namespace ECProject
     void decode_optimal_lrc(const int k, const int r, const int z, const int block_num,
                             const std::vector<int> *block_indexes, unsigned char **block_ptrs, unsigned char *res_ptr, int block_size,
                             int failed_block_id);
+
+    void decode_nlrc(const int k, const int r, const int z, const int block_num,
+                     const std::vector<int> *block_indexes, unsigned char **block_ptrs,
+                     unsigned char *res_ptr, int block_size, int failed_block_id);
 
     void decode_hlrc(const int k, const int r, const int z, const int block_num,
                      const std::vector<int> *block_indexes, unsigned char **block_ptrs,
@@ -242,6 +252,15 @@ namespace ECProject
     std::vector<int> get_global_parity_block_num_per_group_unilrc(int k, int r, int z);
     std::vector<int> get_local_parity_block_num_per_group_unilrc(int k, int r, int z);
     int get_unilrc_block_id_to_local_group_id(int k, int r, int z, int block_id);
+
+    /* NLRC encoding placement layouts. */
+    std::vector<std::vector<int>> get_nlrc_local_group_block_ids(int k, int r, int z);
+    int get_nlrc_block_id_to_local_group_id(int k, int r, int z, int block_id);
+    std::vector<int> get_data_block_num_per_group_nlrc(int k, int r, int z);
+    std::vector<int> get_global_parity_block_num_per_group_nlrc(int k, int r, int z);
+    std::vector<int> get_local_parity_block_num_per_group_nlrc(int k, int r, int z);
+    std::unordered_map<int, int> get_nlrc_block_id_to_group_id(int k, int r, int z);
+    std::unordered_map<int, std::vector<int>> get_nlrc_group_id_to_block_ids(int k, int r, int z);
 
     /* HLRC encoding placement layouts. */
     std::vector<int> get_data_block_num_per_group_hlrc(int k, int r, int z);

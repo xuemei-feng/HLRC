@@ -408,3 +408,74 @@ target_link_libraries(hlrc_k64_quadruple_repair_verify
 )
 add_test(NAME hlrc_k64_quadruple_repair_verify COMMAND hlrc_k64_quadruple_repair_verify)
 set_tests_properties(hlrc_k64_quadruple_repair_verify PROPERTIES TIMEOUT 30)
+
+# NLRC matrix, encoding, placement, and local MDS verification.
+add_executable(nlrc_encode_verify
+    ${CMAKE_CURRENT_SOURCE_DIR}/tests/nlrc_encode_verify.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/encoder.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/encoder_layout.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/recovery_strategy.cpp
+    ${ASM_SOURCES}
+)
+target_include_directories(nlrc_encode_verify PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_link_libraries(nlrc_encode_verify -lpthread -lJerasure -lgf_complete)
+add_test(NAME nlrc_encode_verify COMMAND nlrc_encode_verify)
+set_tests_properties(nlrc_encode_verify PROPERTIES TIMEOUT 60)
+
+# NLRC k=64 exact single-block recovery verification.
+add_executable(nlrc_k64_single_repair_verify
+    ${CMAKE_CURRENT_SOURCE_DIR}/tests/nlrc_k64_single_repair_verify.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/encoder.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/encoder_layout.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/recovery_strategy.cpp
+    ${ASM_SOURCES}
+)
+target_include_directories(nlrc_k64_single_repair_verify PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
+target_link_libraries(nlrc_k64_single_repair_verify
+    -lpthread
+    -lJerasure
+    -lgf_complete
+)
+add_test(NAME nlrc_k64_single_repair_verify COMMAND nlrc_k64_single_repair_verify)
+set_tests_properties(nlrc_k64_single_repair_verify PROPERTIES TIMEOUT 30)
+
+
+# NLRC k=64 exact double-block recovery verification.
+add_executable(nlrc_k64_double_repair_verify
+    ${CMAKE_CURRENT_SOURCE_DIR}/tests/nlrc_k64_double_repair_verify.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/encoder.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/encoder_layout.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/recovery_strategy.cpp
+    ${ASM_SOURCES}
+)
+target_include_directories(nlrc_k64_double_repair_verify PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
+target_link_libraries(nlrc_k64_double_repair_verify
+    -lpthread
+    -lJerasure
+    -lgf_complete
+)
+add_test(NAME nlrc_k64_double_repair_verify COMMAND nlrc_k64_double_repair_verify)
+set_tests_properties(nlrc_k64_double_repair_verify PROPERTIES TIMEOUT 30)
+
+# NLRC k=64 exact triple-block recovery verification.
+add_executable(nlrc_k64_triple_repair_verify
+    ${CMAKE_CURRENT_SOURCE_DIR}/tests/nlrc_k64_triple_repair_verify.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/encoder.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/encoder_layout.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/recovery_strategy.cpp
+    ${ASM_SOURCES}
+)
+target_include_directories(nlrc_k64_triple_repair_verify PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
+target_link_libraries(nlrc_k64_triple_repair_verify
+    -lpthread
+    -lJerasure
+    -lgf_complete
+)
+add_test(NAME nlrc_k64_triple_repair_verify COMMAND nlrc_k64_triple_repair_verify)
+set_tests_properties(nlrc_k64_triple_repair_verify PROPERTIES TIMEOUT 30)

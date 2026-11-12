@@ -204,7 +204,88 @@ const unsigned char *get_hlrc_parity(int k)
     default: throw std::invalid_argument("unsupported HLRC k");
     }
 }
+void validate_nlrc_parameters(int k, int r, int z)
+{
+    if (!((k == 64 && r == 3 && z == 5) ||
+          (k == 96 && r == 3 && z == 7) ||
+          (k == 128 && r == 3 && z == 9)))
+        throw std::invalid_argument("NLRC requires (k=64,r=3,z=5), (k=96,r=3,z=7), or (k=128,r=3,z=9)");
+}
+
+std::vector<std::pair<int, int>> nlrc_data_bounds(int k)
+{
+    if (k == 64) return {{0, 22}, {22, 44}, {44, 64}};
+    if (k == 96) return {{0, 24}, {24, 49}, {49, 74}, {74, 96}};
+    return {{0, 26}, {26, 52}, {52, 78}, {78, 104}, {104, 128}};
+}
 } // namespace
+
+void ECProject::gen_nlrc_matrix(unsigned char *encode_matrix, int k, int r, int z)
+{
+    validate_nlrc_parameters(k, r, z);
+    if (encode_matrix == nullptr)
+        throw std::invalid_argument("NLRC encode matrix must not be null");
+    const int n = k + r + z;
+    memset(encode_matrix, 0, static_cast<size_t>(n) * k);
+    gf_gen_cauchy_matrix1(encode_matrix, k + r, k);
+    const auto bounds = nlrc_data_bounds(k);
+    int local_row = k + r;
+    for (size_t group = 0; group + 1 < bounds.size(); ++group) {
+        const int begin = bounds[group].first;
+        const int count = bounds[group].second - begin;
+        std::vector<unsigned char> local_matrix(static_cast<size_t>(count + 2) * count);
+        gf_gen_cauchy_matrix1(local_matrix.data(), count + 2, count);
+        for (int parity = 0; parity < 2; ++parity)
+            memcpy(encode_matrix + static_cast<size_t>(local_row++) * k + begin,
+                   local_matrix.data() + static_cast<size_t>(count + parity) * count,
+                   static_cast<size_t>(count));
+    }
+    const int tail_begin = bounds.back().first;
+    const int tail_data = k - tail_begin;
+    const int member_count = tail_data + r;
+    std::vector<unsigned char> tail_matrix(static_cast<size_t>(member_count + 1) * member_count);
+    gf_gen_cauchy_matrix1(tail_matrix.data(), member_count + 1, member_count);
+    const unsigned char *coeff = tail_matrix.data() + static_cast<size_t>(member_count) * member_count;
+    unsigned char *row = encode_matrix + static_cast<size_t>(local_row) * k;
+    for (int i = 0; i < tail_data; ++i)
+        row[tail_begin + i] = coeff[i];
+    for (int global = 0; global < r; ++global)
+        for (int data = 0; data < k; ++data)
+            row[data] ^= gf_mul(coeff[tail_data + global], encode_matrix[(k + global) * k + data]);
+}
+
+void ECProject::encode_nlrc(int k, int r, int z, unsigned char **data_ptrs,
+                            unsigned char **parity_ptrs, int block_size)
+{
+    validate_nlrc_parameters(k, r, z);
+    if (data_ptrs == nullptr || parity_ptrs == nullptr || block_size <= 0)
+        throw std::invalid_argument("NLRC requires non-null buffers and a positive block size");
+    std::vector<unsigned char> matrix(static_cast<size_t>(k + r + z) * k);
+    std::vector<unsigned char> tables(static_cast<size_t>(k) * (r + z) * 32);
+    gen_nlrc_matrix(matrix.data(), k, r, z);
+    ec_init_tables(k, r + z, matrix.data() + static_cast<size_t>(k) * k, tables.data());
+    ec_encode_data_avx2(block_size, k, r + z, tables.data(), data_ptrs, parity_ptrs);
+}
+
+void ECProject::partial_encode_nlrc(int k, int r, int z, int data_block_num,
+                                    unsigned char **data_ptrs, unsigned char **parity_ptrs,
+                                    int block_size)
+{
+    validate_nlrc_parameters(k, r, z);
+    if (data_block_num <= 0 || data_block_num > k || data_ptrs == nullptr ||
+        parity_ptrs == nullptr || block_size <= 0)
+        throw std::invalid_argument("NLRC partial encode arguments are invalid");
+    std::vector<unsigned char> matrix(static_cast<size_t>(k + r + z) * k);
+    std::vector<unsigned char> sub_matrix(static_cast<size_t>(r + z) * data_block_num);
+    std::vector<unsigned char> tables(static_cast<size_t>(data_block_num) * (r + z) * 32);
+    gen_nlrc_matrix(matrix.data(), k, r, z);
+    for (int row = 0; row < r + z; ++row)
+        memcpy(sub_matrix.data() + static_cast<size_t>(row) * data_block_num,
+               matrix.data() + static_cast<size_t>(k + row) * k,
+               static_cast<size_t>(data_block_num));
+    ec_init_tables(data_block_num, r + z, sub_matrix.data(), tables.data());
+    ec_encode_data_avx2(block_size, data_block_num, r + z, tables.data(), data_ptrs, parity_ptrs);
+}
 
 void ECProject::gen_hlrc_matrix(unsigned char *encode_matrix, int k, int r, int z)
 {
@@ -719,6 +800,14 @@ void ECProject::decode_optimal_lrc(const int k, const int r, const int z, const 
     decode_block_via_generator("OptimalLRC", k, r, z, block_num, block_indexes, block_ptrs,
                                res_ptr, block_size, failed_block_id);
 }
+void ECProject::decode_nlrc(const int k, const int r, const int z, const int block_num,
+                            const std::vector<int> *block_indexes, unsigned char **block_ptrs,
+                            unsigned char *res_ptr, int block_size, int failed_block_id)
+{
+    decode_block_via_generator("NLRC", k, r, z, block_num, block_indexes, block_ptrs,
+                               res_ptr, block_size, failed_block_id);
+}
+
 void ECProject::decode_hlrc(const int k, const int r, const int z, const int block_num,
                             const std::vector<int> *block_indexes, unsigned char **block_ptrs,
                             unsigned char *res_ptr, int block_size, int failed_block_id)

@@ -32,6 +32,8 @@ int get_block_id_to_local_group_id(const std::string &code_type, int k, int r, i
     }
     if (code_type == "LotusLRC")
         return get_lotuslrc_block_id_to_local_group_id(k, r, z, block_id);
+    if (code_type == "NLRC")
+        return get_nlrc_block_id_to_local_group_id(k, r, z, block_id);
     throw std::runtime_error("unknown code type for local group id: " + code_type);
 }
 
@@ -198,6 +200,8 @@ bool build_generator_matrix(const std::string &code_type, int k, int r, int z,
         gen_lotuslrc_matrix(gen.data(), k, r, z);
     else if (code_type == "HLRC")
         gen_hlrc_matrix(gen.data(), k, r, z);
+    else if (code_type == "NLRC")
+        gen_nlrc_matrix(gen.data(), k, r, z);
     else
         return false;
     return true;
@@ -332,6 +336,12 @@ bool get_global_decode_plan(int k, int r, int z, const std::string &code_type,
     }
     else if(code_type == "LotusLRC"){
         gen_lotuslrc_matrix(gen_matrix, k, r, z);
+    }
+    else if(code_type == "HLRC"){
+        gen_hlrc_matrix(gen_matrix, k, r, z);
+    }
+    else if(code_type == "NLRC"){
+        gen_nlrc_matrix(gen_matrix, k, r, z);
     }
     else{
         std::cerr << "Error: Unsupported code type " << code_type << std::endl;
@@ -525,6 +535,32 @@ std::vector<std::pair<int, std::vector<int>>> get_recovery_group_and_block_ids(c
     return get_recovery_group_and_block_ids_lotuslrc(k, r, z, failed_block_id);
   else if (code_type == "HLRC")
     return get_recovery_group_and_block_ids_hlrc(k, r, z, failed_block_id);
+  else if (code_type == "NLRC")
+  {
+    if (k != 64 || r != 3 || z != 5)
+      return {};
+    std::vector<int> sources;
+    if (failed_block_id == 67)
+      for (int id = 0; id <= 21; ++id) sources.push_back(id);
+    else if (failed_block_id == 71)
+    {
+      for (int id = 44; id <= 63; ++id) sources.push_back(id);
+      sources.insert(sources.end(), {64, 65, 66});
+    }
+    else
+      return {};
+    const auto placement = get_nlrc_block_id_to_group_id(k, r, z);
+    std::vector<std::pair<int, std::vector<int>>> plan;
+    for (int source : sources) {
+      const int physical = placement.at(source);
+      auto it = std::find_if(plan.begin(), plan.end(), [physical](const auto &entry) {
+        return entry.first == physical;
+      });
+      if (it == plan.end()) plan.push_back({physical, {source}});
+      else it->second.push_back(source);
+    }
+    return plan;
+  }
   else
     throw std::runtime_error("unknown code type");
 }

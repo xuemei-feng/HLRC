@@ -149,6 +149,38 @@ namespace ECProject
     return grpc::Status::OK;
   }
 
+  void CoordinatorImpl::initialize_nlrc_stripe_placement(Stripe *stripe)
+  {
+    const auto mapping = ECProject::get_nlrc_block_id_to_group_id(stripe->k, stripe->r, stripe->z);
+    Block *blocks_info = new Block[stripe->n];
+    assert(stripe->object_keys.size() == 1);
+    for (int i = 0; i < stripe->n; ++i) {
+      Block &block = blocks_info[i];
+      block.block_size = m_sys_config->BlockSize;
+      block.map2stripe = stripe->stripe_id;
+      block.map2key = stripe->object_keys[0];
+      block.block_id = i;
+      block.map2group = mapping.at(i);
+      if (i < stripe->k) {
+        block.block_type = 'D';
+        block.block_key = std::to_string(stripe->stripe_id) + "_D" + std::to_string(i);
+      } else if (i < stripe->k + stripe->r) {
+        block.block_type = 'G';
+        block.block_key = std::to_string(stripe->stripe_id) + "_G" + std::to_string(i - stripe->k);
+      } else {
+        block.block_type = 'L';
+        block.block_key = std::to_string(stripe->stripe_id) + "_L" + std::to_string(i - stripe->k - stripe->r);
+      }
+      block.map2node = (stripe->stripe_id + i) % m_sys_config->NodeNum;
+      update_stripe_info_in_node(block.map2node, stripe->stripe_id, i);
+      m_node_table[block.map2node].blocks.push_back(&block);
+      stripe->blocks.push_back(&block);
+      stripe->place2nodes.insert(block.map2node);
+      add_to_map(stripe->group_to_blocks, block.map2group, i);
+    }
+    stripe->num_groups = static_cast<int>(stripe->group_to_blocks.size());
+  }
+
   void CoordinatorImpl::initialize_hlrc_stripe_placement(Stripe *stripe)
   {
     const auto block_id_to_group_id =
@@ -651,6 +683,8 @@ namespace ECProject
         initialize_lotuslrc_stripe_placement(&t_stripe);
       else if (code_type_append == "HLRC")
         initialize_hlrc_stripe_placement(&t_stripe);
+      else if (code_type_append == "NLRC")
+        initialize_nlrc_stripe_placement(&t_stripe);
       m_stripe_table[t_stripe.stripe_id] = t_stripe;
       stripe = &m_stripe_table[t_stripe.stripe_id];
     }
@@ -802,7 +836,7 @@ namespace ECProject
     size_t setSizeBytes = keyValueSize->valuesizebytes();
     std::string code_type = m_sys_config->CodeType;
     assert(setSizeBytes == static_cast<size_t>(m_sys_config->BlockSize) * static_cast<size_t>(m_sys_config->k) && "set size is not equal to the block stripe size!");
-    assert((code_type == "UniLRC" || code_type == "AzureLRC" || code_type == "OptimalLRC" || code_type == "UniformLRC" || code_type == "LotusLRC" || code_type == "HLRC") && "Error: code type must be UniLRC, AzureLRC, OptimalLRC, UniformLRC, LotusLRC, or HLRC!");
+    assert((code_type == "UniLRC" || code_type == "AzureLRC" || code_type == "OptimalLRC" || code_type == "UniformLRC" || code_type == "LotusLRC" || code_type == "HLRC" || code_type == "NLRC") && "Error: code type must be UniLRC, AzureLRC, OptimalLRC, UniformLRC, LotusLRC, or HLRC or NLRC!");
 
     Stripe t_stripe;
     t_stripe.stripe_id = m_cur_stripe_id++;
@@ -823,6 +857,8 @@ namespace ECProject
       initialize_lotuslrc_stripe_placement(&t_stripe);
     else if (code_type == "HLRC")
       initialize_hlrc_stripe_placement(&t_stripe);
+    else if (code_type == "NLRC")
+      initialize_nlrc_stripe_placement(&t_stripe);
 
     print_stripe_data_placement(t_stripe);
 
@@ -869,7 +905,7 @@ namespace ECProject
     if (code_type == "HLRC")
       return grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, "HLRC does not support subset set");
     assert(setSizeBytes <= static_cast<size_t>(m_sys_config->BlockSize) * static_cast<size_t>(m_sys_config->k) && "subset size is larger than the block size!");
-    assert((code_type == "UniLRC" || code_type == "AzureLRC" || code_type == "OptimalLRC" || code_type == "UniformLRC") && "Error: code type must be UniLRC, AzureLRC, OptimalLRC, or UniformLRC!");
+    assert((code_type == "UniLRC" || code_type == "AzureLRC" || code_type == "OptimalLRC" || code_type == "UniformLRC" || code_type == "NLRC") && "Error: code type must be UniLRC, AzureLRC, OptimalLRC, or UniformLRC!");
 
     Stripe t_stripe;
     t_stripe.stripe_id = m_cur_stripe_id++;
@@ -888,6 +924,8 @@ namespace ECProject
       initialize_uniform_lrc_stripe_placement(&t_stripe);
     else if (code_type == "LotusLRC")
       initialize_lotuslrc_stripe_placement(&t_stripe);
+    else if (code_type == "NLRC")
+      initialize_nlrc_stripe_placement(&t_stripe);
 
     print_stripe_data_placement(t_stripe);
 
@@ -1635,6 +1673,9 @@ namespace ECProject
     }
     else if(code_type == "HLRC"){
       decode_hlrc(k, r, z, block_num, &recovery_block_ids, recovery_data_ptrs.data(), res, block_size, failed_block_id);
+    }
+    else if(code_type == "NLRC"){
+      decode_nlrc(k, r, z, block_num, &recovery_block_ids, recovery_data_ptrs.data(), res, block_size, failed_block_id);
     }
     else if(code_type == "UniformLRC"){
       decode_uniform_lrc(k, r, z, block_num, &recovery_block_ids, recovery_data_ptrs.data(), res, block_size, failed_block_id);
@@ -2806,6 +2847,8 @@ namespace ECProject
         if (code == "OptimalLRC") return ECProject::get_optimal_lrc_block_id_to_group_id(k, r, z).at(bid);
         if (code == "UniformLRC") return ECProject::get_uniform_lrc_block_id_to_group_id(k, r, z).at(bid);
         if (code == "LotusLRC")   return ECProject::get_lotuslrc_block_id_to_group_id(k, r, z).at(bid);
+        if (code == "HLRC")       return ECProject::get_hlrc_block_id_to_group_id(k, r, z).at(bid);
+        if (code == "NLRC")       return ECProject::get_nlrc_block_id_to_group_id(k, r, z).at(bid);
       } catch (const std::exception &) {
         return -1;
       }

@@ -86,6 +86,41 @@ inline std::vector<RepairCase> make_optimal_k64_single_block_cases()
             {"L2", 69, std::move(l2_sources)}};
 }
 
+inline std::vector<RepairCase> make_nlrc_k64_single_block_cases()
+{
+    auto l4_sources = inclusive_range(44, 63);
+    l4_sources.insert(l4_sources.end(), {64, 65, 66});
+    return {{"L0", 67, inclusive_range(0, 21)},
+            {"L4", 71, std::move(l4_sources)}};
+}
+
+inline std::vector<DoubleRepairCase> make_nlrc_k64_double_block_cases()
+{
+    auto l4_sources = inclusive_range(44, 63);
+    l4_sources.insert(l4_sources.end(), {64, 65, 66});
+    return {
+        {"L0+L1", {{{67, 68}, inclusive_range(0, 21)}}},
+        {"L0+L2", {{{67}, inclusive_range(0, 21)},
+                      {{69}, inclusive_range(22, 43)}}},
+        {"L0+L4", {{{67}, inclusive_range(0, 21)},
+                      {{71}, std::move(l4_sources)}}},
+        {"G0+G1", {{{64, 65}, inclusive_range(0, 63)}}},
+    };
+}
+
+inline std::vector<TripleRepairCase> make_nlrc_k64_triple_block_cases()
+{
+    auto l4_sources = inclusive_range(44, 63);
+    l4_sources.insert(l4_sources.end(), {64, 65, 66});
+    return {
+        {"L0+L1+L2", {{{67, 68}, inclusive_range(0, 21)},
+                          {{69}, inclusive_range(22, 43)}}},
+        {"L0+L1+L4", {{{67, 68}, inclusive_range(0, 21)},
+                          {{71}, std::move(l4_sources)}}},
+        {"G0+G1+G2", {{{64, 65, 66}, inclusive_range(0, 63)}}},
+    };
+}
+
 inline std::vector<RepairCase> make_hlrc_k64_single_block_cases()
 {
     auto l1_sources = inclusive_range(16, 31);
