@@ -416,6 +416,82 @@ target_link_libraries(optimal_uneven_verify
 add_test(NAME optimal_uneven_verify COMMAND optimal_uneven_verify)
 set_tests_properties(optimal_uneven_verify PROPERTIES TIMEOUT 30)
 
+# OptimalLRC k=96 exact L0 single-block recovery verification.
+add_executable(optimal_k96_single_repair_verify
+    ${CMAKE_CURRENT_SOURCE_DIR}/tests/optimal_k96_single_repair_verify.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/encoder.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/encoder_layout.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/recovery_strategy.cpp
+    ${ASM_SOURCES}
+)
+target_include_directories(optimal_k96_single_repair_verify PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
+target_link_libraries(optimal_k96_single_repair_verify
+    -lpthread
+    -lJerasure
+    -lgf_complete
+)
+add_test(NAME optimal_k96_single_repair_verify COMMAND optimal_k96_single_repair_verify)
+set_tests_properties(optimal_k96_single_repair_verify PROPERTIES TIMEOUT 30)
+
+# OptimalLRC k=96 exact L0+L1/G0+G1 double-block recovery verification.
+add_executable(optimal_k96_double_repair_verify
+    ${CMAKE_CURRENT_SOURCE_DIR}/tests/optimal_k96_double_repair_verify.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/encoder.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/encoder_layout.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/recovery_strategy.cpp
+    ${ASM_SOURCES}
+)
+target_include_directories(optimal_k96_double_repair_verify PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
+target_link_libraries(optimal_k96_double_repair_verify
+    -lpthread
+    -lJerasure
+    -lgf_complete
+)
+add_test(NAME optimal_k96_double_repair_verify COMMAND optimal_k96_double_repair_verify)
+set_tests_properties(optimal_k96_double_repair_verify PROPERTIES TIMEOUT 30)
+
+# OptimalLRC k=96 exact L0+L1+L2/G0+G1+G2 triple-block recovery verification.
+add_executable(optimal_k96_triple_repair_verify
+    ${CMAKE_CURRENT_SOURCE_DIR}/tests/optimal_k96_triple_repair_verify.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/encoder.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/encoder_layout.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/recovery_strategy.cpp
+    ${ASM_SOURCES}
+)
+target_include_directories(optimal_k96_triple_repair_verify PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
+target_link_libraries(optimal_k96_triple_repair_verify
+    -lpthread
+    -lJerasure
+    -lgf_complete
+)
+add_test(NAME optimal_k96_triple_repair_verify COMMAND optimal_k96_triple_repair_verify)
+set_tests_properties(optimal_k96_triple_repair_verify PROPERTIES TIMEOUT 30)
+
+# OptimalLRC k=96 exact G0+G1+G2+L0 quadruple-block recovery verification.
+add_executable(optimal_k96_quadruple_repair_verify
+    ${CMAKE_CURRENT_SOURCE_DIR}/tests/optimal_k96_quadruple_repair_verify.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/encoder.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/encoder_layout.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/recovery_strategy.cpp
+    ${ASM_SOURCES}
+)
+target_include_directories(optimal_k96_quadruple_repair_verify PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
+target_link_libraries(optimal_k96_quadruple_repair_verify
+    -lpthread
+    -lJerasure
+    -lgf_complete
+)
+add_test(NAME optimal_k96_quadruple_repair_verify COMMAND optimal_k96_quadruple_repair_verify)
+set_tests_properties(optimal_k96_quadruple_repair_verify PROPERTIES TIMEOUT 30)
+
 # UniformLRC uneven data-like groups, placement, encoding, and recovery verification.
 add_executable(uniform_uneven_verify
     ${CMAKE_CURRENT_SOURCE_DIR}/tests/uniform_uneven_verify.cpp

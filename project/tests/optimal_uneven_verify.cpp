@@ -214,6 +214,16 @@ void verify_case(int k, int r, int z, const std::vector<int> &expected_sizes,
             {"L0+L2", {{{67}, l0_sources}, {{69}, l2_sources}}},
             {"G0+G1", {{{64, 65}, range(0, 64)}}},
         };
+    } else if (k == 96) {
+        auto l0_sources = range(0, 24);
+        auto l1_sources = range(24, 48);
+        const auto globals = range(96, 99);
+        l0_sources.insert(l0_sources.end(), globals.begin(), globals.end());
+        l1_sources.insert(l1_sources.end(), globals.begin(), globals.end());
+        expected_doubles = {
+            {"L0+L1", {{{99}, l0_sources}, {{100}, l1_sources}}},
+            {"G0+G1", {{{96, 97}, range(0, 96)}}},
+        };
     } else {
         expected_doubles = {{"G0+G1", {{{k, k + 1}, range(0, k)}}}};
     }
@@ -250,26 +260,76 @@ void verify_case(int k, int r, int z, const std::vector<int> &expected_sizes,
                   "G0+G1 must put G0 first for compute-proxy selection");
     }
 
-    if (k == 64) {
-        const auto triples = ECProject::RepairBenchmark::make_optimal_k64_triple_block_cases();
-        check(triples.size() == 1, "k64 triple case count mismatch");
-        if (triples.size() == 1) {
-            const auto &triple = triples[0];
-            check(triple.failed_name == "G0+G1+G2", "k64 triple case name mismatch");
-            check(triple.tasks.size() == 1, "k64 triple must use one shared task");
-            if (triple.tasks.size() == 1) {
-                const auto &task = triple.tasks[0];
-                check(task.failed_block_ids == std::vector<int>({64, 65, 66}),
-                      "k64 triple failed ID/order mismatch");
-                check(task.source_block_ids == range(0, 64),
-                      "k64 triple source order mismatch");
+    if (k == 64 || k == 96) {
+        const auto triples = ECProject::RepairBenchmark::make_optimal_triple_block_cases(k);
+        const size_t expected_count = k == 96 ? 2U : 1U;
+        check(triples.size() == expected_count, "triple case count mismatch");
+        if (k == 96 && triples.size() == 2) {
+            auto l0_sources = range(0, 24);
+            auto l1_sources = range(24, 48);
+            auto l2_sources = range(48, 72);
+            const auto globals = range(96, 99);
+            l0_sources.insert(l0_sources.end(), globals.begin(), globals.end());
+            l1_sources.insert(l1_sources.end(), globals.begin(), globals.end());
+            l2_sources.insert(l2_sources.end(), globals.begin(), globals.end());
+            const auto &local = triples[0];
+            check(local.failed_name == "L0+L1+L2" && local.tasks.size() == 3,
+                  "k96 local triple case changed");
+            const std::vector<int> failed = {99, 100, 101};
+            const std::vector<std::vector<int>> sources = {l0_sources, l1_sources, l2_sources};
+            for (size_t i = 0; i < std::min<size_t>(3, local.tasks.size()); ++i) {
+                check(local.tasks[i].failed_block_ids == std::vector<int>({failed[i]}),
+                      "k96 local triple failed ID changed");
+                check(local.tasks[i].source_block_ids == sources[i],
+                      "k96 local triple source order changed");
+                coefficients.clear();
+                check(ECProject::get_local_fill_plan(k, r, z, "OptimalLRC",
+                                                     local.tasks[i].failed_block_ids,
+                                                     local.tasks[i].source_block_ids, coefficients),
+                      "k96 local triple task is not recoverable");
+            }
+        }
+        if (!triples.empty()) {
+            const auto &global = triples.back();
+            check(global.failed_name == "G0+G1+G2" && global.tasks.size() == 1,
+                  "global triple must use one shared task");
+            if (global.tasks.size() == 1) {
+                const auto &task = global.tasks[0];
+                check(task.failed_block_ids == std::vector<int>({k, k + 1, k + 2}),
+                      "global triple failed ID/order mismatch");
+                check(task.source_block_ids == range(0, k),
+                      "global triple source order mismatch");
                 coefficients.clear();
                 check(ECProject::get_local_fill_plan(k, r, z, "OptimalLRC",
                                                      task.failed_block_ids,
                                                      task.source_block_ids, coefficients),
-                      "k64 triple task is not recoverable");
-                check(coefficients.size() == 3 * 64,
-                      "k64 triple coefficient count mismatch");
+                      "global triple task is not recoverable");
+                check(coefficients.size() == static_cast<size_t>(3 * k),
+                      "global triple coefficient count mismatch");
+            }
+        }
+    }
+
+    if (k == 96) {
+        const auto quadruples = ECProject::RepairBenchmark::make_optimal_quadruple_block_cases(k);
+        check(quadruples.size() == 1, "k96 quadruple case count mismatch");
+        if (quadruples.size() == 1) {
+            const auto &test_case = quadruples[0];
+            check(test_case.failed_name == "G0+G1+G2+L0" && test_case.tasks.size() == 1,
+                  "k96 quadruple must use one shared task");
+            if (test_case.tasks.size() == 1) {
+                const auto &task = test_case.tasks[0];
+                check(task.failed_block_ids == std::vector<int>({96, 97, 98, 99}),
+                      "k96 quadruple failed ID/order mismatch");
+                check(task.source_block_ids == range(0, 96),
+                      "k96 quadruple source order mismatch");
+                coefficients.clear();
+                check(ECProject::get_local_fill_plan(k, r, z, "OptimalLRC",
+                                                     task.failed_block_ids,
+                                                     task.source_block_ids, coefficients),
+                      "k96 quadruple task is not recoverable");
+                check(coefficients.size() == 4U * 96U,
+                      "k96 quadruple coefficient count mismatch");
             }
         }
     }

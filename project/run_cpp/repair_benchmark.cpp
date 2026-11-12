@@ -499,17 +499,18 @@ bool make_repair_plan(const std::string &code_type, int k,
   if (failure_type == "triple")
   {
     const bool azure_large = code_type == "AzureLRC" && (k == 96 || k == 128);
+    const bool optimal_k96 = code_type == "OptimalLRC" && k == 96;
     const bool supported_k64 =
         (code_type == "AzureLRC" || code_type == "OptimalLRC" ||
          code_type == "UniformLRC") && k == 64;
-    if (!azure_large && !supported_k64)
+    if (!azure_large && !optimal_k96 && !supported_k64)
     {
       error = "no repair plan is registered for CodeType=" + code_type +
               ", k=" + std::to_string(k) + ", failure=triple";
       return false;
     }
     plan.required_r = 3;
-    plan.required_z = azure_large ? (k == 96 ? 4 : 5) : 3;
+    plan.required_z = (azure_large || optimal_k96) ? (k == 96 ? 4 : 5) : 3;
     if (configured_r != plan.required_r)
     {
       error = code_type + " k=" + std::to_string(k) + " triple requires r=3";
@@ -518,7 +519,7 @@ bool make_repair_plan(const std::string &code_type, int k,
     if (code_type == "AzureLRC")
       plan.triple_cases = ECProject::RepairBenchmark::make_azure_triple_block_cases(k);
     else if (code_type == "OptimalLRC")
-      plan.triple_cases = ECProject::RepairBenchmark::make_optimal_k64_triple_block_cases();
+      plan.triple_cases = ECProject::RepairBenchmark::make_optimal_triple_block_cases(k);
     else
       plan.triple_cases = ECProject::RepairBenchmark::make_uniform_k64_triple_block_cases();
     return true;
@@ -527,16 +528,17 @@ bool make_repair_plan(const std::string &code_type, int k,
   if (failure_type == "quadruple")
   {
     const bool azure_large = code_type == "AzureLRC" && (k == 96 || k == 128);
+    const bool optimal_k96 = code_type == "OptimalLRC" && k == 96;
     const bool supported_k64 =
         (code_type == "AzureLRC" || code_type == "UniformLRC") && k == 64;
-    if (!azure_large && !supported_k64)
+    if (!azure_large && !optimal_k96 && !supported_k64)
     {
       error = "no repair plan is registered for CodeType=" + code_type +
               ", k=" + std::to_string(k) + ", failure=quadruple";
       return false;
     }
     plan.required_r = 3;
-    plan.required_z = azure_large ? (k == 96 ? 4 : 5) : 3;
+    plan.required_z = (azure_large || optimal_k96) ? (k == 96 ? 4 : 5) : 3;
     if (configured_r != plan.required_r)
     {
       error = code_type + " k=" + std::to_string(k) + " quadruple requires r=3";
@@ -544,6 +546,8 @@ bool make_repair_plan(const std::string &code_type, int k,
     }
     if (code_type == "AzureLRC")
       plan.quadruple_cases = ECProject::RepairBenchmark::make_azure_quadruple_block_cases(k);
+    else if (code_type == "OptimalLRC")
+      plan.quadruple_cases = ECProject::RepairBenchmark::make_optimal_quadruple_block_cases(k);
     else
       plan.quadruple_cases = ECProject::RepairBenchmark::make_uniform_k64_quadruple_block_cases();
     return true;

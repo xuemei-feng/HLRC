@@ -238,6 +238,21 @@ inline std::vector<QuadrupleRepairCase> make_hlrc_k64_quadruple_block_cases()
 
 inline std::vector<DoubleRepairCase> make_optimal_uneven_double_block_cases(int k)
 {
+    if (k == 96)
+    {
+        auto l0_sources = inclusive_range(0, 23);
+        auto l1_sources = inclusive_range(24, 47);
+        for (int global = 96; global <= 98; ++global)
+        {
+            l0_sources.push_back(global);
+            l1_sources.push_back(global);
+        }
+        return {
+            {"L0+L1", {{{99}, std::move(l0_sources)},
+                         {{100}, std::move(l1_sources)}}},
+            {"G0+G1", {{{96, 97}, inclusive_range(0, 95)}}},
+        };
+    }
     return {{"G0+G1", {{{k, k + 1}, inclusive_range(0, k - 1)}}}};
 }
 
@@ -366,9 +381,40 @@ inline std::vector<TripleRepairCase> make_azure_k64_triple_block_cases()
     return make_azure_triple_block_cases(64);
 }
 
+inline std::vector<TripleRepairCase> make_optimal_triple_block_cases(int k)
+{
+    if (k == 96)
+    {
+        auto l0_sources = inclusive_range(0, 23);
+        auto l1_sources = inclusive_range(24, 47);
+        auto l2_sources = inclusive_range(48, 71);
+        for (int global = 96; global <= 98; ++global)
+        {
+            l0_sources.push_back(global);
+            l1_sources.push_back(global);
+            l2_sources.push_back(global);
+        }
+        return {
+            {"L0+L1+L2", {{{99}, std::move(l0_sources)},
+                            {{100}, std::move(l1_sources)},
+                            {{101}, std::move(l2_sources)}}},
+            {"G0+G1+G2", {{{96, 97, 98}, inclusive_range(0, 95)}}},
+        };
+    }
+    return {{"G0+G1+G2", {{{64, 65, 66}, inclusive_range(0, 63)}}}};
+}
+
 inline std::vector<TripleRepairCase> make_optimal_k64_triple_block_cases()
 {
-    return {{"G0+G1+G2", {{{64, 65, 66}, inclusive_range(0, 63)}}}};
+    return make_optimal_triple_block_cases(64);
+}
+
+inline std::vector<QuadrupleRepairCase> make_optimal_quadruple_block_cases(int k)
+{
+    if (k == 96)
+        return {{"G0+G1+G2+L0",
+                 {{{96, 97, 98, 99}, inclusive_range(0, 95)}}}};
+    return {};
 }
 
 inline std::vector<QuadrupleRepairCase> make_uniform_k64_quadruple_block_cases()
