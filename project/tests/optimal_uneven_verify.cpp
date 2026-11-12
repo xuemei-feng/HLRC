@@ -224,6 +224,20 @@ void verify_case(int k, int r, int z, const std::vector<int> &expected_sizes,
             {"L0+L1", {{{99}, l0_sources}, {{100}, l1_sources}}},
             {"G0+G1", {{{96, 97}, range(0, 96)}}},
         };
+    } else if (k == 128) {
+        auto with_globals = [](std::vector<int> sources) {
+            sources.insert(sources.end(), {128, 129, 130});
+            return sources;
+        };
+        expected_doubles = {
+            {"L0+L1", {{{131}, with_globals(range(0, 25))},
+                         {{132}, with_globals(range(25, 50))}}},
+            {"L0+L2", {{{131}, with_globals(range(0, 25))},
+                         {{133}, with_globals(range(50, 76))}}},
+            {"L2+L3", {{{133}, with_globals(range(50, 76))},
+                         {{134}, with_globals(range(76, 102))}}},
+            {"G0+G1", {{{128, 129}, range(0, 128)}}},
+        };
     } else {
         expected_doubles = {{"G0+G1", {{{k, k + 1}, range(0, k)}}}};
     }
@@ -260,9 +274,9 @@ void verify_case(int k, int r, int z, const std::vector<int> &expected_sizes,
                   "G0+G1 must put G0 first for compute-proxy selection");
     }
 
-    if (k == 64 || k == 96) {
+    if (k == 64 || k == 96 || k == 128) {
         const auto triples = ECProject::RepairBenchmark::make_optimal_triple_block_cases(k);
-        const size_t expected_count = k == 96 ? 2U : 1U;
+        const size_t expected_count = k == 96 ? 2U : (k == 128 ? 4U : 1U);
         check(triples.size() == expected_count, "triple case count mismatch");
         if (k == 96 && triples.size() == 2) {
             auto l0_sources = range(0, 24);
@@ -289,6 +303,27 @@ void verify_case(int k, int r, int z, const std::vector<int> &expected_sizes,
                       "k96 local triple task is not recoverable");
             }
         }
+        if (k == 128 && triples.size() == 4) {
+            auto with_globals = [](std::vector<int> sources) {
+                sources.insert(sources.end(), {128, 129, 130});
+                return sources;
+            };
+            const std::vector<std::string> names = {"L0+L1+L2", "L1+L2+L3", "L2+L3+L4"};
+            const std::vector<std::vector<int>> failed = {{131,132,133},{132,133,134},{133,134,135}};
+            const std::vector<std::vector<std::vector<int>>> sources = {
+                {with_globals(range(0,25)),with_globals(range(25,50)),with_globals(range(50,76))},
+                {with_globals(range(25,50)),with_globals(range(50,76)),with_globals(range(76,102))},
+                {with_globals(range(50,76)),with_globals(range(76,102)),with_globals(range(102,128))}};
+            for (size_t c = 0; c < 3; ++c) {
+                check(triples[c].failed_name == names[c] && triples[c].tasks.size() == 3, "k128 local triple case changed");
+                for (size_t t = 0; t < std::min<size_t>(3, triples[c].tasks.size()); ++t) {
+                    check(triples[c].tasks[t].failed_block_ids == std::vector<int>({failed[c][t]}), "k128 triple failed ID changed");
+                    check(triples[c].tasks[t].source_block_ids == sources[c][t], "k128 triple sources changed");
+                    coefficients.clear();
+                    check(ECProject::get_local_fill_plan(k,r,z,"OptimalLRC",triples[c].tasks[t].failed_block_ids,triples[c].tasks[t].source_block_ids,coefficients), "k128 local triple not recoverable");
+                }
+            }
+        }
         if (!triples.empty()) {
             const auto &global = triples.back();
             check(global.failed_name == "G0+G1+G2" && global.tasks.size() == 1,
@@ -310,8 +345,39 @@ void verify_case(int k, int r, int z, const std::vector<int> &expected_sizes,
         }
     }
 
-    if (k == 96) {
+    if (k == 96 || k == 128) {
         const auto quadruples = ECProject::RepairBenchmark::make_optimal_quadruple_block_cases(k);
+        if (k == 128) {
+            check(quadruples.size() == 3, "k128 quadruple case count mismatch");
+            auto with_globals = [](std::vector<int> sources) {
+                sources.insert(sources.end(), {128, 129, 130});
+                return sources;
+            };
+            const std::vector<std::string> names = {"L0+L1+L2+L3", "L1+L2+L3+L4"};
+            const std::vector<std::vector<int>> failed = {{131,132,133,134},{132,133,134,135}};
+            const std::vector<std::vector<std::vector<int>>> sources = {
+                {with_globals(range(0,25)),with_globals(range(25,50)),with_globals(range(50,76)),with_globals(range(76,102))},
+                {with_globals(range(25,50)),with_globals(range(50,76)),with_globals(range(76,102)),with_globals(range(102,128))}};
+            for (size_t c = 0; c < 2 && c < quadruples.size(); ++c) {
+                check(quadruples[c].failed_name == names[c] && quadruples[c].tasks.size() == 4, "k128 local quadruple case changed");
+                for (size_t t = 0; t < std::min<size_t>(4, quadruples[c].tasks.size()); ++t) {
+                    check(quadruples[c].tasks[t].failed_block_ids == std::vector<int>({failed[c][t]}), "k128 quadruple failed ID changed");
+                    check(quadruples[c].tasks[t].source_block_ids == sources[c][t], "k128 quadruple sources changed");
+                    coefficients.clear();
+                    check(ECProject::get_local_fill_plan(k,r,z,"OptimalLRC",quadruples[c].tasks[t].failed_block_ids,quadruples[c].tasks[t].source_block_ids,coefficients), "k128 local quadruple not recoverable");
+                }
+            }
+            if (quadruples.size() == 3) {
+                const auto &task = quadruples[2].tasks[0];
+                check(quadruples[2].failed_name == "G0+G1+G2+L0" && quadruples[2].tasks.size() == 1, "k128 global quadruple must use one task");
+                check(task.failed_block_ids == std::vector<int>({128,129,130,131}), "k128 global quadruple failed order changed");
+                check(task.source_block_ids == range(0,128), "k128 global quadruple sources changed");
+                coefficients.clear();
+                check(ECProject::get_local_fill_plan(k,r,z,"OptimalLRC",task.failed_block_ids,task.source_block_ids,coefficients), "k128 global quadruple not recoverable");
+                check(coefficients.size() == 4U * 128U, "k128 global quadruple coefficient count mismatch");
+            }
+        }
+        if (k == 96) {
         check(quadruples.size() == 1, "k96 quadruple case count mismatch");
         if (quadruples.size() == 1) {
             const auto &test_case = quadruples[0];
@@ -331,6 +397,7 @@ void verify_case(int k, int r, int z, const std::vector<int> &expected_sizes,
                 check(coefficients.size() == 4U * 96U,
                       "k96 quadruple coefficient count mismatch");
             }
+        }
         }
     }
 
