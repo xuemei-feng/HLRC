@@ -302,6 +302,15 @@ inline std::vector<DoubleRepairCase> make_azure_double_block_cases(int k)
         };
     }
 
+    if (k == 96)
+    {
+        return {
+            {"L0+L1", {{{99}, inclusive_range(0, 23)},
+                         {{100}, inclusive_range(24, 47)}}},
+            {"G0+G1", {{{96, 97}, inclusive_range(0, 95)}}},
+        };
+    }
+
     return {{"G0+G1", {{{k, k + 1}, inclusive_range(0, k - 1)}}}};
 }
 
@@ -310,9 +319,23 @@ inline std::vector<TripleRepairCase> make_uniform_k64_triple_block_cases()
     return {{"G0+G1+G2", {{{64, 65, 66}, inclusive_range(0, 63)}}}};
 }
 
+inline std::vector<TripleRepairCase> make_azure_triple_block_cases(int k)
+{
+    if (k == 96)
+    {
+        return {
+            {"L0+L1+L2", {{{99}, inclusive_range(0, 23)},
+                            {{100}, inclusive_range(24, 47)},
+                            {{101}, inclusive_range(48, 71)}}},
+            {"G0+G1+G2", {{{96, 97, 98}, inclusive_range(0, 95)}}},
+        };
+    }
+    return {{"G0+G1+G2", {{{64, 65, 66}, inclusive_range(0, 63)}}}};
+}
+
 inline std::vector<TripleRepairCase> make_azure_k64_triple_block_cases()
 {
-    return {{"G0+G1+G2", {{{64, 65, 66}, inclusive_range(0, 63)}}}};
+    return make_azure_triple_block_cases(64);
 }
 
 inline std::vector<TripleRepairCase> make_optimal_k64_triple_block_cases()
@@ -325,9 +348,17 @@ inline std::vector<QuadrupleRepairCase> make_uniform_k64_quadruple_block_cases()
     return {{"G0+G1+G2+L0", {{{64, 65, 66, 67}, inclusive_range(0, 63)}}}};
 }
 
+inline std::vector<QuadrupleRepairCase> make_azure_quadruple_block_cases(int k)
+{
+    if (k == 96)
+        return {{"G0+G1+G2+L0",
+                 {{{96, 97, 98, 99}, inclusive_range(0, 95)}}}};
+    return {{"G0+G1+G2+L0", {{{64, 65, 66, 67}, inclusive_range(0, 63)}}}};
+}
+
 inline std::vector<QuadrupleRepairCase> make_azure_k64_quadruple_block_cases()
 {
-    return {{"G0+G1+G2+L0", {{{64, 65, 66, 67}, inclusive_range(0, 63)}}}};
+    return make_azure_quadruple_block_cases(64);
 }
 
 } // namespace RepairBenchmark

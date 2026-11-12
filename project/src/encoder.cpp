@@ -717,12 +717,12 @@ void ECProject::decode_azure_lrc(const int k, const int r, const int z, const in
     }
     memset(res_ptr, 0, block_size);
     if (failed_block_id < k || failed_block_id >= k + r){
-        unsigned char *vect_ptrs[block_num + 1];
-        for(int i = 0; i < block_num; i++){
-            vect_ptrs[i] = block_ptrs[i];
-        }
-        vect_ptrs[block_num] = res_ptr;
-        xor_gen_avx(block_num + 1, block_size, (void **)vect_ptrs);
+        // xor_gen_avx requires every buffer to be 32-byte aligned, which is not
+        // guaranteed by the public decode API. Keep this path correct for any
+        // caller-provided byte buffer.
+        for (int source = 0; source < block_num; ++source)
+            for (int byte = 0; byte < block_size; ++byte)
+                res_ptr[byte] ^= block_ptrs[source][byte];
     }
     else
     {

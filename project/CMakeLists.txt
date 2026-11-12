@@ -244,6 +244,82 @@ target_link_libraries(azure_uneven_verify
 add_test(NAME azure_uneven_verify COMMAND azure_uneven_verify)
 set_tests_properties(azure_uneven_verify PROPERTIES TIMEOUT 30)
 
+# AzureLRC k=96 exact L0/G0 single-block recovery verification.
+add_executable(azure_k96_single_repair_verify
+    ${CMAKE_CURRENT_SOURCE_DIR}/tests/azure_k96_single_repair_verify.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/encoder.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/encoder_layout.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/recovery_strategy.cpp
+    ${ASM_SOURCES}
+)
+target_include_directories(azure_k96_single_repair_verify PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
+target_link_libraries(azure_k96_single_repair_verify
+    -lpthread
+    -lJerasure
+    -lgf_complete
+)
+add_test(NAME azure_k96_single_repair_verify COMMAND azure_k96_single_repair_verify)
+set_tests_properties(azure_k96_single_repair_verify PROPERTIES TIMEOUT 30)
+
+# AzureLRC k=96 exact L0+L1/G0+G1 double-block recovery verification.
+add_executable(azure_k96_double_repair_verify
+    ${CMAKE_CURRENT_SOURCE_DIR}/tests/azure_k96_double_repair_verify.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/encoder.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/encoder_layout.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/recovery_strategy.cpp
+    ${ASM_SOURCES}
+)
+target_include_directories(azure_k96_double_repair_verify PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
+target_link_libraries(azure_k96_double_repair_verify
+    -lpthread
+    -lJerasure
+    -lgf_complete
+)
+add_test(NAME azure_k96_double_repair_verify COMMAND azure_k96_double_repair_verify)
+set_tests_properties(azure_k96_double_repair_verify PROPERTIES TIMEOUT 30)
+
+# AzureLRC k=96 exact L0+L1+L2/G0+G1+G2 triple-block recovery verification.
+add_executable(azure_k96_triple_repair_verify
+    ${CMAKE_CURRENT_SOURCE_DIR}/tests/azure_k96_triple_repair_verify.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/encoder.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/encoder_layout.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/recovery_strategy.cpp
+    ${ASM_SOURCES}
+)
+target_include_directories(azure_k96_triple_repair_verify PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
+target_link_libraries(azure_k96_triple_repair_verify
+    -lpthread
+    -lJerasure
+    -lgf_complete
+)
+add_test(NAME azure_k96_triple_repair_verify COMMAND azure_k96_triple_repair_verify)
+set_tests_properties(azure_k96_triple_repair_verify PROPERTIES TIMEOUT 30)
+
+# AzureLRC k=96 exact G0+G1+G2+L0 quadruple-block recovery verification.
+add_executable(azure_k96_quadruple_repair_verify
+    ${CMAKE_CURRENT_SOURCE_DIR}/tests/azure_k96_quadruple_repair_verify.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/encoder.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/encoder_layout.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/recovery_strategy.cpp
+    ${ASM_SOURCES}
+)
+target_include_directories(azure_k96_quadruple_repair_verify PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
+target_link_libraries(azure_k96_quadruple_repair_verify
+    -lpthread
+    -lJerasure
+    -lgf_complete
+)
+add_test(NAME azure_k96_quadruple_repair_verify COMMAND azure_k96_quadruple_repair_verify)
+set_tests_properties(azure_k96_quadruple_repair_verify PROPERTIES TIMEOUT 30)
+
 # OptimalLRC uneven local-group matrix, layout, legacy, and repair verification.
 add_executable(optimal_uneven_verify
     ${CMAKE_CURRENT_SOURCE_DIR}/tests/optimal_uneven_verify.cpp

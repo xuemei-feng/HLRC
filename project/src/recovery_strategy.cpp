@@ -617,11 +617,11 @@ std::vector<std::pair<int, std::vector<int>>> get_recovery_group_and_block_ids_a
   }
   else if(failed_block_id < k + r)
   {
-    for(int i = r - 1; i < k + r; i++) // global parity blocks need global recovery;
-    {
-      if (i != failed_block_id)
-        recovery_block_ids.push_back(i);
-    }
+    // Rebuild a global parity directly from every data block. Besides matching
+    // the encoder equation, this keeps the repair read set deterministic and
+    // avoids depending on other global parity blocks.
+    for(int i = 0; i < k; i++)
+      recovery_block_ids.push_back(i);
   }
   else
   {

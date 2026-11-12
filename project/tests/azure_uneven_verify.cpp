@@ -223,6 +223,42 @@ void verify_k64_benchmark_triple_cases()
           "k=64 triple recovery matrix must contain three output rows");
 }
 
+void verify_k96_benchmark_triple_cases()
+{
+    const auto cases = ECProject::RepairBenchmark::make_azure_triple_block_cases(96);
+    check(cases.size() == 2, "k=96 triple plan must contain two cases");
+    if (cases.size() != 2)
+        return;
+
+    check(cases[0].failed_name == "L0+L1+L2" && cases[0].tasks.size() == 3,
+          "k=96 L0+L1+L2 case changed");
+    if (cases[0].tasks.size() == 3) {
+        const std::vector<int> failed_ids = {99, 100, 101};
+        const std::vector<std::vector<int>> sources = {
+            range(0, 24), range(24, 48), range(48, 72)};
+        for (size_t i = 0; i < 3; ++i) {
+            check(cases[0].tasks[i].failed_block_ids ==
+                      std::vector<int>({failed_ids[i]}),
+                  "k=96 local triple failed ID changed");
+            check(cases[0].tasks[i].source_block_ids == sources[i],
+                  "k=96 local triple sources changed");
+            verify_double_task_recoverable(96, 3, 4, cases[0].tasks[i],
+                                           "L0+L1+L2");
+        }
+    }
+
+    check(cases[1].failed_name == "G0+G1+G2" && cases[1].tasks.size() == 1,
+          "k=96 G0+G1+G2 case changed");
+    if (cases[1].tasks.size() == 1) {
+        const auto &task = cases[1].tasks[0];
+        check(task.failed_block_ids == std::vector<int>({96, 97, 98}),
+              "k=96 global triple failed IDs changed");
+        check(task.source_block_ids == range(0, 96),
+              "k=96 global triple sources changed");
+        verify_double_task_recoverable(96, 3, 4, task, "G0+G1+G2");
+    }
+}
+
 void verify_k64_benchmark_quadruple_cases()
 {
     const auto cases = ECProject::RepairBenchmark::make_azure_k64_quadruple_block_cases();
@@ -253,24 +289,72 @@ void verify_k64_benchmark_quadruple_cases()
           "k=64 quadruple recovery matrix must contain four output rows");
 }
 
+void verify_k96_benchmark_quadruple_case()
+{
+    const auto cases = ECProject::RepairBenchmark::make_azure_quadruple_block_cases(96);
+    check(cases.size() == 1, "k=96 quadruple plan must contain one case");
+    if (cases.size() != 1)
+        return;
+
+    const auto &test_case = cases.front();
+    check(test_case.failed_name == "G0+G1+G2+L0",
+          "k=96 quadruple case name changed");
+    check(test_case.tasks.size() == 1,
+          "k=96 quadruple case must use one shared task");
+    if (test_case.tasks.size() != 1)
+        return;
+
+    const auto &task = test_case.tasks.front();
+    check(task.failed_block_ids == std::vector<int>({96, 97, 98, 99}),
+          "k=96 quadruple failed IDs changed");
+    check(task.source_block_ids == range(0, 96),
+          "k=96 quadruple sources changed");
+    std::vector<unsigned char> coefficients;
+    check(ECProject::get_local_fill_plan(96, 3, 4, "AzureLRC",
+                                         task.failed_block_ids,
+                                         task.source_block_ids, coefficients),
+          "k=96 quadruple shared task is not recoverable");
+    check(coefficients.size() == 4U * 96U,
+          "k=96 quadruple recovery matrix must contain four output rows");
+}
+
 void verify_larger_azure_double_cases(int k, int r, int z)
 {
     const auto cases = ECProject::RepairBenchmark::make_azure_double_block_cases(k);
-    check(cases.size() == 1, "Azure k=" + std::to_string(k) +
-                             " double plan must contain only G0+G1");
-    if (cases.size() != 1)
+    const size_t expected_count = k == 96 ? 2U : 1U;
+    check(cases.size() == expected_count,
+          "Azure k=" + std::to_string(k) + " double case count changed");
+    if (cases.size() != expected_count)
         return;
-    check(cases[0].failed_name == "G0+G1",
-          "Azure k=" + std::to_string(k) + " double case name changed");
-    check(cases[0].tasks.size() == 1,
+
+    size_t global_index = 0;
+    if (k == 96) {
+        check(cases[0].failed_name == "L0+L1" && cases[0].tasks.size() == 2,
+              "Azure k=96 L0+L1 case changed");
+        if (cases[0].tasks.size() == 2) {
+            check(cases[0].tasks[0].failed_block_ids == std::vector<int>({99}) &&
+                      cases[0].tasks[0].source_block_ids == range(0, 24),
+                  "Azure k=96 L0 task changed");
+            check(cases[0].tasks[1].failed_block_ids == std::vector<int>({100}) &&
+                      cases[0].tasks[1].source_block_ids == range(24, 48),
+                  "Azure k=96 L1 task changed");
+            verify_double_task_recoverable(k, r, z, cases[0].tasks[0], "L0+L1/L0");
+            verify_double_task_recoverable(k, r, z, cases[0].tasks[1], "L0+L1/L1");
+        }
+        global_index = 1;
+    }
+
+    check(cases[global_index].failed_name == "G0+G1",
+          "Azure k=" + std::to_string(k) + " G0+G1 case name changed");
+    check(cases[global_index].tasks.size() == 1,
           "Azure k=" + std::to_string(k) + " G0+G1 must remain one shared task");
-    if (cases[0].tasks.size() != 1)
+    if (cases[global_index].tasks.size() != 1)
         return;
-    check(cases[0].tasks[0].failed_block_ids == std::vector<int>({k, k + 1}),
+    check(cases[global_index].tasks[0].failed_block_ids == std::vector<int>({k, k + 1}),
           "Azure k=" + std::to_string(k) + " G0+G1 failed IDs changed");
-    check(cases[0].tasks[0].source_block_ids == range(0, k),
+    check(cases[global_index].tasks[0].source_block_ids == range(0, k),
           "Azure k=" + std::to_string(k) + " G0+G1 sources changed");
-    verify_double_task_recoverable(k, r, z, cases[0].tasks[0], "G0+G1");
+    verify_double_task_recoverable(k, r, z, cases[global_index].tasks[0], "G0+G1");
 }
 
 void verify_uneven_benchmark_coverage(int k, int r, int z)
@@ -371,7 +455,9 @@ int main()
     verify_k64_benchmark_single_cases();
     verify_k64_benchmark_double_cases();
     verify_k64_benchmark_triple_cases();
+    verify_k96_benchmark_triple_cases();
     verify_k64_benchmark_quadruple_cases();
+    verify_k96_benchmark_quadruple_case();
     verify_larger_azure_double_cases(96, 3, 4);
     verify_larger_azure_double_cases(128, 3, 5);
     verify_uneven_benchmark_coverage(96, 3, 4);
