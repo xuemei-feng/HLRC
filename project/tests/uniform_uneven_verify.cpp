@@ -167,6 +167,25 @@ void verify_k64_single_plan()
     }
 }
 
+void verify_k96_single_plan()
+{
+    const auto cases = ECProject::RepairBenchmark::make_uniform_k96_single_block_cases();
+    const std::vector<ECProject::RepairBenchmark::RepairCase> expected = {
+        {"L0", 99, range(0, 24)},
+        {"L1", 100, range(24, 49)},
+    };
+    check(cases.size() == expected.size(), "k96 single plan must contain exactly L0 and L1");
+    for (size_t i = 0; i < std::min(cases.size(), expected.size()); ++i) {
+        check(cases[i].failed_name == expected[i].failed_name, "k96 single case name mismatch");
+        check(cases[i].failed_block_id == expected[i].failed_block_id, "k96 single failed ID mismatch");
+        check(cases[i].source_block_ids == expected[i].source_block_ids, "k96 single sources mismatch");
+        std::vector<unsigned char> coefficients;
+        check(ECProject::get_local_fill_plan(96, 3, 4, "UniformLRC", {cases[i].failed_block_id},
+                                             cases[i].source_block_ids, coefficients),
+              "k96 single case is not recoverable: " + cases[i].failed_name);
+    }
+}
+
 void verify_k64_double_plan()
 {
     using ECProject::RepairBenchmark::DoubleRepairCase;
@@ -205,6 +224,29 @@ void verify_k64_double_plan()
           "k64 G0+G1 must remain one shared multi-output task with G0 first");
 }
 
+void verify_k96_double_plan()
+{
+    using ECProject::RepairBenchmark::DoubleRepairCase;
+    using ECProject::RepairBenchmark::RepairTask;
+    const auto cases = ECProject::RepairBenchmark::make_uniform_k96_double_block_cases();
+    const std::vector<DoubleRepairCase> expected = {
+        {"L0+L1", {RepairTask{{99}, range(0,24)}, RepairTask{{100}, range(24,49)}}},
+        {"L1+L2", {RepairTask{{100}, range(24,49)}, RepairTask{{101}, range(49,74)}}},
+        {"G0+G1", {RepairTask{{96,97}, range(0,96)}}},
+    };
+    check(cases.size() == expected.size(), "k96 double plan must contain three cases");
+    for (size_t c = 0; c < std::min(cases.size(), expected.size()); ++c) {
+        check(cases[c].failed_name == expected[c].failed_name, "k96 double case name mismatch");
+        check(cases[c].tasks.size() == expected[c].tasks.size(), "k96 double task count mismatch");
+        for (size_t t = 0; t < std::min(cases[c].tasks.size(), expected[c].tasks.size()); ++t) {
+            check(cases[c].tasks[t].failed_block_ids == expected[c].tasks[t].failed_block_ids, "k96 double failed IDs mismatch");
+            check(cases[c].tasks[t].source_block_ids == expected[c].tasks[t].source_block_ids, "k96 double sources mismatch");
+            std::vector<unsigned char> coefficients;
+            check(ECProject::get_local_fill_plan(96,3,4,"UniformLRC",cases[c].tasks[t].failed_block_ids,cases[c].tasks[t].source_block_ids,coefficients), "k96 double task is not recoverable");
+        }
+    }
+}
+
 void verify_k64_triple_plan()
 {
     const auto cases = ECProject::RepairBenchmark::make_uniform_k64_triple_block_cases();
@@ -229,6 +271,30 @@ void verify_k64_triple_plan()
           "k64 triple shared task is not recoverable");
     check(coefficients.size() == 3U * 64U,
           "k64 triple recovery matrix must contain three output rows");
+}
+
+void verify_k96_triple_plan()
+{
+    using ECProject::RepairBenchmark::RepairTask;
+    using ECProject::RepairBenchmark::TripleRepairCase;
+    auto l3_sources = range(74, 99);
+    const auto cases = ECProject::RepairBenchmark::make_uniform_k96_triple_block_cases();
+    const std::vector<TripleRepairCase> expected = {
+        {"L0+L1+L2", {RepairTask{{99},range(0,24)},RepairTask{{100},range(24,49)},RepairTask{{101},range(49,74)}}},
+        {"L1+L2+L3", {RepairTask{{100},range(24,49)},RepairTask{{101},range(49,74)},RepairTask{{102},l3_sources}}},
+        {"G0+G1+G2", {RepairTask{{96,97,98},range(0,96)}}},
+    };
+    check(cases.size() == expected.size(), "k96 triple plan must contain three cases");
+    for (size_t c = 0; c < std::min(cases.size(), expected.size()); ++c) {
+        check(cases[c].failed_name == expected[c].failed_name, "k96 triple case name mismatch");
+        check(cases[c].tasks.size() == expected[c].tasks.size(), "k96 triple task count mismatch");
+        for (size_t t = 0; t < std::min(cases[c].tasks.size(), expected[c].tasks.size()); ++t) {
+            check(cases[c].tasks[t].failed_block_ids == expected[c].tasks[t].failed_block_ids, "k96 triple failed IDs mismatch");
+            check(cases[c].tasks[t].source_block_ids == expected[c].tasks[t].source_block_ids, "k96 triple sources mismatch");
+            std::vector<unsigned char> coefficients;
+            check(ECProject::get_local_fill_plan(96,3,4,"UniformLRC",cases[c].tasks[t].failed_block_ids,cases[c].tasks[t].source_block_ids,coefficients), "k96 triple task is not recoverable");
+        }
+    }
 }
 
 void verify_k64_quadruple_plan()
@@ -257,6 +323,21 @@ void verify_k64_quadruple_plan()
           "k64 quadruple recovery matrix must contain four output rows");
 }
 
+void verify_k96_quadruple_plan()
+{
+    const auto cases = ECProject::RepairBenchmark::make_uniform_k96_quadruple_block_cases();
+    check(cases.size() == 1, "k96 quadruple plan must contain exactly one case");
+    if (cases.size() != 1 || cases[0].tasks.size() != 1)
+        return;
+    check(cases[0].failed_name == "G0+G1+G2+L0", "k96 quadruple case name mismatch");
+    const auto &task = cases[0].tasks[0];
+    check(task.failed_block_ids == std::vector<int>({96,97,98,99}), "k96 quadruple failed order mismatch");
+    check(task.source_block_ids == range(0,96), "k96 quadruple sources mismatch");
+    std::vector<unsigned char> coefficients;
+    check(ECProject::get_local_fill_plan(96,3,4,"UniformLRC",task.failed_block_ids,task.source_block_ids,coefficients), "k96 quadruple task is not recoverable");
+    check(coefficients.size() == 4U * 96U, "k96 quadruple matrix size mismatch");
+}
+
 } // namespace
 
 int main()
@@ -267,6 +348,10 @@ int main()
     verify_k64_triple_plan();
     verify_k64_quadruple_plan();
     verify_case(96, 3, 4, {{0, 24}, {24, 49}, {49, 74}, {74, 99}});
+    verify_k96_single_plan();
+    verify_k96_double_plan();
+    verify_k96_triple_plan();
+    verify_k96_quadruple_plan();
     verify_case(128, 3, 5, {{0, 26}, {26, 52}, {52, 78}, {78, 104}, {104, 131}});
     for (const auto &legacy : std::vector<std::tuple<int, int, int>>{{24, 2, 2}, {48, 3, 4}, {72, 4, 4}})
         verify_placement(std::get<0>(legacy), std::get<1>(legacy), std::get<2>(legacy));
