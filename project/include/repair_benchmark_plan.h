@@ -86,6 +86,121 @@ inline std::vector<RepairCase> make_optimal_k64_single_block_cases()
             {"L2", 69, std::move(l2_sources)}};
 }
 
+inline std::vector<RepairCase> make_hlrc_k64_single_block_cases()
+{
+    auto l1_sources = inclusive_range(16, 31);
+    auto l0_sources = inclusive_range(0, 15);
+    l0_sources.push_back(64);
+    auto u0_sources = inclusive_range(1, 15);
+    const auto upper_sources = inclusive_range(18, 31);
+    u0_sources.insert(u0_sources.end(), upper_sources.begin(), upper_sources.end());
+    return {{"L1", 67, std::move(l1_sources)},
+            {"L0", 66, std::move(l0_sources)},
+            {"U0", 70, std::move(u0_sources)}};
+}
+
+inline std::vector<DoubleRepairCase> make_hlrc_k64_double_block_cases()
+{
+    auto l1_u0_sources = inclusive_range(16, 31);
+    const auto u0_lower_sources = inclusive_range(1, 15);
+    l1_u0_sources.insert(l1_u0_sources.end(), u0_lower_sources.begin(), u0_lower_sources.end());
+
+    auto l0_sources = inclusive_range(0, 15);
+    l0_sources.push_back(64);
+    auto l2_sources = inclusive_range(32, 47);
+    l2_sources.push_back(65);
+    auto u0_sources = inclusive_range(1, 15);
+    const auto u0_upper_sources = inclusive_range(18, 31);
+    u0_sources.insert(u0_sources.end(), u0_upper_sources.begin(), u0_upper_sources.end());
+    auto u1_sources = inclusive_range(33, 47);
+    const auto u1_upper_sources = inclusive_range(50, 63);
+    u1_sources.insert(u1_sources.end(), u1_upper_sources.begin(), u1_upper_sources.end());
+
+    return {
+        {"L1+U0", {{{70, 67}, std::move(l1_u0_sources)}}},
+        {"L1+L3", {{{67}, inclusive_range(16, 31)},
+                     {{69}, inclusive_range(48, 63)}}},
+        {"L0+L1", {{{66}, l0_sources},
+                     {{67}, inclusive_range(16, 31)}}},
+        {"L0+L2", {{{66}, l0_sources},
+                     {{68}, std::move(l2_sources)}}},
+        {"L1+U1", {{{67}, inclusive_range(16, 31)},
+                     {{71}, u1_sources}}},
+        {"L0+U1", {{{66}, std::move(l0_sources)},
+                     {{71}, u1_sources}}},
+        {"U0+U1", {{{70}, std::move(u0_sources)},
+                     {{71}, std::move(u1_sources)}}},
+        {"G0+L0", {{{64, 66}, inclusive_range(0, 63)}}},
+    };
+}
+
+inline std::vector<TripleRepairCase> make_hlrc_k64_triple_block_cases()
+{
+    auto shared_u0_l0_sources = inclusive_range(18, 31);
+    const auto l0_data_sources = inclusive_range(0, 15);
+    shared_u0_l0_sources.insert(shared_u0_l0_sources.end(),
+                                l0_data_sources.begin(), l0_data_sources.end());
+    shared_u0_l0_sources.push_back(64);
+
+    auto shared_u0_l0_l1_sources = inclusive_range(16, 31);
+    shared_u0_l0_l1_sources.insert(shared_u0_l0_l1_sources.end(),
+                                   l0_data_sources.begin(), l0_data_sources.end());
+    shared_u0_l0_l1_sources.push_back(64);
+
+    auto l0_sources = l0_data_sources;
+    l0_sources.push_back(64);
+    auto l2_sources = inclusive_range(32, 47);
+    l2_sources.push_back(65);
+    auto u1_sources = inclusive_range(33, 47);
+    const auto u1_upper_sources = inclusive_range(50, 63);
+    u1_sources.insert(u1_sources.end(), u1_upper_sources.begin(), u1_upper_sources.end());
+
+    return {
+        {"L0+L1+U0", {{{70, 66, 67}, std::move(shared_u0_l0_l1_sources)}}},
+        {"L0+L3+U0", {{{70, 66}, shared_u0_l0_sources},
+                         {{69}, inclusive_range(48, 63)}}},
+        {"L0+L2+U0", {{{70, 66}, shared_u0_l0_sources},
+                         {{68}, l2_sources}}},
+        {"L0+L1+L3", {{{66}, l0_sources},
+                         {{67}, inclusive_range(16, 31)},
+                         {{69}, inclusive_range(48, 63)}}},
+        {"L0+L1+L2", {{{66}, l0_sources},
+                         {{67}, inclusive_range(16, 31)},
+                         {{68}, std::move(l2_sources)}}},
+        {"L0+U0+U1", {{{70, 66}, std::move(shared_u0_l0_sources)},
+                         {{71}, u1_sources}}},
+        {"L0+L1+U1", {{{66}, std::move(l0_sources)},
+                         {{67}, inclusive_range(16, 31)},
+                         {{71}, std::move(u1_sources)}}},
+        {"G0+G1+L1", {{{64, 65, 67}, inclusive_range(0, 63)}}},
+    };
+}
+
+inline std::vector<QuadrupleRepairCase> make_hlrc_k64_quadruple_block_cases()
+{
+    auto shared_u0_l0_l1_sources = inclusive_range(16, 31);
+    const auto l0_data_sources = inclusive_range(0, 15);
+    shared_u0_l0_l1_sources.insert(shared_u0_l0_l1_sources.end(),
+                                   l0_data_sources.begin(), l0_data_sources.end());
+    shared_u0_l0_l1_sources.push_back(64);
+
+    auto l2_sources = inclusive_range(32, 47);
+    l2_sources.push_back(65);
+    auto u1_sources = inclusive_range(33, 47);
+    const auto u1_upper_sources = inclusive_range(50, 63);
+    u1_sources.insert(u1_sources.end(), u1_upper_sources.begin(), u1_upper_sources.end());
+
+    return {
+        {"L0+L1+L3+U0", {{{70, 66, 67}, shared_u0_l0_l1_sources},
+                            {{69}, inclusive_range(48, 63)}}},
+        {"L0+L1+L2+U0", {{{70, 66, 67}, shared_u0_l0_l1_sources},
+                            {{68}, std::move(l2_sources)}}},
+        {"L0+L1+U0+U1", {{{70, 66, 67}, std::move(shared_u0_l0_l1_sources)},
+                            {{71}, std::move(u1_sources)}}},
+        {"G0+G1+L1+L3", {{{64, 65, 67, 69}, inclusive_range(0, 63)}}},
+    };
+}
+
 inline std::vector<DoubleRepairCase> make_optimal_uneven_double_block_cases(int k)
 {
     return {{"G0+G1", {{{k, k + 1}, inclusive_range(0, k - 1)}}}};

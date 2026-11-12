@@ -149,6 +149,45 @@ namespace ECProject
     return grpc::Status::OK;
   }
 
+  void CoordinatorImpl::initialize_hlrc_stripe_placement(Stripe *stripe)
+  {
+    const auto block_id_to_group_id =
+        ECProject::get_hlrc_block_id_to_group_id(stripe->k, stripe->r, stripe->z);
+    Block *blocks_info = new Block[stripe->n];
+    assert(stripe->object_keys.size() == 1);
+    for (int i = 0; i < stripe->n; ++i)
+    {
+      Block &block = blocks_info[i];
+      block.block_size = m_sys_config->BlockSize;
+      block.map2stripe = stripe->stripe_id;
+      block.map2key = stripe->object_keys[0];
+      block.block_id = i;
+      block.map2group = block_id_to_group_id.at(i);
+      if (i < stripe->k) {
+        block.block_type = 'D';
+        block.block_key = std::to_string(stripe->stripe_id) + "_D" + std::to_string(i);
+      } else if (i < stripe->k + stripe->r) {
+        block.block_type = 'G';
+        block.block_key = std::to_string(stripe->stripe_id) + "_G" +
+                          std::to_string(i - stripe->k);
+      } else {
+        block.block_type = 'L';
+        const int local_index = i - (stripe->k + stripe->r);
+        const bool is_small_group = local_index < stripe->z - 2;
+        const int parity_index = is_small_group ? local_index : local_index - (stripe->z - 2);
+        block.block_key = std::to_string(stripe->stripe_id) +
+                          (is_small_group ? "_L" : "_U") + std::to_string(parity_index);
+      }
+      block.map2node = (stripe->stripe_id + i) % m_sys_config->NodeNum;
+      update_stripe_info_in_node(block.map2node, stripe->stripe_id, i);
+      m_node_table[block.map2node].blocks.push_back(&block);
+      stripe->blocks.push_back(&block);
+      stripe->place2nodes.insert(block.map2node);
+      add_to_map(stripe->group_to_blocks, block.map2group, i);
+    }
+    stripe->num_groups = static_cast<int>(stripe->group_to_blocks.size());
+  }
+
   void CoordinatorImpl::initialize_optimal_lrc_stripe_placement(Stripe *stripe)
   {
     int k = stripe->k, r = stripe->r, z = stripe->z;
@@ -610,6 +649,8 @@ namespace ECProject
         initialize_uniform_lrc_stripe_placement(&t_stripe);
       else if (code_type_append == "LotusLRC")
         initialize_lotuslrc_stripe_placement(&t_stripe);
+      else if (code_type_append == "HLRC")
+        initialize_hlrc_stripe_placement(&t_stripe);
       m_stripe_table[t_stripe.stripe_id] = t_stripe;
       stripe = &m_stripe_table[t_stripe.stripe_id];
     }
@@ -761,7 +802,7 @@ namespace ECProject
     size_t setSizeBytes = keyValueSize->valuesizebytes();
     std::string code_type = m_sys_config->CodeType;
     assert(setSizeBytes == static_cast<size_t>(m_sys_config->BlockSize) * static_cast<size_t>(m_sys_config->k) && "set size is not equal to the block stripe size!");
-    assert((code_type == "UniLRC" || code_type == "AzureLRC" || code_type == "OptimalLRC" || code_type == "UniformLRC" || code_type == "LotusLRC") && "Error: code type must be UniLRC, AzureLRC, OptimalLRC, UniformLRC, or LotusLRC!");
+    assert((code_type == "UniLRC" || code_type == "AzureLRC" || code_type == "OptimalLRC" || code_type == "UniformLRC" || code_type == "LotusLRC" || code_type == "HLRC") && "Error: code type must be UniLRC, AzureLRC, OptimalLRC, UniformLRC, LotusLRC, or HLRC!");
 
     Stripe t_stripe;
     t_stripe.stripe_id = m_cur_stripe_id++;
@@ -780,6 +821,8 @@ namespace ECProject
       initialize_uniform_lrc_stripe_placement(&t_stripe);
     else if (code_type == "LotusLRC")
       initialize_lotuslrc_stripe_placement(&t_stripe);
+    else if (code_type == "HLRC")
+      initialize_hlrc_stripe_placement(&t_stripe);
 
     print_stripe_data_placement(t_stripe);
 
@@ -823,6 +866,8 @@ namespace ECProject
     std::string clientID = keyValueSize->key();
     size_t setSizeBytes = keyValueSize->valuesizebytes();
     std::string code_type = m_sys_config->CodeType;
+    if (code_type == "HLRC")
+      return grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, "HLRC does not support subset set");
     assert(setSizeBytes <= static_cast<size_t>(m_sys_config->BlockSize) * static_cast<size_t>(m_sys_config->k) && "subset size is larger than the block size!");
     assert((code_type == "UniLRC" || code_type == "AzureLRC" || code_type == "OptimalLRC" || code_type == "UniformLRC") && "Error: code type must be UniLRC, AzureLRC, OptimalLRC, or UniformLRC!");
 
@@ -1588,6 +1633,9 @@ namespace ECProject
     else if(code_type == "OptimalLRC"){
       decode_optimal_lrc(k, r, z, block_num, &recovery_block_ids, recovery_data_ptrs.data(), res, block_size, failed_block_id);
     }
+    else if(code_type == "HLRC"){
+      decode_hlrc(k, r, z, block_num, &recovery_block_ids, recovery_data_ptrs.data(), res, block_size, failed_block_id);
+    }
     else if(code_type == "UniformLRC"){
       decode_uniform_lrc(k, r, z, block_num, &recovery_block_ids, recovery_data_ptrs.data(), res, block_size, failed_block_id);
     }
@@ -2131,21 +2179,12 @@ namespace ECProject
     }
 
     std::unordered_set<int> all_failed;
-    std::vector<proxy_proto::RecoveryRequest> proxy_requests;
-    std::vector<std::string> destination_proxies;
-    proxy_requests.reserve(static_cast<size_t>(request->tasks_size()));
-    destination_proxies.reserve(static_cast<size_t>(request->tasks_size()));
-
     for (int task_index = 0; task_index < request->tasks_size(); ++task_index)
     {
       const auto &task = request->tasks(task_index);
       if (task.failed_block_ids_size() == 0 || task.source_block_ids_size() == 0)
         return finish(grpc::Status(grpc::StatusCode::INVALID_ARGUMENT,
                                    "failed block and source block lists must not be empty"));
-
-      std::vector<int> failed_ids;
-      std::vector<int> source_ids;
-      std::unordered_set<int> task_sources;
       for (int i = 0; i < task.failed_block_ids_size(); ++i)
       {
         const int id = task.failed_block_ids(i);
@@ -2155,6 +2194,23 @@ namespace ECProject
         if (!all_failed.insert(id).second)
           return finish(grpc::Status(grpc::StatusCode::INVALID_ARGUMENT,
                                      "duplicate failed block id"));
+      }
+    }
+
+    std::vector<proxy_proto::RecoveryRequest> proxy_requests;
+    std::vector<std::string> destination_proxies;
+    proxy_requests.reserve(static_cast<size_t>(request->tasks_size()));
+    destination_proxies.reserve(static_cast<size_t>(request->tasks_size()));
+
+    for (int task_index = 0; task_index < request->tasks_size(); ++task_index)
+    {
+      const auto &task = request->tasks(task_index);
+      std::vector<int> failed_ids;
+      std::vector<int> source_ids;
+      std::unordered_set<int> task_sources;
+      for (int i = 0; i < task.failed_block_ids_size(); ++i)
+      {
+        const int id = task.failed_block_ids(i);
         failed_ids.push_back(id);
       }
       for (int i = 0; i < task.source_block_ids_size(); ++i)
@@ -2163,7 +2219,7 @@ namespace ECProject
         if (id < 0 || id >= stripe.n)
           return finish(grpc::Status(grpc::StatusCode::INVALID_ARGUMENT,
                                      "source block id is out of range"));
-        if (std::find(failed_ids.begin(), failed_ids.end(), id) != failed_ids.end())
+        if (all_failed.count(id) != 0)
           return finish(grpc::Status(grpc::StatusCode::INVALID_ARGUMENT,
                                      "failed block cannot be a source"));
         if (!task_sources.insert(id).second)

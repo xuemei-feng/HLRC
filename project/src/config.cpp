@@ -43,7 +43,7 @@ namespace ECProject
   void Config::validateConfig() const
   {
     static const std::set<std::string> supported = {
-        "AzureLRC", "OptimalLRC", "UniformLRC", "LotusLRC", "UniLRC"};
+        "AzureLRC", "OptimalLRC", "UniformLRC", "LotusLRC", "UniLRC", "HLRC"};
     if (supported.count(CodeType) == 0)
       throw std::runtime_error("Unsupported CodeType: actual=" + CodeType);
     if (AlignedSize <= 0 || UnitSize <= 0 || BlockSize == 0 || CoordinatorPort <= 0 ||
@@ -56,6 +56,13 @@ namespace ECProject
     if (CodeType == "UniLRC" && alpha <= 0)
       throw std::runtime_error("Invalid alpha for UniLRC: actual=" + std::to_string(alpha) +
                                ", required=positive integer");
+    if (CodeType == "HLRC" && !((k == 64 && r == 2 && z == 6 && n == 72) ||
+                                (k == 96 && r == 2 && z == 8 && n == 106) ||
+                                (k == 128 && r == 2 && z == 10 && n == 140)))
+      throw std::runtime_error("Invalid HLRC parameters: k=" + std::to_string(k) +
+                               ", r=" + std::to_string(r) + ", z=" + std::to_string(z) +
+                               ", n=" + std::to_string(n) +
+                               ", required=(64,2,6,72), (96,2,8,106), or (128,2,10,140)");
     if (CodeType == "LotusLRC" && z % 2 != 0)
       throw std::runtime_error("Invalid LotusLRC z: actual=" + std::to_string(z) +
                                ", required=positive even value");

@@ -49,6 +49,8 @@ namespace ECProject
       return get_data_block_num_per_group_unilrc(k, r, z);
     if (code_type == "LotusLRC")
       return get_data_block_num_per_group_lotuslrc(k, r, z);
+    if (code_type == "HLRC")
+      return get_data_block_num_per_group_hlrc(k, r, z);
     return {};
   }
 
@@ -64,6 +66,8 @@ namespace ECProject
       return get_global_parity_block_num_per_group_unilrc(k, r, z);
     if (code_type == "LotusLRC")
       return get_global_parity_block_num_per_group_lotuslrc(k, r, z);
+    if (code_type == "HLRC")
+      return get_global_parity_block_num_per_group_hlrc(k, r, z);
     return {};
   }
 
@@ -79,7 +83,98 @@ namespace ECProject
       return get_local_parity_block_num_per_group_unilrc(k, r, z);
     if (code_type == "LotusLRC")
       return get_local_parity_block_num_per_group_lotuslrc(k, r, z);
+    if (code_type == "HLRC")
+      return get_local_parity_block_num_per_group_hlrc(k, r, z);
     return {};
+  }
+
+  namespace
+  {
+    void validate_hlrc_layout_parameters(int k, int r, int z)
+    {
+      if (!((k == 64 && r == 2 && z == 6) ||
+            (k == 96 && r == 2 && z == 8) ||
+            (k == 128 && r == 2 && z == 10)))
+        throw std::invalid_argument("HLRC requires (k=64,r=2,z=6), (k=96,r=2,z=8), or (k=128,r=2,z=10)");
+    }
+
+    std::vector<int> data_range(int begin)
+    {
+      std::vector<int> blocks;
+      for (int id = begin; id < begin + 16; ++id)
+        blocks.push_back(id);
+      return blocks;
+    }
+
+    void append(std::vector<int> &blocks, std::initializer_list<int> ids)
+    {
+      blocks.insert(blocks.end(), ids.begin(), ids.end());
+    }
+  }
+
+  std::unordered_map<int, std::vector<int>> get_hlrc_group_id_to_block_ids(int k, int r, int z)
+  {
+    validate_hlrc_layout_parameters(k, r, z);
+    if (k == 64)
+      return {
+          {0, {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,64,66}},
+          {1, {16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,67,70}},
+          {2, {32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,65,68}},
+          {3, {48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63,69,71}},
+      };
+    if (k == 96)
+      return {
+          {0, {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,96,98}},
+          {1, {16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,99,104}},
+          {2, {32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,100}},
+          {3, {48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63,97,101}},
+          {4, {64,65,66,67,68,69,70,71,72,73,74,75,76,77,78,79,102,105}},
+          {5, {80,81,82,83,84,85,86,87,88,89,90,91,92,93,94,95,103}},
+      };
+
+    std::unordered_map<int, std::vector<int>> groups;
+    for (int group = 0; group < 8; ++group)
+      groups[group] = data_range(group * 16);
+    append(groups[0], {128, 130});
+    append(groups[1], {131, 138});
+    append(groups[2], {132});
+    append(groups[3], {133});
+    append(groups[4], {129, 134});
+    append(groups[5], {135, 139});
+    append(groups[6], {136});
+    append(groups[7], {137});
+    return groups;
+  }
+
+  std::unordered_map<int, int> get_hlrc_block_id_to_group_id(int k, int r, int z)
+  {
+    std::unordered_map<int, int> result;
+    for (const auto &entry : get_hlrc_group_id_to_block_ids(k, r, z))
+      for (int block_id : entry.second)
+        result[block_id] = entry.first;
+    return result;
+  }
+
+  std::vector<int> get_data_block_num_per_group_hlrc(int k, int r, int z)
+  {
+    validate_hlrc_layout_parameters(k, r, z);
+    return std::vector<int>(k / 16, 16);
+  }
+
+  std::vector<int> get_global_parity_block_num_per_group_hlrc(int k, int r, int z)
+  {
+    validate_hlrc_layout_parameters(k, r, z);
+    if (k == 64) return {1, 0, 1, 0};
+    if (k == 96) return {1, 0, 0, 1, 0, 0};
+    return {1, 0, 0, 0, 1, 0, 0, 0};
+  }
+
+  std::vector<int> get_local_parity_block_num_per_group_hlrc(int k, int r, int z)
+  {
+    validate_hlrc_layout_parameters(k, r, z);
+    if (k == 64) return {1, 2, 1, 2};
+    if (k == 96) return {1, 2, 1, 1, 2, 1};
+    return {1, 2, 1, 1, 1, 2, 1, 1};
   }
 
   /* ----- AzureLRC ----- */

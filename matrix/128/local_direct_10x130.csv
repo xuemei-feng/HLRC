@@ -1,0 +1,91 @@
+"""Byte-symbol LRC, GF(256)/0x11d. Requires Python 3.10+ and NumPy."""
+import numpy as np
+
+MODULUS = 0x11D
+# Each row is (u, v, c, scale) for one small group.
+PARAMETERS = [[237, 169, 137, 100], [220, 93, 63, 189], [253, 105, 168, 152], [140, 114, 101, 172], [127, 216, 52, 140], [31, 205, 18, 199], [219, 181, 156, 250], [83, 150, 152, 102]]
+
+
+class Field:
+    def __init__(self):
+        self.table = np.zeros((256, 256), dtype=np.uint8)
+        for a in range(256):
+            for b in range(256):
+                x, y, z = a, b, 0
+                while y:
+                    if y & 1:
+                        z ^= x
+                    y >>= 1
+                    x <<= 1
+                    if x & 256:
+                        x ^= MODULUS
+                self.table[a, b] = z
+        self.inverse = np.zeros(256, dtype=np.uint8)
+        for a in range(1, 256):
+            self.inverse[a] = np.flatnonzero(self.table[a] == 1)[0]
+
+    def mm(self, a, b):
+        a, b = np.asarray(a, dtype=np.uint8), np.asarray(b, dtype=np.uint8)
+        if a.ndim != 2 or b.ndim != 2 or a.shape[1] != b.shape[0]:
+            raise ValueError('Incompatible matrix dimensions')
+        out = np.zeros((a.shape[0], b.shape[1]), dtype=np.uint8)
+        for j in range(a.shape[1]):
+            out ^= self.table[a[:, j:j+1], b[j:j+1, :]]
+        return out
+
+    def solve(self, a, b):
+        a, b = np.array(a, dtype=np.uint8), np.array(b, dtype=np.uint8)
+        if b.ndim == 1:
+            b = b[:, None]
+        nr, nc = a.shape
+        aug = np.concatenate([a, b], axis=1)
+        for j in range(nc):
+            candidates = np.flatnonzero(aug[j:, j])
+            if not len(candidates):
+                raise ValueError('Insufficient independent equations')
+            pivot = j + candidates[0]
+            aug[[j, pivot]] = aug[[pivot, j]]
+            aug[j] = self.table[aug[j], self.inverse[aug[j, j]]]
+            for i in range(nr):
+                if i != j:
+                    aug[i] ^= self.table[aug[i, j], aug[j]]
+        if np.any(aug[nc:, nc:]):
+            raise ValueError('Inconsistent equations')
+        return aug[:nc, nc:]
+
+
+def construct(field):
+    alpha = np.array(list(range(2, 130)) + [0, 1], dtype=np.uint8)
+    A = np.vstack([alpha[:128] ^ 1, alpha[:128]])
+    groups = [list(range(16*i, 16*(i+1))) for i in range(8)]
+    groups[0].append(128)
+    groups[4].append(129)
+    exclusive = [[group[0], group[-1]] if i in (0,4) else group[:2]
+                 for i, group in enumerate(groups)]
+    Q = np.zeros((10, 130), dtype=np.uint8)
+    for i, (group, ex, params) in enumerate(zip(groups, exclusive, PARAMETERS)):
+        x = alpha[group]
+        e1, e2 = alpha[ex]
+        u, v, c, scale = params
+        Q[i, group] = field.table[x, x] ^ field.table[u, x] ^ v
+        Q[8 + i//4, group] = field.table[
+            scale, field.table[field.table[x ^ e1, x ^ e2], x ^ c]]
+    G = np.vstack([np.eye(128, dtype=np.uint8), A,
+                   Q[:, :128] ^ field.mm(Q[:, 128:], A)])
+    H = np.block([[A, np.eye(2, dtype=np.uint8), np.zeros((2, 10), dtype=np.uint8)],
+                  [Q, np.eye(10, dtype=np.uint8)]])
+    return G, H, Q
+
+
+if __name__ == '__main__':
+    f = Field()
+    G, H, Q = construct(f)
+    rng = np.random.default_rng(20261111)
+    data = rng.integers(0, 256, size=(128, 4096), dtype=np.uint8)
+    stored = f.mm(G, data)
+    assert not np.any(f.mm(H, stored))
+    erased = [0, 128, 130, 138]  # D1, G1, L1, U1; zero-based.
+    survivors = sorted(set(range(140)) - set(erased))
+    recovered = f.solve(H[:, erased], f.mm(H[:, survivors], stored[survivors]))
+    assert np.array_equal(recovered, stored[erased])
+    print('PASS: GF(256)/0x11d, 128 x 4096-byte input; four erased blocks recovered exactly.')

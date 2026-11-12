@@ -814,6 +814,33 @@ bool make_repair_plan(const std::string &code_type, int k,
     return false;
   }
 
+  if (code_type == "HLRC")
+  {
+    if (k != 64 || (failure_type != "single" && failure_type != "double" &&
+                    failure_type != "triple" && failure_type != "quadruple"))
+    {
+      error = "no repair plan is registered for CodeType=HLRC, k=" +
+              std::to_string(k) + ", failure=" + failure_type;
+      return false;
+    }
+    plan.required_r = 2;
+    plan.required_z = 6;
+    if (configured_r != plan.required_r)
+    {
+      error = "HLRC k=64 requires r=2";
+      return false;
+    }
+    if (failure_type == "single")
+      plan.single_cases = ECProject::RepairBenchmark::make_hlrc_k64_single_block_cases();
+    else if (failure_type == "double")
+      plan.double_cases = ECProject::RepairBenchmark::make_hlrc_k64_double_block_cases();
+    else if (failure_type == "triple")
+      plan.triple_cases = ECProject::RepairBenchmark::make_hlrc_k64_triple_block_cases();
+    else
+      plan.quadruple_cases = ECProject::RepairBenchmark::make_hlrc_k64_quadruple_block_cases();
+    return true;
+  }
+
   if (code_type != "LotusLRC")
   {
     error = "unsupported CodeType=" + code_type;

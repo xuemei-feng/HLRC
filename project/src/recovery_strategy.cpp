@@ -196,6 +196,8 @@ bool build_generator_matrix(const std::string &code_type, int k, int r, int z,
         gen_uniform_lrc_matrix(gen.data(), k, r, z);
     else if (code_type == "LotusLRC")
         gen_lotuslrc_matrix(gen.data(), k, r, z);
+    else if (code_type == "HLRC")
+        gen_hlrc_matrix(gen.data(), k, r, z);
     else
         return false;
     return true;
@@ -521,8 +523,45 @@ std::vector<std::pair<int, std::vector<int>>> get_recovery_group_and_block_ids(c
     return get_recovery_group_and_block_ids_unilrc(k, r, z, failed_block_id);
   else if (code_type == "LotusLRC")
     return get_recovery_group_and_block_ids_lotuslrc(k, r, z, failed_block_id);
+  else if (code_type == "HLRC")
+    return get_recovery_group_and_block_ids_hlrc(k, r, z, failed_block_id);
   else
     throw std::runtime_error("unknown code type");
+}
+
+std::vector<std::pair<int, std::vector<int>>> get_recovery_group_and_block_ids_hlrc(
+    int k, int r, int z, int failed_block_id)
+{
+  if (k != 64 || r != 2 || z != 6)
+    return {};
+  std::vector<int> sources;
+  if (failed_block_id == 67)
+    for (int id = 16; id <= 31; ++id) sources.push_back(id);
+  else if (failed_block_id == 66)
+  {
+    for (int id = 0; id <= 15; ++id) sources.push_back(id);
+    sources.push_back(64);
+  }
+  else if (failed_block_id == 70)
+  {
+    for (int id = 1; id <= 15; ++id) sources.push_back(id);
+    for (int id = 18; id <= 31; ++id) sources.push_back(id);
+  }
+  else
+    return {};
+
+  const auto block_to_group = get_hlrc_block_id_to_group_id(k, r, z);
+  std::vector<std::pair<int, std::vector<int>>> plan;
+  for (int source : sources)
+  {
+    const int group = block_to_group.at(source);
+    auto it = std::find_if(plan.begin(), plan.end(), [group](const auto &entry) {
+      return entry.first == group;
+    });
+    if (it == plan.end()) plan.push_back({group, {source}});
+    else it->second.push_back(source);
+  }
+  return plan;
 }
 
 std::vector<std::pair<int, std::vector<int>>> get_recovery_group_and_block_ids_azurelrc(int k, int r, int z, int failed_block_id)

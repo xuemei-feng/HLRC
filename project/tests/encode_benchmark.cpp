@@ -44,6 +44,10 @@ static void run_encode(const ECProject::Config *cfg,
   {
     ECProject::encode_lotuslrc(k, r, z, data_ptrs, parity_ptrs, block_size);
   }
+  else if (code_type == "HLRC")
+  {
+    ECProject::encode_hlrc(k, r, z, data_ptrs, parity_ptrs, block_size);
+  }
   else
   {
     std::cerr << "Unknown CodeType: " << code_type << std::endl;

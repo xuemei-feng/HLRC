@@ -389,7 +389,7 @@ namespace ECProject
       std::unique_ptr<bool[]> if_commit_arr(new bool[reply.append_keys_size()]);
       std::fill_n(if_commit_arr.get(), reply.append_keys_size(), false);
 
-      assert(m_sys_config->CodeType == "UniLRC" || m_sys_config->CodeType == "OptimalLRC" || m_sys_config->CodeType == "UniformLRC" || m_sys_config->CodeType == "AzureLRC" || m_sys_config->CodeType == "LotusLRC");
+      assert(m_sys_config->CodeType == "UniLRC" || m_sys_config->CodeType == "OptimalLRC" || m_sys_config->CodeType == "UniformLRC" || m_sys_config->CodeType == "AzureLRC" || m_sys_config->CodeType == "LotusLRC" || m_sys_config->CodeType == "HLRC");
       std::vector<int> data_block_num_per_group = ECProject::get_data_block_num_per_group(m_sys_config->k, m_sys_config->r, m_sys_config->z, m_sys_config->CodeType);
       std::vector<int> global_parity_block_num_per_group = ECProject::get_global_parity_block_num_per_group(m_sys_config->k, m_sys_config->r, m_sys_config->z, m_sys_config->CodeType);
       std::vector<int> local_parity_block_num_per_group = ECProject::get_local_parity_block_num_per_group(m_sys_config->k, m_sys_config->r, m_sys_config->z, m_sys_config->CodeType);
@@ -404,7 +404,28 @@ namespace ECProject
       split_for_set_data_and_parity(&reply, node_slice_data, data_block_num_per_group, global_parity_block_num_per_group, local_parity_block_num_per_group, data_ptr_array, global_parity_ptr_array, local_parity_ptr_array);
       std::vector<char *> parity_ptr_array;
       parity_ptr_array.insert(parity_ptr_array.end(), global_parity_ptr_array.begin(), global_parity_ptr_array.end());
-      parity_ptr_array.insert(parity_ptr_array.end(), local_parity_ptr_array.begin(), local_parity_ptr_array.end());
+      if (m_sys_config->CodeType == "HLRC")
+      {
+        std::vector<int> logical_local_order;
+        if (m_sys_config->k == 64) {
+          assert(m_sys_config->z == 6);
+          logical_local_order = {0, 1, 3, 4, 2, 5};
+        } else if (m_sys_config->k == 96) {
+          assert(m_sys_config->z == 8);
+          logical_local_order = {0, 1, 3, 4, 5, 7, 2, 6};
+        } else {
+          assert(m_sys_config->k == 128 && m_sys_config->z == 10);
+          logical_local_order = {0, 1, 3, 4, 5, 6, 8, 9, 2, 7};
+        }
+        assert(local_parity_ptr_array.size() == static_cast<size_t>(m_sys_config->z));
+        assert(logical_local_order.size() == local_parity_ptr_array.size());
+        for (int index : logical_local_order)
+          parity_ptr_array.push_back(local_parity_ptr_array.at(index));
+      }
+      else
+      {
+        parity_ptr_array.insert(parity_ptr_array.end(), local_parity_ptr_array.begin(), local_parity_ptr_array.end());
+      }
       if (m_sys_config->CodeType == "UniLRC")
       {
         //ECProject::encode_unilrc(m_sys_config->k, m_sys_config->r, m_sys_config->z, reinterpret_cast<unsigned char **>(data_ptr_array.data()), reinterpret_cast<unsigned char **>(global_parity_ptr_array.data()), reinterpret_cast<unsigned char **>(local_parity_ptr_array.data()), m_sys_config->BlockSize);
@@ -425,6 +446,10 @@ namespace ECProject
       else if (m_sys_config->CodeType == "LotusLRC")
       {
         ECProject::encode_lotuslrc(m_sys_config->k, m_sys_config->r, m_sys_config->z, reinterpret_cast<unsigned char **>(data_ptr_array.data()), reinterpret_cast<unsigned char **>(parity_ptr_array.data()), m_sys_config->BlockSize);
+      }
+      else if (m_sys_config->CodeType == "HLRC")
+      {
+        ECProject::encode_hlrc(m_sys_config->k, m_sys_config->r, m_sys_config->z, reinterpret_cast<unsigned char **>(data_ptr_array.data()), reinterpret_cast<unsigned char **>(parity_ptr_array.data()), m_sys_config->BlockSize);
       }
       for (int i = 0; i < reply.append_keys_size(); i++)
       {
@@ -457,6 +482,11 @@ namespace ECProject
 
   bool Client::sub_set(int block_num)
   {
+    if (m_sys_config->CodeType == "HLRC")
+    {
+      std::cerr << "HLRC does not support sub_set" << std::endl;
+      return false;
+    }
     grpc::ClientContext get_proxy_ip_port;
     coordinator_proto::RequestProxyIPPort request;
     coordinator_proto::ReplyProxyIPsPorts reply;
@@ -1461,6 +1491,7 @@ namespace ECProject
         if (code == "OptimalLRC") return ECProject::get_optimal_lrc_block_id_to_group_id(k, r, z).at(bid);
         if (code == "UniformLRC") return ECProject::get_uniform_lrc_block_id_to_group_id(k, r, z).at(bid);
         if (code == "LotusLRC")   return ECProject::get_lotuslrc_block_id_to_group_id(k, r, z).at(bid);
+        if (code == "HLRC")       return ECProject::get_hlrc_block_id_to_group_id(k, r, z).at(bid);
       } catch (const std::exception &) {
         return -1;
       }

@@ -49,6 +49,10 @@ namespace ECProject
         0x4f, 0xae, 0xd5, 0xe9, 0xe6, 0xe7, 0xad, 0xe8, 0x74, 0xd6, 0xf4, 0xea, 0xa8, 0x50, 0x58,
         0xaf};
 
+    void encode_hlrc(int k, int r, int z, unsigned char **data_ptrs, unsigned char **parity_ptrs, int block_size);
+
+    void gen_hlrc_matrix(unsigned char *encode_matrix, int k, int r, int z);
+
     void encode_lotuslrc(int k, int r, int z, unsigned char **data_ptrs, unsigned char **parity_ptrs, int block_size);
 
     void gen_lotuslrc_matrix(unsigned char *encode_matrix, int k, int r, int z);
@@ -87,6 +91,10 @@ namespace ECProject
     void decode_optimal_lrc(const int k, const int r, const int z, const int block_num,
                             const std::vector<int> *block_indexes, unsigned char **block_ptrs, unsigned char *res_ptr, int block_size,
                             int failed_block_id);
+
+    void decode_hlrc(const int k, const int r, const int z, const int block_num,
+                     const std::vector<int> *block_indexes, unsigned char **block_ptrs,
+                     unsigned char *res_ptr, int block_size, int failed_block_id);
 
     void decode_uniform_lrc(const int k, const int r, const int z, const int block_num,
                             const std::vector<int> *block_indexes, unsigned char **block_ptrs, unsigned char *res_ptr, int block_size,
@@ -235,6 +243,13 @@ namespace ECProject
     std::vector<int> get_local_parity_block_num_per_group_unilrc(int k, int r, int z);
     int get_unilrc_block_id_to_local_group_id(int k, int r, int z, int block_id);
 
+    /* HLRC encoding placement layouts. */
+    std::vector<int> get_data_block_num_per_group_hlrc(int k, int r, int z);
+    std::vector<int> get_global_parity_block_num_per_group_hlrc(int k, int r, int z);
+    std::vector<int> get_local_parity_block_num_per_group_hlrc(int k, int r, int z);
+    std::unordered_map<int, int> get_hlrc_block_id_to_group_id(int k, int r, int z);
+    std::unordered_map<int, std::vector<int>> get_hlrc_group_id_to_block_ids(int k, int r, int z);
+
     /* LotusLRC layout */
     std::vector<int> get_data_block_num_per_group_lotuslrc(int k, int r, int z);
     std::vector<int> get_global_parity_block_num_per_group_lotuslrc(int k, int r, int z);
@@ -262,6 +277,7 @@ namespace ECProject
     std::vector<std::pair<int, std::vector<int>>> get_recovery_group_and_block_ids_unilrc(int k, int r, int z, int failed_block_id);
     std::vector<std::pair<int, std::vector<int>>> get_recovery_group_and_block_ids_azurelrc(int k, int r, int z, int failed_block_id);
     std::vector<std::pair<int, std::vector<int>>> get_recovery_group_and_block_ids_lotuslrc(int k, int r, int z, int failed_block_id);
+    std::vector<std::pair<int, std::vector<int>>> get_recovery_group_and_block_ids_hlrc(int k, int r, int z, int failed_block_id);
 
     std::vector<std::pair<int, std::vector<int>>> get_recovery_group_and_block_ids_lotuslrc_2block_recovery(int k, int r, int z, int failed_block_id0, int failed_block_id1);
 }
