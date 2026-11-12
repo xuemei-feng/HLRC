@@ -186,6 +186,23 @@ void verify_k96_single_plan()
     }
 }
 
+void verify_k128_single_plan()
+{
+    auto l4_sources = range(104, 131);
+    const auto cases = ECProject::RepairBenchmark::make_uniform_k128_single_block_cases();
+    const std::vector<ECProject::RepairBenchmark::RepairCase> expected = {
+        {"L0", 131, range(0,26)}, {"L4", 135, l4_sources},
+    };
+    check(cases.size() == expected.size(), "k128 single plan must contain exactly L0 and L4");
+    for (size_t i = 0; i < std::min(cases.size(), expected.size()); ++i) {
+        check(cases[i].failed_name == expected[i].failed_name, "k128 single case name mismatch");
+        check(cases[i].failed_block_id == expected[i].failed_block_id, "k128 single failed ID mismatch");
+        check(cases[i].source_block_ids == expected[i].source_block_ids, "k128 single sources mismatch");
+        std::vector<unsigned char> coefficients;
+        check(ECProject::get_local_fill_plan(128,3,5,"UniformLRC",{cases[i].failed_block_id},cases[i].source_block_ids,coefficients), "k128 single case is not recoverable");
+    }
+}
+
 void verify_k64_double_plan()
 {
     using ECProject::RepairBenchmark::DoubleRepairCase;
@@ -247,6 +264,29 @@ void verify_k96_double_plan()
     }
 }
 
+void verify_k128_double_plan()
+{
+    using ECProject::RepairBenchmark::DoubleRepairCase;
+    using ECProject::RepairBenchmark::RepairTask;
+    const auto cases = ECProject::RepairBenchmark::make_uniform_k128_double_block_cases();
+    const std::vector<DoubleRepairCase> expected = {
+        {"L0+L1", {RepairTask{{131},range(0,26)},RepairTask{{132},range(26,52)}}},
+        {"L0+L4", {RepairTask{{131},range(0,26)},RepairTask{{135},range(104,131)}}},
+        {"G0+G1", {RepairTask{{128,129},range(0,128)}}},
+    };
+    check(cases.size() == expected.size(), "k128 double plan must contain three cases");
+    for (size_t c=0;c<std::min(cases.size(),expected.size());++c) {
+        check(cases[c].failed_name==expected[c].failed_name,"k128 double case name mismatch");
+        check(cases[c].tasks.size()==expected[c].tasks.size(),"k128 double task count mismatch");
+        for(size_t t=0;t<std::min(cases[c].tasks.size(),expected[c].tasks.size());++t){
+            check(cases[c].tasks[t].failed_block_ids==expected[c].tasks[t].failed_block_ids,"k128 double failed IDs mismatch");
+            check(cases[c].tasks[t].source_block_ids==expected[c].tasks[t].source_block_ids,"k128 double sources mismatch");
+            std::vector<unsigned char> coefficients;
+            check(ECProject::get_local_fill_plan(128,3,5,"UniformLRC",cases[c].tasks[t].failed_block_ids,cases[c].tasks[t].source_block_ids,coefficients),"k128 double task is not recoverable");
+        }
+    }
+}
+
 void verify_k64_triple_plan()
 {
     const auto cases = ECProject::RepairBenchmark::make_uniform_k64_triple_block_cases();
@@ -297,6 +337,28 @@ void verify_k96_triple_plan()
     }
 }
 
+void verify_k128_triple_plan()
+{
+    using ECProject::RepairBenchmark::RepairTask;
+    using ECProject::RepairBenchmark::TripleRepairCase;
+    const auto cases=ECProject::RepairBenchmark::make_uniform_k128_triple_block_cases();
+    const std::vector<TripleRepairCase> expected={
+        {"L0+L1+L2",{RepairTask{{131},range(0,26)},RepairTask{{132},range(26,52)},RepairTask{{133},range(52,78)}}},
+        {"L0+L1+L4",{RepairTask{{131},range(0,26)},RepairTask{{132},range(26,52)},RepairTask{{135},range(104,131)}}},
+        {"G0+G1+G2",{RepairTask{{128,129,130},range(0,128)}}},
+    };
+    check(cases.size()==expected.size(),"k128 triple plan must contain three cases");
+    for(size_t c=0;c<std::min(cases.size(),expected.size());++c){
+        check(cases[c].failed_name==expected[c].failed_name,"k128 triple case name mismatch");
+        check(cases[c].tasks.size()==expected[c].tasks.size(),"k128 triple task count mismatch");
+        for(size_t t=0;t<std::min(cases[c].tasks.size(),expected[c].tasks.size());++t){
+            check(cases[c].tasks[t].failed_block_ids==expected[c].tasks[t].failed_block_ids,"k128 triple failed IDs mismatch");
+            check(cases[c].tasks[t].source_block_ids==expected[c].tasks[t].source_block_ids,"k128 triple sources mismatch");
+            std::vector<unsigned char> coefficients;check(ECProject::get_local_fill_plan(128,3,5,"UniformLRC",cases[c].tasks[t].failed_block_ids,cases[c].tasks[t].source_block_ids,coefficients),"k128 triple task is not recoverable");
+        }
+    }
+}
+
 void verify_k64_quadruple_plan()
 {
     const auto cases = ECProject::RepairBenchmark::make_uniform_k64_quadruple_block_cases();
@@ -338,6 +400,22 @@ void verify_k96_quadruple_plan()
     check(coefficients.size() == 4U * 96U, "k96 quadruple matrix size mismatch");
 }
 
+void verify_k128_quadruple_plan()
+{
+    using ECProject::RepairBenchmark::QuadrupleRepairCase;using ECProject::RepairBenchmark::RepairTask;
+    const auto cases=ECProject::RepairBenchmark::make_uniform_k128_quadruple_block_cases();
+    const std::vector<QuadrupleRepairCase> expected={
+        {"L0+L1+L2+L3",{RepairTask{{131},range(0,26)},RepairTask{{132},range(26,52)},RepairTask{{133},range(52,78)},RepairTask{{134},range(78,104)}}},
+        {"L0+L1+L2+L4",{RepairTask{{131},range(0,26)},RepairTask{{132},range(26,52)},RepairTask{{133},range(52,78)},RepairTask{{135},range(104,131)}}},
+        {"G0+G1+G2+L4",{RepairTask{{128,129,130,135},range(0,128)}}},
+    };
+    check(cases.size()==expected.size(),"k128 quadruple plan must contain three cases");
+    for(size_t c=0;c<std::min(cases.size(),expected.size());++c){
+        check(cases[c].failed_name==expected[c].failed_name,"k128 quadruple case name mismatch");check(cases[c].tasks.size()==expected[c].tasks.size(),"k128 quadruple task count mismatch");
+        for(size_t t=0;t<std::min(cases[c].tasks.size(),expected[c].tasks.size());++t){check(cases[c].tasks[t].failed_block_ids==expected[c].tasks[t].failed_block_ids,"k128 quadruple failed IDs mismatch");check(cases[c].tasks[t].source_block_ids==expected[c].tasks[t].source_block_ids,"k128 quadruple sources mismatch");std::vector<unsigned char> coefficients;check(ECProject::get_local_fill_plan(128,3,5,"UniformLRC",cases[c].tasks[t].failed_block_ids,cases[c].tasks[t].source_block_ids,coefficients),"k128 quadruple task is not recoverable");}
+    }
+}
+
 } // namespace
 
 int main()
@@ -353,6 +431,10 @@ int main()
     verify_k96_triple_plan();
     verify_k96_quadruple_plan();
     verify_case(128, 3, 5, {{0, 26}, {26, 52}, {52, 78}, {78, 104}, {104, 131}});
+    verify_k128_single_plan();
+    verify_k128_double_plan();
+    verify_k128_triple_plan();
+    verify_k128_quadruple_plan();
     for (const auto &legacy : std::vector<std::tuple<int, int, int>>{{24, 2, 2}, {48, 3, 4}, {72, 4, 4}})
         verify_placement(std::get<0>(legacy), std::get<1>(legacy), std::get<2>(legacy));
     if (failures == 0)

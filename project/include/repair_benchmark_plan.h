@@ -284,6 +284,14 @@ inline std::vector<RepairCase> make_uniform_k96_single_block_cases()
             {"L1", 100, inclusive_range(24, 48)}};
 }
 
+inline std::vector<RepairCase> make_uniform_k128_single_block_cases()
+{
+    auto l4_sources = inclusive_range(104, 127);
+    l4_sources.insert(l4_sources.end(), {128, 129, 130});
+    return {{"L0", 131, inclusive_range(0, 25)},
+            {"L4", 135, std::move(l4_sources)}};
+}
+
 inline std::vector<RepairCase> make_uniform_uneven_single_block_cases(int k, int r, int z)
 {
     std::vector<RepairCase> cases;
@@ -317,6 +325,19 @@ inline std::vector<DoubleRepairCase> make_uniform_k96_double_block_cases()
     };
 }
 
+inline std::vector<DoubleRepairCase> make_uniform_k128_double_block_cases()
+{
+    auto l4_sources = inclusive_range(104, 127);
+    l4_sources.insert(l4_sources.end(), {128, 129, 130});
+    return {
+        {"L0+L1", {{{131}, inclusive_range(0, 25)},
+                     {{132}, inclusive_range(26, 51)}}},
+        {"L0+L4", {{{131}, inclusive_range(0, 25)},
+                     {{135}, std::move(l4_sources)}}},
+        {"G0+G1", {{{128, 129}, inclusive_range(0, 127)}}},
+    };
+}
+
 inline std::vector<DoubleRepairCase> make_uniform_uneven_double_block_cases(int k)
 {
     return {{"G0+G1", {{{k, k + 1}, inclusive_range(0, k - 1)}}}};
@@ -334,6 +355,21 @@ inline std::vector<TripleRepairCase> make_uniform_k96_triple_block_cases()
                          {{101}, inclusive_range(49, 73)},
                          {{102}, std::move(l3_sources)}}},
         {"G0+G1+G2", {{{96, 97, 98}, inclusive_range(0, 95)}}},
+    };
+}
+
+inline std::vector<TripleRepairCase> make_uniform_k128_triple_block_cases()
+{
+    auto l4_sources = inclusive_range(104, 127);
+    l4_sources.insert(l4_sources.end(), {128, 129, 130});
+    return {
+        {"L0+L1+L2", {{{131}, inclusive_range(0, 25)},
+                         {{132}, inclusive_range(26, 51)},
+                         {{133}, inclusive_range(52, 77)}}},
+        {"L0+L1+L4", {{{131}, inclusive_range(0, 25)},
+                         {{132}, inclusive_range(26, 51)},
+                         {{135}, std::move(l4_sources)}}},
+        {"G0+G1+G2", {{{128, 129, 130}, inclusive_range(0, 127)}}},
     };
 }
 
@@ -507,6 +543,24 @@ inline std::vector<QuadrupleRepairCase> make_uniform_k96_quadruple_block_cases()
 {
     return {{"G0+G1+G2+L0",
              {{{96, 97, 98, 99}, inclusive_range(0, 95)}}}};
+}
+
+inline std::vector<QuadrupleRepairCase> make_uniform_k128_quadruple_block_cases()
+{
+    auto l4_sources = inclusive_range(104, 127);
+    l4_sources.insert(l4_sources.end(), {128, 129, 130});
+    return {
+        {"L0+L1+L2+L3", {{{131}, inclusive_range(0, 25)},
+                            {{132}, inclusive_range(26, 51)},
+                            {{133}, inclusive_range(52, 77)},
+                            {{134}, inclusive_range(78, 103)}}},
+        {"L0+L1+L2+L4", {{{131}, inclusive_range(0, 25)},
+                            {{132}, inclusive_range(26, 51)},
+                            {{133}, inclusive_range(52, 77)},
+                            {{135}, std::move(l4_sources)}}},
+        {"G0+G1+G2+L4",
+         {{{128, 129, 130, 135}, inclusive_range(0, 127)}}},
+    };
 }
 
 inline std::vector<QuadrupleRepairCase> make_uniform_k64_quadruple_block_cases()

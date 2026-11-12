@@ -500,18 +500,18 @@ bool make_repair_plan(const std::string &code_type, int k,
   {
     const bool azure_large = code_type == "AzureLRC" && (k == 96 || k == 128);
     const bool optimal_large = code_type == "OptimalLRC" && (k == 96 || k == 128);
-    const bool uniform_k96 = code_type == "UniformLRC" && k == 96;
+    const bool uniform_large = code_type == "UniformLRC" && (k == 96 || k == 128);
     const bool supported_k64 =
         (code_type == "AzureLRC" || code_type == "OptimalLRC" ||
          code_type == "UniformLRC") && k == 64;
-    if (!azure_large && !optimal_large && !uniform_k96 && !supported_k64)
+    if (!azure_large && !optimal_large && !uniform_large && !supported_k64)
     {
       error = "no repair plan is registered for CodeType=" + code_type +
               ", k=" + std::to_string(k) + ", failure=triple";
       return false;
     }
     plan.required_r = 3;
-    plan.required_z = (azure_large || optimal_large || uniform_k96) ? (k == 96 ? 4 : 5) : 3;
+    plan.required_z = (azure_large || optimal_large || uniform_large) ? (k == 96 ? 4 : 5) : 3;
     if (configured_r != plan.required_r)
     {
       error = code_type + " k=" + std::to_string(k) + " triple requires r=3";
@@ -523,6 +523,8 @@ bool make_repair_plan(const std::string &code_type, int k,
       plan.triple_cases = ECProject::RepairBenchmark::make_optimal_triple_block_cases(k);
     else if (k == 96)
       plan.triple_cases = ECProject::RepairBenchmark::make_uniform_k96_triple_block_cases();
+    else if (k == 128)
+      plan.triple_cases = ECProject::RepairBenchmark::make_uniform_k128_triple_block_cases();
     else
       plan.triple_cases = ECProject::RepairBenchmark::make_uniform_k64_triple_block_cases();
     return true;
@@ -532,17 +534,17 @@ bool make_repair_plan(const std::string &code_type, int k,
   {
     const bool azure_large = code_type == "AzureLRC" && (k == 96 || k == 128);
     const bool optimal_large = code_type == "OptimalLRC" && (k == 96 || k == 128);
-    const bool uniform_k96 = code_type == "UniformLRC" && k == 96;
+    const bool uniform_large = code_type == "UniformLRC" && (k == 96 || k == 128);
     const bool supported_k64 =
         (code_type == "AzureLRC" || code_type == "UniformLRC") && k == 64;
-    if (!azure_large && !optimal_large && !uniform_k96 && !supported_k64)
+    if (!azure_large && !optimal_large && !uniform_large && !supported_k64)
     {
       error = "no repair plan is registered for CodeType=" + code_type +
               ", k=" + std::to_string(k) + ", failure=quadruple";
       return false;
     }
     plan.required_r = 3;
-    plan.required_z = (azure_large || optimal_large || uniform_k96) ? (k == 96 ? 4 : 5) : 3;
+    plan.required_z = (azure_large || optimal_large || uniform_large) ? (k == 96 ? 4 : 5) : 3;
     if (configured_r != plan.required_r)
     {
       error = code_type + " k=" + std::to_string(k) + " quadruple requires r=3";
@@ -554,6 +556,8 @@ bool make_repair_plan(const std::string &code_type, int k,
       plan.quadruple_cases = ECProject::RepairBenchmark::make_optimal_quadruple_block_cases(k);
     else if (k == 96)
       plan.quadruple_cases = ECProject::RepairBenchmark::make_uniform_k96_quadruple_block_cases();
+    else if (k == 128)
+      plan.quadruple_cases = ECProject::RepairBenchmark::make_uniform_k128_quadruple_block_cases();
     else
       plan.quadruple_cases = ECProject::RepairBenchmark::make_uniform_k64_quadruple_block_cases();
     return true;
@@ -766,6 +770,8 @@ bool make_repair_plan(const std::string &code_type, int k,
           plan.single_cases = ECProject::RepairBenchmark::make_uniform_k64_single_block_cases();
         else if (k == 96)
           plan.single_cases = ECProject::RepairBenchmark::make_uniform_k96_single_block_cases();
+        else if (k == 128)
+          plan.single_cases = ECProject::RepairBenchmark::make_uniform_k128_single_block_cases();
         else
           plan.single_cases = ECProject::RepairBenchmark::make_uniform_uneven_single_block_cases(
               k, configured_r, plan.required_z);
@@ -774,6 +780,8 @@ bool make_repair_plan(const std::string &code_type, int k,
           plan.double_cases = ECProject::RepairBenchmark::make_uniform_k64_double_block_cases();
         else if (k == 96)
           plan.double_cases = ECProject::RepairBenchmark::make_uniform_k96_double_block_cases();
+        else if (k == 128)
+          plan.double_cases = ECProject::RepairBenchmark::make_uniform_k128_double_block_cases();
         else
           plan.double_cases = ECProject::RepairBenchmark::make_uniform_uneven_double_block_cases(k);
       }
