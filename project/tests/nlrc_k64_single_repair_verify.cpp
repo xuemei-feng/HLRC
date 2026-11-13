@@ -90,8 +90,6 @@ int main()
                 require(ECProject::get_recovery_group_and_block_ids(
                             "NLRC", k, r, z, failed).empty(),
                         "unsupported failure produced a plan");
-        require(ECProject::get_recovery_group_and_block_ids("NLRC", 96, r, 7, 99).empty(),
-                "unsupported NLRC parameters produced a plan");
         require(ECProject::get_recovery_group_and_block_ids("NLRC", k, 2, z, 67).empty(),
                 "unsupported NLRC r produced a plan");
         std::cout << "NLRC k64 single repair verification passed" << std::endl;

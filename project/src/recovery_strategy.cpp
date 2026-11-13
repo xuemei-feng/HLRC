@@ -537,15 +537,30 @@ std::vector<std::pair<int, std::vector<int>>> get_recovery_group_and_block_ids(c
     return get_recovery_group_and_block_ids_hlrc(k, r, z, failed_block_id);
   else if (code_type == "NLRC")
   {
-    if (k != 64 || r != 3 || z != 5)
-      return {};
     std::vector<int> sources;
-    if (failed_block_id == 67)
-      for (int id = 0; id <= 21; ++id) sources.push_back(id);
-    else if (failed_block_id == 71)
+    if (k == 64 && r == 3 && z == 5)
     {
-      for (int id = 44; id <= 63; ++id) sources.push_back(id);
-      sources.insert(sources.end(), {64, 65, 66});
+      if (failed_block_id == 67)
+        for (int id = 0; id <= 21; ++id) sources.push_back(id);
+      else if (failed_block_id == 71)
+      {
+        for (int id = 44; id <= 63; ++id) sources.push_back(id);
+        sources.insert(sources.end(), {64, 65, 66});
+      }
+      else
+        return {};
+    }
+    else if (k == 96 && r == 3 && z == 7)
+    {
+      if (failed_block_id == 99)
+        for (int id = 0; id <= 23; ++id) sources.push_back(id);
+      else if (failed_block_id == 105)
+      {
+        for (int id = 74; id <= 95; ++id) sources.push_back(id);
+        sources.insert(sources.end(), {96, 97, 98});
+      }
+      else
+        return {};
     }
     else
       return {};

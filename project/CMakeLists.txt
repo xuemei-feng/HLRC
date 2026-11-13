@@ -831,6 +831,19 @@ target_link_libraries(nlrc_k64_single_repair_verify
 add_test(NAME nlrc_k64_single_repair_verify COMMAND nlrc_k64_single_repair_verify)
 set_tests_properties(nlrc_k64_single_repair_verify PROPERTIES TIMEOUT 30)
 
+# NLRC k=96 exact L0/L6 single-block recovery verification.
+add_executable(nlrc_k96_single_repair_verify
+    ${CMAKE_CURRENT_SOURCE_DIR}/tests/nlrc_k96_single_repair_verify.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/encoder.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/encoder_layout.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/recovery_strategy.cpp
+    ${ASM_SOURCES}
+)
+target_include_directories(nlrc_k96_single_repair_verify PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_link_libraries(nlrc_k96_single_repair_verify -lpthread -lJerasure -lgf_complete)
+add_test(NAME nlrc_k96_single_repair_verify COMMAND nlrc_k96_single_repair_verify)
+set_tests_properties(nlrc_k96_single_repair_verify PROPERTIES TIMEOUT 30)
+
 
 # NLRC k=64 exact double-block recovery verification.
 add_executable(nlrc_k64_double_repair_verify
@@ -851,6 +864,19 @@ target_link_libraries(nlrc_k64_double_repair_verify
 add_test(NAME nlrc_k64_double_repair_verify COMMAND nlrc_k64_double_repair_verify)
 set_tests_properties(nlrc_k64_double_repair_verify PROPERTIES TIMEOUT 30)
 
+# NLRC k=96 exact local/shared and G0+G1 double-block recovery verification.
+add_executable(nlrc_k96_double_repair_verify
+    ${CMAKE_CURRENT_SOURCE_DIR}/tests/nlrc_k96_double_repair_verify.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/encoder.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/encoder_layout.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/recovery_strategy.cpp
+    ${ASM_SOURCES}
+)
+target_include_directories(nlrc_k96_double_repair_verify PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_link_libraries(nlrc_k96_double_repair_verify -lpthread -lJerasure -lgf_complete)
+add_test(NAME nlrc_k96_double_repair_verify COMMAND nlrc_k96_double_repair_verify)
+set_tests_properties(nlrc_k96_double_repair_verify PROPERTIES TIMEOUT 30)
+
 # NLRC k=64 exact triple-block recovery verification.
 add_executable(nlrc_k64_triple_repair_verify
     ${CMAKE_CURRENT_SOURCE_DIR}/tests/nlrc_k64_triple_repair_verify.cpp
@@ -869,3 +895,29 @@ target_link_libraries(nlrc_k64_triple_repair_verify
 )
 add_test(NAME nlrc_k64_triple_repair_verify COMMAND nlrc_k64_triple_repair_verify)
 set_tests_properties(nlrc_k64_triple_repair_verify PROPERTIES TIMEOUT 30)
+
+# NLRC k=96 exact local/shared and G0+G1+G2 triple-block recovery verification.
+add_executable(nlrc_k96_triple_repair_verify
+    ${CMAKE_CURRENT_SOURCE_DIR}/tests/nlrc_k96_triple_repair_verify.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/encoder.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/encoder_layout.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/recovery_strategy.cpp
+    ${ASM_SOURCES}
+)
+target_include_directories(nlrc_k96_triple_repair_verify PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_link_libraries(nlrc_k96_triple_repair_verify -lpthread -lJerasure -lgf_complete)
+add_test(NAME nlrc_k96_triple_repair_verify COMMAND nlrc_k96_triple_repair_verify)
+set_tests_properties(nlrc_k96_triple_repair_verify PROPERTIES TIMEOUT 30)
+
+# NLRC k=96 exact local/shared and G0+G1+G2+L6 quadruple-block recovery verification.
+add_executable(nlrc_k96_quadruple_repair_verify
+    ${CMAKE_CURRENT_SOURCE_DIR}/tests/nlrc_k96_quadruple_repair_verify.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/encoder.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/encoder_layout.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/recovery_strategy.cpp
+    ${ASM_SOURCES}
+)
+target_include_directories(nlrc_k96_quadruple_repair_verify PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_link_libraries(nlrc_k96_quadruple_repair_verify -lpthread -lJerasure -lgf_complete)
+add_test(NAME nlrc_k96_quadruple_repair_verify COMMAND nlrc_k96_quadruple_repair_verify)
+set_tests_properties(nlrc_k96_quadruple_repair_verify PROPERTIES TIMEOUT 30)

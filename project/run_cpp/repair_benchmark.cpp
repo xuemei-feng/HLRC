@@ -844,26 +844,38 @@ bool make_repair_plan(const std::string &code_type, int k,
 
   if (code_type == "NLRC")
   {
-    if (k != 64 || (failure_type != "single" && failure_type != "double" &&
-                    failure_type != "triple"))
+    const bool k64_supported = k == 64 && (failure_type == "single" ||
+        failure_type == "double" || failure_type == "triple");
+    const bool k96_supported = k == 96 &&
+        (failure_type == "single" || failure_type == "double" ||
+         failure_type == "triple" || failure_type == "quadruple");
+    if (!k64_supported && !k96_supported)
     {
       error = "no repair plan is registered for CodeType=NLRC, k=" +
               std::to_string(k) + ", failure=" + failure_type;
       return false;
     }
     plan.required_r = 3;
-    plan.required_z = 5;
+    plan.required_z = k == 96 ? 7 : 5;
     if (configured_r != plan.required_r)
     {
-      error = "NLRC k=64 requires r=3";
+      error = "NLRC k=" + std::to_string(k) + " requires r=3";
       return false;
     }
     if (failure_type == "single")
-      plan.single_cases = ECProject::RepairBenchmark::make_nlrc_k64_single_block_cases();
+      plan.single_cases = k == 96
+          ? ECProject::RepairBenchmark::make_nlrc_k96_single_block_cases()
+          : ECProject::RepairBenchmark::make_nlrc_k64_single_block_cases();
     else if (failure_type == "double")
-      plan.double_cases = ECProject::RepairBenchmark::make_nlrc_k64_double_block_cases();
+      plan.double_cases = k == 96
+          ? ECProject::RepairBenchmark::make_nlrc_k96_double_block_cases()
+          : ECProject::RepairBenchmark::make_nlrc_k64_double_block_cases();
+    else if (failure_type == "triple")
+      plan.triple_cases = k == 96
+          ? ECProject::RepairBenchmark::make_nlrc_k96_triple_block_cases()
+          : ECProject::RepairBenchmark::make_nlrc_k64_triple_block_cases();
     else
-      plan.triple_cases = ECProject::RepairBenchmark::make_nlrc_k64_triple_block_cases();
+      plan.quadruple_cases = ECProject::RepairBenchmark::make_nlrc_k96_quadruple_block_cases();
     return true;
   }
 
