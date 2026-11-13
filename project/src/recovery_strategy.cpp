@@ -562,6 +562,18 @@ std::vector<std::pair<int, std::vector<int>>> get_recovery_group_and_block_ids(c
       else
         return {};
     }
+    else if (k == 128 && r == 3 && z == 9)
+    {
+      if (failed_block_id == 131)
+        for (int id = 0; id <= 25; ++id) sources.push_back(id);
+      else if (failed_block_id == 139)
+      {
+        for (int id = 104; id <= 127; ++id) sources.push_back(id);
+        sources.insert(sources.end(), {128, 129, 130});
+      }
+      else
+        return {};
+    }
     else
       return {};
     const auto placement = get_nlrc_block_id_to_group_id(k, r, z);
@@ -583,20 +595,41 @@ std::vector<std::pair<int, std::vector<int>>> get_recovery_group_and_block_ids(c
 std::vector<std::pair<int, std::vector<int>>> get_recovery_group_and_block_ids_hlrc(
     int k, int r, int z, int failed_block_id)
 {
-  if (k != 64 || r != 2 || z != 6)
-    return {};
   std::vector<int> sources;
-  if (failed_block_id == 67)
-    for (int id = 16; id <= 31; ++id) sources.push_back(id);
-  else if (failed_block_id == 66)
+  if (k == 64 && r == 2 && z == 6)
   {
-    for (int id = 0; id <= 15; ++id) sources.push_back(id);
-    sources.push_back(64);
+    if (failed_block_id == 67)
+      for (int id = 16; id <= 31; ++id) sources.push_back(id);
+    else if (failed_block_id == 66)
+    {
+      for (int id = 0; id <= 15; ++id) sources.push_back(id);
+      sources.push_back(64);
+    }
+    else if (failed_block_id == 70)
+    {
+      for (int id = 1; id <= 15; ++id) sources.push_back(id);
+      for (int id = 18; id <= 31; ++id) sources.push_back(id);
+    }
+    else
+      return {};
   }
-  else if (failed_block_id == 70)
+  else if (k == 96 && r == 2 && z == 8)
   {
-    for (int id = 1; id <= 15; ++id) sources.push_back(id);
-    for (int id = 18; id <= 31; ++id) sources.push_back(id);
+    if (failed_block_id == 99)
+      for (int id = 16; id <= 31; ++id) sources.push_back(id);
+    else if (failed_block_id == 98)
+    {
+      for (int id = 0; id <= 15; ++id) sources.push_back(id);
+      sources.push_back(96);
+    }
+    else if (failed_block_id == 104)
+    {
+      for (int id = 1; id <= 15; ++id) sources.push_back(id);
+      for (int id = 18; id <= 31; ++id) sources.push_back(id);
+      for (int id = 34; id <= 47; ++id) sources.push_back(id);
+    }
+    else
+      return {};
   }
   else
     return {};

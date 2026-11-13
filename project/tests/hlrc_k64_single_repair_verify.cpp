@@ -81,8 +81,6 @@ int main()
 
         require(ECProject::get_recovery_group_and_block_ids("HLRC", k, r, z, 65).empty(),
                 "unsupported failure produced a plan");
-        require(ECProject::get_recovery_group_and_block_ids("HLRC", 96, 2, 8, 67).empty(),
-                "unsupported HLRC parameters produced a plan");
         std::cout << "HLRC k64 single repair verification passed" << std::endl;
         return 0;
     } catch (const std::exception &error) {
