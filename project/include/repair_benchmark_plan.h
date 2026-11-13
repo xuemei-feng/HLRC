@@ -273,6 +273,22 @@ inline std::vector<RepairCase> make_hlrc_k96_single_block_cases()
             {"U0", 104, std::move(u0_sources)}};
 }
 
+inline std::vector<RepairCase> make_hlrc_k128_single_block_cases()
+{
+    auto l0_sources = inclusive_range(0, 15);
+    l0_sources.push_back(128);
+    auto u0_sources = inclusive_range(1, 15);
+    const auto middle_sources = inclusive_range(18, 31);
+    const auto upper_sources = inclusive_range(34, 47);
+    const auto fourth_sources = inclusive_range(48, 63);
+    u0_sources.insert(u0_sources.end(), middle_sources.begin(), middle_sources.end());
+    u0_sources.insert(u0_sources.end(), upper_sources.begin(), upper_sources.end());
+    u0_sources.insert(u0_sources.end(), fourth_sources.begin(), fourth_sources.end());
+    return {{"L1", 131, inclusive_range(16, 31)},
+            {"L0", 130, std::move(l0_sources)},
+            {"U0", 138, std::move(u0_sources)}};
+}
+
 inline std::vector<DoubleRepairCase> make_hlrc_k64_double_block_cases()
 {
     auto l1_u0_sources = inclusive_range(16, 31);
@@ -339,6 +355,117 @@ inline std::vector<DoubleRepairCase> make_hlrc_k96_double_block_cases()
         {"L3+U0", {{{101}, std::move(l3_sources)}, {{104}, u0_sources}}},
         {"U0+U1", {{{104}, std::move(u0_sources)}, {{105}, std::move(u1_sources)}}},
         {"G0+L0", {{{96, 98}, inclusive_range(0, 95)}}},
+    };
+}
+
+inline std::vector<DoubleRepairCase> make_hlrc_k128_double_block_cases()
+{
+    auto l0_sources = inclusive_range(0, 15);
+    l0_sources.push_back(128);
+    auto l4_sources = inclusive_range(64, 79);
+    l4_sources.push_back(129);
+
+    auto u0_sources = inclusive_range(1, 15);
+    const auto u0_middle = inclusive_range(18, 31);
+    const auto u0_upper = inclusive_range(34, 47);
+    const auto u0_fourth = inclusive_range(48, 63);
+    u0_sources.insert(u0_sources.end(), u0_middle.begin(), u0_middle.end());
+    u0_sources.insert(u0_sources.end(), u0_upper.begin(), u0_upper.end());
+    u0_sources.insert(u0_sources.end(), u0_fourth.begin(), u0_fourth.end());
+
+    auto l1_u0_sources = inclusive_range(16, 31);
+    const auto l1_u0_lower = inclusive_range(1, 15);
+    l1_u0_sources.insert(l1_u0_sources.end(), l1_u0_lower.begin(), l1_u0_lower.end());
+    l1_u0_sources.insert(l1_u0_sources.end(), u0_upper.begin(), u0_upper.end());
+    l1_u0_sources.insert(l1_u0_sources.end(), u0_fourth.begin(), u0_fourth.end());
+
+    auto u1_sources = inclusive_range(65, 79);
+    const auto u1_second = inclusive_range(82, 95);
+    const auto u1_third = inclusive_range(98, 111);
+    const auto u1_fourth = inclusive_range(114, 127);
+    u1_sources.insert(u1_sources.end(), u1_second.begin(), u1_second.end());
+    u1_sources.insert(u1_sources.end(), u1_third.begin(), u1_third.end());
+    u1_sources.insert(u1_sources.end(), u1_fourth.begin(), u1_fourth.end());
+
+    return {
+        {"L1+L2", {{{131}, inclusive_range(16, 31)},
+                      {{132}, inclusive_range(32, 47)}}},
+        {"L0+L1", {{{130}, l0_sources}, {{131}, inclusive_range(16, 31)}}},
+        {"L0+L4", {{{130}, l0_sources}, {{134}, l4_sources}}},
+        {"L1+U0", {{{138, 131}, std::move(l1_u0_sources)}}},
+        {"L5+U0", {{{135}, inclusive_range(80, 95)}, {{138}, u0_sources}}},
+        {"L4+U0", {{{134}, std::move(l4_sources)}, {{138}, u0_sources}}},
+        {"U0+U1", {{{138}, std::move(u0_sources)}, {{139}, std::move(u1_sources)}}},
+        {"G0+L0", {{{128, 130}, inclusive_range(0, 127)}}},
+    };
+}
+
+inline std::vector<TripleRepairCase> make_hlrc_k128_triple_block_cases()
+{
+    auto l0_sources = inclusive_range(0, 15);
+    l0_sources.push_back(128);
+    auto l4_sources = inclusive_range(64, 79);
+    l4_sources.push_back(129);
+
+    auto shared_u0_l1_l2_sources = inclusive_range(16, 31);
+    const auto l2_data_sources = inclusive_range(32, 47);
+    const auto u0_lower_sources = inclusive_range(1, 15);
+    const auto shared_u0_fourth_sources = inclusive_range(50, 63);
+    shared_u0_l1_l2_sources.insert(shared_u0_l1_l2_sources.end(),
+                                   l2_data_sources.begin(), l2_data_sources.end());
+    shared_u0_l1_l2_sources.insert(shared_u0_l1_l2_sources.end(),
+                                   u0_lower_sources.begin(), u0_lower_sources.end());
+    shared_u0_l1_l2_sources.insert(shared_u0_l1_l2_sources.end(),
+                                   shared_u0_fourth_sources.begin(), shared_u0_fourth_sources.end());
+
+    auto shared_u0_l1_sources = inclusive_range(16, 31);
+    const auto u0_upper_sources = inclusive_range(34, 47);
+    shared_u0_l1_sources.insert(shared_u0_l1_sources.end(),
+                                u0_lower_sources.begin(), u0_lower_sources.end());
+    shared_u0_l1_sources.insert(shared_u0_l1_sources.end(),
+                                u0_upper_sources.begin(), u0_upper_sources.end());
+    shared_u0_l1_sources.insert(shared_u0_l1_sources.end(),
+                                shared_u0_fourth_sources.begin(), shared_u0_fourth_sources.end());
+
+    auto u0_sources = inclusive_range(1, 15);
+    const auto u0_middle_sources = inclusive_range(18, 31);
+    const auto u0_fourth_sources = inclusive_range(48, 63);
+    u0_sources.insert(u0_sources.end(), u0_middle_sources.begin(), u0_middle_sources.end());
+    u0_sources.insert(u0_sources.end(), u0_upper_sources.begin(), u0_upper_sources.end());
+    u0_sources.insert(u0_sources.end(), u0_fourth_sources.begin(), u0_fourth_sources.end());
+
+    auto u1_sources = inclusive_range(65, 79);
+    const auto u1_second_sources = inclusive_range(82, 95);
+    const auto u1_third_sources = inclusive_range(98, 111);
+    const auto u1_fourth_sources = inclusive_range(114, 127);
+    u1_sources.insert(u1_sources.end(), u1_second_sources.begin(), u1_second_sources.end());
+    u1_sources.insert(u1_sources.end(), u1_third_sources.begin(), u1_third_sources.end());
+    u1_sources.insert(u1_sources.end(), u1_fourth_sources.begin(), u1_fourth_sources.end());
+
+    return {
+        {"L1+L2+L3", {{{131}, inclusive_range(16, 31)},
+                         {{132}, inclusive_range(32, 47)},
+                         {{133}, inclusive_range(48, 63)}}},
+        {"L0+L1+L2", {{{130}, l0_sources},
+                         {{131}, inclusive_range(16, 31)},
+                         {{132}, inclusive_range(32, 47)}}},
+        {"L0+L1+L4", {{{130}, l0_sources},
+                         {{131}, inclusive_range(16, 31)},
+                         {{134}, l4_sources}}},
+        {"L1+L2+U0", {{{138, 131, 132}, std::move(shared_u0_l1_l2_sources)}}},
+        {"L1+L5+U0", {{{138, 131}, shared_u0_l1_sources},
+                         {{135}, inclusive_range(80, 95)}}},
+        {"L1+L4+U0", {{{138, 131}, shared_u0_l1_sources},
+                         {{134}, l4_sources}}},
+        {"L5+L6+U0", {{{135}, inclusive_range(80, 95)},
+                         {{136}, inclusive_range(96, 111)},
+                         {{138}, u0_sources}}},
+        {"L4+L5+U0", {{{134}, std::move(l4_sources)},
+                         {{135}, inclusive_range(80, 95)},
+                         {{138}, u0_sources}}},
+        {"L1+U0+U1", {{{138, 131}, std::move(shared_u0_l1_sources)},
+                         {{139}, std::move(u1_sources)}}},
+        {"G0+G1+L1", {{{128, 129, 131}, inclusive_range(0, 127)}}},
     };
 }
 
@@ -435,6 +562,98 @@ inline std::vector<TripleRepairCase> make_hlrc_k64_triple_block_cases()
                          {{67}, inclusive_range(16, 31)},
                          {{71}, std::move(u1_sources)}}},
         {"G0+G1+L1", {{{64, 65, 67}, inclusive_range(0, 63)}}},
+    };
+}
+
+inline std::vector<QuadrupleRepairCase> make_hlrc_k128_quadruple_block_cases()
+{
+    auto l0_sources = inclusive_range(0, 15);
+    l0_sources.push_back(128);
+    auto l4_sources = inclusive_range(64, 79);
+    l4_sources.push_back(129);
+
+    auto shared_u0_l1_l2_l3_sources = inclusive_range(1, 15);
+    const auto l1_data_sources = inclusive_range(16, 31);
+    const auto l2_data_sources = inclusive_range(32, 47);
+    const auto l3_data_sources = inclusive_range(48, 63);
+    shared_u0_l1_l2_l3_sources.insert(shared_u0_l1_l2_l3_sources.end(),
+                                      l1_data_sources.begin(), l1_data_sources.end());
+    shared_u0_l1_l2_l3_sources.insert(shared_u0_l1_l2_l3_sources.end(),
+                                      l2_data_sources.begin(), l2_data_sources.end());
+    shared_u0_l1_l2_l3_sources.insert(shared_u0_l1_l2_l3_sources.end(),
+                                      l3_data_sources.begin(), l3_data_sources.end());
+
+    auto shared_u0_l1_l2_sources = inclusive_range(16, 31);
+    shared_u0_l1_l2_sources.insert(shared_u0_l1_l2_sources.end(),
+                                   l2_data_sources.begin(), l2_data_sources.end());
+    const auto u0_lower_sources = inclusive_range(1, 15);
+    const auto shared_u0_fourth_sources = inclusive_range(50, 63);
+    shared_u0_l1_l2_sources.insert(shared_u0_l1_l2_sources.end(),
+                                   u0_lower_sources.begin(), u0_lower_sources.end());
+    shared_u0_l1_l2_sources.insert(shared_u0_l1_l2_sources.end(),
+                                   shared_u0_fourth_sources.begin(), shared_u0_fourth_sources.end());
+
+    auto shared_u0_l1_sources = inclusive_range(16, 31);
+    const auto u0_upper_sources = inclusive_range(34, 47);
+    shared_u0_l1_sources.insert(shared_u0_l1_sources.end(),
+                                u0_lower_sources.begin(), u0_lower_sources.end());
+    shared_u0_l1_sources.insert(shared_u0_l1_sources.end(),
+                                u0_upper_sources.begin(), u0_upper_sources.end());
+    shared_u0_l1_sources.insert(shared_u0_l1_sources.end(),
+                                shared_u0_fourth_sources.begin(), shared_u0_fourth_sources.end());
+
+    auto u0_sources = inclusive_range(1, 15);
+    const auto u0_middle_sources = inclusive_range(18, 31);
+    u0_sources.insert(u0_sources.end(), u0_middle_sources.begin(), u0_middle_sources.end());
+    u0_sources.insert(u0_sources.end(), u0_upper_sources.begin(), u0_upper_sources.end());
+    u0_sources.insert(u0_sources.end(), l3_data_sources.begin(), l3_data_sources.end());
+
+    auto shared_u1_l5_sources = inclusive_range(64, 79);
+    const auto l5_data_sources = inclusive_range(80, 95);
+    const auto u1_third_sources = inclusive_range(98, 111);
+    const auto u1_fourth_sources = inclusive_range(114, 127);
+    shared_u1_l5_sources.insert(shared_u1_l5_sources.end(),
+                                l5_data_sources.begin(), l5_data_sources.end());
+    shared_u1_l5_sources.insert(shared_u1_l5_sources.end(),
+                                u1_third_sources.begin(), u1_third_sources.end());
+    shared_u1_l5_sources.insert(shared_u1_l5_sources.end(),
+                                u1_fourth_sources.begin(), u1_fourth_sources.end());
+
+    return {
+        {"L1+L2+L3+U0", {{{138, 131, 132, 133}, std::move(shared_u0_l1_l2_l3_sources)}}},
+        {"L1+L2+L3+L5", {{{131}, inclusive_range(16, 31)},
+                            {{132}, inclusive_range(32, 47)},
+                            {{133}, inclusive_range(48, 63)},
+                            {{135}, inclusive_range(80, 95)}}},
+        {"L0+L1+L2+L3", {{{130}, l0_sources},
+                            {{131}, inclusive_range(16, 31)},
+                            {{132}, inclusive_range(32, 47)},
+                            {{133}, inclusive_range(48, 63)}}},
+        {"L0+L1+L2+L4", {{{130}, l0_sources},
+                            {{131}, inclusive_range(16, 31)},
+                            {{132}, inclusive_range(32, 47)},
+                            {{134}, l4_sources}}},
+        {"L1+L2+L5+U0", {{{138, 131, 132}, shared_u0_l1_l2_sources},
+                            {{135}, inclusive_range(80, 95)}}},
+        {"L1+L2+L4+U0", {{{138, 131, 132}, std::move(shared_u0_l1_l2_sources)},
+                            {{134}, l4_sources}}},
+        {"L1+L5+L6+U0", {{{138, 131}, shared_u0_l1_sources},
+                            {{135}, inclusive_range(80, 95)},
+                            {{136}, inclusive_range(96, 111)}}},
+        {"L1+L4+L5+U0", {{{138, 131}, shared_u0_l1_sources},
+                            {{134}, l4_sources},
+                            {{135}, inclusive_range(80, 95)}}},
+        {"L5+L6+L7+U0", {{{135}, inclusive_range(80, 95)},
+                            {{136}, inclusive_range(96, 111)},
+                            {{137}, inclusive_range(112, 127)},
+                            {{138}, u0_sources}}},
+        {"L4+L5+L6+U0", {{{134}, std::move(l4_sources)},
+                            {{135}, inclusive_range(80, 95)},
+                            {{136}, inclusive_range(96, 111)},
+                            {{138}, u0_sources}}},
+        {"L1+L5+U0+U1", {{{138, 131}, std::move(shared_u0_l1_sources)},
+                            {{139, 135}, std::move(shared_u1_l5_sources)}}},
+        {"G0+G1+L1+L2", {{{128, 129, 131, 132}, inclusive_range(0, 127)}}},
     };
 }
 

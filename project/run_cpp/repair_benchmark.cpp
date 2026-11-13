@@ -898,35 +898,46 @@ bool make_repair_plan(const std::string &code_type, int k,
     const bool k96_supported = k == 96 &&
         (failure_type == "single" || failure_type == "double" ||
          failure_type == "triple" || failure_type == "quadruple");
-    if (!k64_supported && !k96_supported)
+    const bool k128_supported = k == 128 &&
+        (failure_type == "single" || failure_type == "double" ||
+         failure_type == "triple" || failure_type == "quadruple");
+    if (!k64_supported && !k96_supported && !k128_supported)
     {
       error = "no repair plan is registered for CodeType=HLRC, k=" +
               std::to_string(k) + ", failure=" + failure_type;
       return false;
     }
     plan.required_r = 2;
-    plan.required_z = k == 96 ? 8 : 6;
+    plan.required_z = k == 128 ? 10 : (k == 96 ? 8 : 6);
     if (configured_r != plan.required_r)
     {
       error = "HLRC k=" + std::to_string(k) + " requires r=2";
       return false;
     }
     if (failure_type == "single")
-      plan.single_cases = k == 96
-          ? ECProject::RepairBenchmark::make_hlrc_k96_single_block_cases()
-          : ECProject::RepairBenchmark::make_hlrc_k64_single_block_cases();
+      plan.single_cases = k == 128
+          ? ECProject::RepairBenchmark::make_hlrc_k128_single_block_cases()
+          : (k == 96
+              ? ECProject::RepairBenchmark::make_hlrc_k96_single_block_cases()
+              : ECProject::RepairBenchmark::make_hlrc_k64_single_block_cases());
     else if (failure_type == "double")
-      plan.double_cases = k == 96
-          ? ECProject::RepairBenchmark::make_hlrc_k96_double_block_cases()
-          : ECProject::RepairBenchmark::make_hlrc_k64_double_block_cases();
+      plan.double_cases = k == 128
+          ? ECProject::RepairBenchmark::make_hlrc_k128_double_block_cases()
+          : (k == 96
+              ? ECProject::RepairBenchmark::make_hlrc_k96_double_block_cases()
+              : ECProject::RepairBenchmark::make_hlrc_k64_double_block_cases());
     else if (failure_type == "triple")
-      plan.triple_cases = k == 96
-          ? ECProject::RepairBenchmark::make_hlrc_k96_triple_block_cases()
-          : ECProject::RepairBenchmark::make_hlrc_k64_triple_block_cases();
+      plan.triple_cases = k == 128
+          ? ECProject::RepairBenchmark::make_hlrc_k128_triple_block_cases()
+          : (k == 96
+              ? ECProject::RepairBenchmark::make_hlrc_k96_triple_block_cases()
+              : ECProject::RepairBenchmark::make_hlrc_k64_triple_block_cases());
     else
-      plan.quadruple_cases = k == 96
-          ? ECProject::RepairBenchmark::make_hlrc_k96_quadruple_block_cases()
-          : ECProject::RepairBenchmark::make_hlrc_k64_quadruple_block_cases();
+      plan.quadruple_cases = k == 128
+          ? ECProject::RepairBenchmark::make_hlrc_k128_quadruple_block_cases()
+          : (k == 96
+              ? ECProject::RepairBenchmark::make_hlrc_k96_quadruple_block_cases()
+              : ECProject::RepairBenchmark::make_hlrc_k64_quadruple_block_cases());
     return true;
   }
 

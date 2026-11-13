@@ -631,6 +631,25 @@ std::vector<std::pair<int, std::vector<int>>> get_recovery_group_and_block_ids_h
     else
       return {};
   }
+  else if (k == 128 && r == 2 && z == 10)
+  {
+    if (failed_block_id == 131)
+      for (int id = 16; id <= 31; ++id) sources.push_back(id);
+    else if (failed_block_id == 130)
+    {
+      for (int id = 0; id <= 15; ++id) sources.push_back(id);
+      sources.push_back(128);
+    }
+    else if (failed_block_id == 138)
+    {
+      for (int id = 1; id <= 15; ++id) sources.push_back(id);
+      for (int id = 18; id <= 31; ++id) sources.push_back(id);
+      for (int id = 34; id <= 47; ++id) sources.push_back(id);
+      for (int id = 48; id <= 63; ++id) sources.push_back(id);
+    }
+    else
+      return {};
+  }
   else
     return {};
 

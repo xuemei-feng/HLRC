@@ -755,6 +755,19 @@ target_link_libraries(hlrc_k96_single_repair_verify -lpthread -lJerasure -lgf_co
 add_test(NAME hlrc_k96_single_repair_verify COMMAND hlrc_k96_single_repair_verify)
 set_tests_properties(hlrc_k96_single_repair_verify PROPERTIES TIMEOUT 30)
 
+# HLRC k=128 exact L1/L0/U0 single-block recovery verification.
+add_executable(hlrc_k128_single_repair_verify
+    ${CMAKE_CURRENT_SOURCE_DIR}/tests/hlrc_k128_single_repair_verify.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/encoder.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/encoder_layout.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/recovery_strategy.cpp
+    ${ASM_SOURCES}
+)
+target_include_directories(hlrc_k128_single_repair_verify PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_link_libraries(hlrc_k128_single_repair_verify -lpthread -lJerasure -lgf_complete)
+add_test(NAME hlrc_k128_single_repair_verify COMMAND hlrc_k128_single_repair_verify)
+set_tests_properties(hlrc_k128_single_repair_verify PROPERTIES TIMEOUT 30)
+
 # HLRC k=64 exact double-block recovery verification.
 add_executable(hlrc_k64_double_repair_verify
     ${CMAKE_CURRENT_SOURCE_DIR}/tests/hlrc_k64_double_repair_verify.cpp
@@ -786,6 +799,19 @@ target_include_directories(hlrc_k96_double_repair_verify PRIVATE ${CMAKE_CURRENT
 target_link_libraries(hlrc_k96_double_repair_verify -lpthread -lJerasure -lgf_complete)
 add_test(NAME hlrc_k96_double_repair_verify COMMAND hlrc_k96_double_repair_verify)
 set_tests_properties(hlrc_k96_double_repair_verify PROPERTIES TIMEOUT 30)
+
+# HLRC k=128 exact local/upper and G0+L0 double-block recovery verification.
+add_executable(hlrc_k128_double_repair_verify
+    ${CMAKE_CURRENT_SOURCE_DIR}/tests/hlrc_k128_double_repair_verify.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/encoder.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/encoder_layout.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/recovery_strategy.cpp
+    ${ASM_SOURCES}
+)
+target_include_directories(hlrc_k128_double_repair_verify PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_link_libraries(hlrc_k128_double_repair_verify -lpthread -lJerasure -lgf_complete)
+add_test(NAME hlrc_k128_double_repair_verify COMMAND hlrc_k128_double_repair_verify)
+set_tests_properties(hlrc_k128_double_repair_verify PROPERTIES TIMEOUT 30)
 
 # HLRC k=64 exact triple-block recovery verification.
 add_executable(hlrc_k64_triple_repair_verify
@@ -819,6 +845,19 @@ target_link_libraries(hlrc_k96_triple_repair_verify -lpthread -lJerasure -lgf_co
 add_test(NAME hlrc_k96_triple_repair_verify COMMAND hlrc_k96_triple_repair_verify)
 set_tests_properties(hlrc_k96_triple_repair_verify PROPERTIES TIMEOUT 30)
 
+# HLRC k=128 exact local/upper/global triple-block recovery verification.
+add_executable(hlrc_k128_triple_repair_verify
+    ${CMAKE_CURRENT_SOURCE_DIR}/tests/hlrc_k128_triple_repair_verify.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/encoder.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/encoder_layout.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/recovery_strategy.cpp
+    ${ASM_SOURCES}
+)
+target_include_directories(hlrc_k128_triple_repair_verify PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_link_libraries(hlrc_k128_triple_repair_verify -lpthread -lJerasure -lgf_complete)
+add_test(NAME hlrc_k128_triple_repair_verify COMMAND hlrc_k128_triple_repair_verify)
+set_tests_properties(hlrc_k128_triple_repair_verify PROPERTIES TIMEOUT 30)
+
 # HLRC k=64 exact quadruple-block recovery verification.
 add_executable(hlrc_k64_quadruple_repair_verify
     ${CMAKE_CURRENT_SOURCE_DIR}/tests/hlrc_k64_quadruple_repair_verify.cpp
@@ -850,6 +889,19 @@ target_include_directories(hlrc_k96_quadruple_repair_verify PRIVATE ${CMAKE_CURR
 target_link_libraries(hlrc_k96_quadruple_repair_verify -lpthread -lJerasure -lgf_complete)
 add_test(NAME hlrc_k96_quadruple_repair_verify COMMAND hlrc_k96_quadruple_repair_verify)
 set_tests_properties(hlrc_k96_quadruple_repair_verify PROPERTIES TIMEOUT 30)
+
+# HLRC k=128 exact local/upper/global quadruple-block recovery verification.
+add_executable(hlrc_k128_quadruple_repair_verify
+    ${CMAKE_CURRENT_SOURCE_DIR}/tests/hlrc_k128_quadruple_repair_verify.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/encoder.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/encoder_layout.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/recovery_strategy.cpp
+    ${ASM_SOURCES}
+)
+target_include_directories(hlrc_k128_quadruple_repair_verify PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_link_libraries(hlrc_k128_quadruple_repair_verify -lpthread -lJerasure -lgf_complete)
+add_test(NAME hlrc_k128_quadruple_repair_verify COMMAND hlrc_k128_quadruple_repair_verify)
+set_tests_properties(hlrc_k128_quadruple_repair_verify PROPERTIES TIMEOUT 30)
 
 # NLRC matrix, encoding, placement, and local MDS verification.
 add_executable(nlrc_encode_verify
