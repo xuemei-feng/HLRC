@@ -13,7 +13,15 @@ INI_PATH = CONFIG_DIR / "cluster.ini"
 NODE_XML_PATH = CONFIG_DIR / "nodeInformation.xml"
 PARAM_XML_PATH = CONFIG_DIR / "parameterConfiguration.xml"
 MAIN_CLIENT_CPP = CONFIG_DIR.parent / "run_cpp" / "main_client.cpp"
-SUPPORTED_CODE_TYPES = {"AzureLRC", "OptimalLRC", "UniformLRC", "LotusLRC", "UniLRC"}
+SUPPORTED_CODE_TYPES = {
+    "AzureLRC",
+    "OptimalLRC",
+    "UniformLRC",
+    "LotusLRC",
+    "UniLRC",
+    "HLRC",
+    "NLRC",
+}
 
 
 def _positive_int(root: ET.Element, name: str, code_type: str) -> int:

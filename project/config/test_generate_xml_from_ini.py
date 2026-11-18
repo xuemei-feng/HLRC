@@ -34,6 +34,12 @@ class ParameterConfigurationTest(unittest.TestCase):
         self.assertEqual(self.parse("<CodeType>AzureLRC</CodeType><k>8</k><r>2</r><z>2</z>"),
                          ("AzureLRC", 8, 2, 2, 12))
 
+    def test_hlrc_and_nlrc_are_accepted(self):
+        self.assertEqual(self.parse("<CodeType>HLRC</CodeType><k>64</k><r>2</r><z>6</z>"),
+                         ("HLRC", 64, 2, 6, 72))
+        self.assertEqual(self.parse("<CodeType>NLRC</CodeType><k>64</k><r>3</r><z>5</z>"),
+                         ("NLRC", 64, 3, 5, 72))
+
     def test_uni_derivation(self):
         self.assertEqual(self.parse("<CodeType>UniLRC</CodeType><alpha>2</alpha><z>4</z>"),
                          ("UniLRC", 24, 8, 4, 36))

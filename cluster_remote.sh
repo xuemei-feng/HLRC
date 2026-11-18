@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
-# Deploy and control a real-node HLRC cluster.
+# Deploy and control a real-node HLRC cluster (parallel SSH/rsync).
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")" && pwd)"
 ACTION="${1:-}"
 CONFIG="${HLRC_CONFIG:-${2:-$ROOT/project/config/cluster.ini}}"
 LAYOUT="$ROOT/project/config/ip_layout.py"
+PARALLEL="${PARALLEL:-32}"
 
 ini() {
   python3 - "$CONFIG" "$1" "$2" <<'PY'
@@ -33,6 +34,97 @@ print(ET.parse(sys.argv[1]).getroot().findtext("CoordinatorPort"))
 PY
 }
 
+# Run fn once per item with up to PARALLEL concurrent jobs.
+# Usage: parallel_items fn item1 item2 ...
+parallel_items() {
+  local fn="$1"; shift
+  local -a items=("$@")
+  local status=0
+  local i=0
+  local -a pids=()
+  local -a slots=()
+
+  for ((i = 0; i < ${#items[@]}; i++)); do
+    while [ "${#pids[@]}" -ge "$PARALLEL" ]; do
+      local pid="${pids[0]}"
+      unset "pids[0]"
+      pids=("${pids[@]}")
+      if ! wait "$pid"; then
+        status=1
+      fi
+    done
+    "$fn" "${items[$i]}" &
+    pids+=("$!")
+  done
+  for pid in "${pids[@]}"; do
+    if ! wait "$pid"; then
+      status=1
+    fi
+  done
+  return "$status"
+}
+
+deploy_common_to_host() {
+  local host="$1"
+  remote "$host" "mkdir -p '$REMOTE_ROOT/project/cmake/build' '$REMOTE_ROOT/project/config' '$REMOTE_ROOT/project/third_party/jerasure/lib' '$REMOTE_ROOT/project/third_party/gf-complete/lib'"
+  rsync -a -e "$RSYNC_SSH" \
+    "$ROOT/project/config/nodeInformation.xml" \
+    "$ROOT/project/config/parameterConfiguration.xml" \
+    "$CONFIG" \
+    "$SSH_USER@$host:$REMOTE_ROOT/project/config/"
+  rsync -a -e "$RSYNC_SSH" \
+    "$ROOT/project/third_party/jerasure/lib/" \
+    "$SSH_USER@$host:$REMOTE_ROOT/project/third_party/jerasure/lib/"
+  rsync -a -e "$RSYNC_SSH" \
+    "$ROOT/project/third_party/gf-complete/lib/" \
+    "$SSH_USER@$host:$REMOTE_ROOT/project/third_party/gf-complete/lib/"
+}
+
+deploy_storage_bins() {
+  local host="$1"
+  rsync -a -e "$RSYNC_SSH" \
+    "$ROOT/project/cmake/build/run_datanode" \
+    "$ROOT/project/cmake/build/run_proxy" \
+    "$SSH_USER@$host:$REMOTE_ROOT/project/cmake/build/"
+}
+
+start_storage_node() {
+  local entry="$1"
+  local id proxy datanode host
+  read -r id proxy datanode <<<"$entry"
+  host="${proxy%:*}"
+  remote "$host" "cd '$REMOTE_ROOT'; pkill -9 run_datanode 2>/dev/null || true; pkill -9 run_proxy 2>/dev/null || true; nohup env LD_LIBRARY_PATH='$RUNTIME_LIB' ./project/cmake/build/run_datanode '$datanode' </dev/null >'/tmp/hlrc-datanode-$id.log' 2>&1 & echo \$! >'/tmp/hlrc-datanode-$id.pid'; nohup env LD_LIBRARY_PATH='$RUNTIME_LIB' ./project/cmake/build/run_proxy '$proxy' </dev/null >'/tmp/hlrc-proxy-$id.log' 2>&1 & echo \$! >'/tmp/hlrc-proxy-$id.pid'"
+}
+
+wait_storage_node() {
+  local entry="$1"
+  local id proxy datanode
+  read -r id proxy datanode <<<"$entry"
+  wait_port "${datanode%:*}" "${datanode##*:}"
+  wait_port "${proxy%:*}" "${proxy##*:}"
+  wait_port "${proxy%:*}" "$(( ${proxy##*:} + 2000 ))"
+}
+
+stop_storage_host() {
+  local host="$1"
+  remote "$host" "pkill -9 run_datanode 2>/dev/null || true; pkill -9 run_proxy 2>/dev/null || true"
+}
+
+clean_storage_host() {
+  local host="$1"
+  remote "$host" "rm -rf '$REMOTE_ROOT/storage' '$REMOTE_ROOT/project/cmake/build/storage'"
+}
+
+status_storage_node() {
+  local entry="$1"
+  local id proxy datanode host line outfile
+  read -r id proxy datanode <<<"$entry"
+  host="${proxy%:*}"
+  outfile="$STATUS_DIR/$(printf '%04d' "$id")"
+  line="$(remote "$host" "printf 'datanode='; pgrep -xc run_datanode || true; printf 'proxy='; pgrep -xc run_proxy || true")"
+  printf 'node %s %s: %s\n' "$id" "$host" "$line" >"$outfile"
+}
+
 case "$ACTION" in
   generate)
     require_distributed
@@ -43,55 +135,60 @@ case "$ACTION" in
     "$0" generate "$CONFIG"
     hosts=("$CLIENT_IP" "$COORD_IP" "${STORAGE_IPS[@]}")
     mapfile -t hosts < <(printf '%s\n' "${hosts[@]}" | awk '!seen[$0]++')
-    for host in "${hosts[@]}"; do
-      remote "$host" "mkdir -p '$REMOTE_ROOT/project/cmake/build' '$REMOTE_ROOT/project/config' '$REMOTE_ROOT/project/third_party/jerasure/lib' '$REMOTE_ROOT/project/third_party/gf-complete/lib'"
-      rsync -a -e "$RSYNC_SSH" "$ROOT/project/config/nodeInformation.xml" "$ROOT/project/config/parameterConfiguration.xml" "$CONFIG" "$SSH_USER@$host:$REMOTE_ROOT/project/config/"
-      rsync -a -e "$RSYNC_SSH" "$ROOT/project/third_party/jerasure/lib/" "$SSH_USER@$host:$REMOTE_ROOT/project/third_party/jerasure/lib/"
-      rsync -a -e "$RSYNC_SSH" "$ROOT/project/third_party/gf-complete/lib/" "$SSH_USER@$host:$REMOTE_ROOT/project/third_party/gf-complete/lib/"
-    done
-    for host in "${STORAGE_IPS[@]}"; do
-      rsync -a -e "$RSYNC_SSH" "$ROOT/project/cmake/build/run_datanode" "$ROOT/project/cmake/build/run_proxy" "$SSH_USER@$host:$REMOTE_ROOT/project/cmake/build/"
-    done
-    rsync -a -e "$RSYNC_SSH" "$ROOT/project/cmake/build/run_coordinator" "$SSH_USER@$COORD_IP:$REMOTE_ROOT/project/cmake/build/"
-    rsync -a -e "$RSYNC_SSH" "$ROOT/project/cmake/build/repair_benchmark" "$ROOT/project/cmake/build/main_client" "$SSH_USER@$CLIENT_IP:$REMOTE_ROOT/project/cmake/build/"
+    echo "Deploy common files -> ${#hosts[@]} hosts (parallel=$PARALLEL)"
+    parallel_items deploy_common_to_host "${hosts[@]}"
+    echo "Deploy storage binaries -> ${#STORAGE_IPS[@]} hosts (parallel=$PARALLEL)"
+    parallel_items deploy_storage_bins "${STORAGE_IPS[@]}"
+    echo "Deploy coordinator/client binaries"
+    rsync -a -e "$RSYNC_SSH" "$ROOT/project/cmake/build/run_coordinator" "$SSH_USER@$COORD_IP:$REMOTE_ROOT/project/cmake/build/" &
+    pid_coord=$!
+    rsync -a -e "$RSYNC_SSH" "$ROOT/project/cmake/build/repair_benchmark" "$ROOT/project/cmake/build/main_client" "$SSH_USER@$CLIENT_IP:$REMOTE_ROOT/project/cmake/build/" &
+    pid_client=$!
+    wait "$pid_coord"
+    wait "$pid_client"
     echo "Deployment completed."
     ;;
   start)
     require_distributed
-    for entry in "${NODE_LINES[@]}"; do
-      read -r id proxy datanode <<<"$entry"; host="${proxy%:*}"
-      remote "$host" "cd '$REMOTE_ROOT'; pkill -9 run_datanode 2>/dev/null || true; pkill -9 run_proxy 2>/dev/null || true; nohup env LD_LIBRARY_PATH='$RUNTIME_LIB' ./project/cmake/build/run_datanode '$datanode' </dev/null >'/tmp/hlrc-datanode-$id.log' 2>&1 & echo \$! >'/tmp/hlrc-datanode-$id.pid'; nohup env LD_LIBRARY_PATH='$RUNTIME_LIB' ./project/cmake/build/run_proxy '$proxy' </dev/null >'/tmp/hlrc-proxy-$id.log' 2>&1 & echo \$! >'/tmp/hlrc-proxy-$id.pid'"
-    done
-    for entry in "${NODE_LINES[@]}"; do
-      read -r id proxy datanode <<<"$entry"
-      wait_port "${datanode%:*}" "${datanode##*:}"
-      wait_port "${proxy%:*}" "${proxy##*:}"
-      wait_port "${proxy%:*}" "$(( ${proxy##*:} + 2000 ))"
-    done
+    echo "Start storage nodes -> ${#NODE_LINES[@]} hosts (parallel=$PARALLEL)"
+    parallel_items start_storage_node "${NODE_LINES[@]}"
+    echo "Wait for storage ports (parallel=$PARALLEL)"
+    parallel_items wait_storage_node "${NODE_LINES[@]}"
     remote "$COORD_IP" "cd '$REMOTE_ROOT'; pkill -9 run_coordinator 2>/dev/null || true; nohup env LD_LIBRARY_PATH='$RUNTIME_LIB' ./project/cmake/build/run_coordinator </dev/null >/tmp/hlrc-coordinator.log 2>&1 & echo \$! >/tmp/hlrc-coordinator.pid"
     wait_port "$COORD_IP" "$(coordinator_port)"
     echo "Cluster ready: client=$CLIENT_IP coordinator=$COORD_IP storage_nodes=${#STORAGE_IPS[@]}"
     ;;
   stop)
     require_distributed
-    for host in "${STORAGE_IPS[@]}"; do remote "$host" "pkill -9 run_datanode 2>/dev/null || true; pkill -9 run_proxy 2>/dev/null || true"; done
+    echo "Stop storage processes -> ${#STORAGE_IPS[@]} hosts (parallel=$PARALLEL)"
+    parallel_items stop_storage_host "${STORAGE_IPS[@]}"
     remote "$COORD_IP" "pkill -9 run_coordinator 2>/dev/null || true"
     hosts=("$CLIENT_IP" "$COORD_IP" "${STORAGE_IPS[@]}")
     mapfile -t hosts < <(printf '%s\n' "${hosts[@]}" | awk '!seen[$0]++')
-    for host in "${hosts[@]}"; do
-      remote "$host" "rm -rf '$REMOTE_ROOT/storage' '$REMOTE_ROOT/project/cmake/build/storage'"
-    done
+    echo "Clean storage dirs -> ${#hosts[@]} hosts (parallel=$PARALLEL)"
+    parallel_items clean_storage_host "${hosts[@]}"
     echo "Cluster stopped; storage cleaned on ${#hosts[@]} hosts."
     ;;
   status)
     require_distributed
     printf 'coordinator %s: ' "$COORD_IP"; remote "$COORD_IP" "pgrep -xc run_coordinator || true"
-    for entry in "${NODE_LINES[@]}"; do read -r id proxy datanode <<<"$entry"; host="${proxy%:*}"; printf 'node %s %s: ' "$id" "$host"; remote "$host" "printf 'datanode='; pgrep -xc run_datanode || true; printf 'proxy='; pgrep -xc run_proxy || true"; done
+    STATUS_DIR="$(mktemp -d)"
+    export STATUS_DIR
+    parallel_items status_storage_node "${NODE_LINES[@]}" || true
+    if compgen -G "$STATUS_DIR/*" >/dev/null; then
+      cat "$STATUS_DIR"/*
+    fi
+    rm -rf "$STATUS_DIR"
     ;;
   benchmark)
     require_distributed
     K="${3:?Usage: $0 benchmark CONFIG K single|double|triple|quadruple}"; FAILURE="${4:?missing failure type}"
     remote "$CLIENT_IP" "cd '$REMOTE_ROOT'; env LD_LIBRARY_PATH='$RUNTIME_LIB' ./project/cmake/build/repair_benchmark '$K' '$FAILURE'"
     ;;
-  *) echo "Usage: $0 {generate|deploy|start|stop|status} [cluster.ini]"; echo "       $0 benchmark [cluster.ini] K {single|double|triple|quadruple}"; exit 2;;
+  *)
+    echo "Usage: $0 {generate|deploy|start|stop|status} [cluster.ini]"
+    echo "       $0 benchmark [cluster.ini] K {single|double|triple|quadruple}"
+    echo "Env:   PARALLEL=32 (max concurrent SSH/rsync jobs)"
+    exit 2
+    ;;
 esac
