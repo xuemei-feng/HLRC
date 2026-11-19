@@ -62,8 +62,13 @@ void verify_registered_cases(const std::vector<DoubleRepairCase> &cases)
     require(cases[7].tasks.size() == 1, "G0+L0 must use one task");
     require_task(cases[7].tasks[0], {64, 66}, range(0, 63));
 
-    for (size_t i = 1; i < 7; ++i)
+    for (size_t i = 1; i < 7; ++i) {
         require(cases[i].tasks.size() == 2, "independent case must use two tasks");
+        require(cases[i].sum_task_times,
+                "independent case must report task times and their sum");
+    }
+    require(!cases[0].sum_task_times, "L1+U0 must keep shared-task wall timing");
+    require(!cases[7].sum_task_times, "G0+L0 must keep shared-task wall timing");
     require(cases[0].tasks[0].failed_block_ids.front() == 70,
             "L1+U0 owner proxy invariant failed");
     require(cases[7].tasks[0].failed_block_ids.front() == 64,

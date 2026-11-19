@@ -104,11 +104,115 @@ class DispatchVerification(unittest.TestCase):
         ])
         self.assertEqual(cases["G0+G1+G2+L0"], [(64, [64, 65, 66, 67], list(range(64)))])
         cases = self.parse_plan(self.run_plan("HLRC", 64, "quadruple"), "HLRC", 64, "quadruple")
+        shared = list(range(16, 32)) + list(range(16)) + [64]
         self.assertEqual(cases["L0+L1+L3+U0"], [
-            (70, [70, 66, 67], list(range(16, 32)) + list(range(16)) + [64]),
+            (70, [70, 66, 67], shared),
             (69, [69], list(range(48, 64))),
         ])
-        self.assertEqual(cases["G0+G1+L1+L3"], [(64, [64, 65, 67, 69], list(range(64)))])
+        self.assertEqual(cases["L0+L1+L2+U0"], [
+            (70, [70, 66, 67], shared),
+            (68, [68], list(range(32, 48)) + [65]),
+        ])
+        self.assertEqual(cases["L0+L1+U0+U1"], [
+            (70, [70, 66, 67], shared),
+            (71, [71], list(range(33, 48)) + list(range(50, 64))),
+        ])
+        self.assertEqual(cases["G0+G1+L1+L3"],
+                         [(64, [64, 65, 67, 69], list(range(64)))])
+
+    def test_nlrc_k64_double_exact_sources_and_owners(self):
+        cases = self.parse_plan(self.run_plan("NLRC", 64, "double"),
+                                "NLRC", 64, "double")
+        self.assertEqual(list(cases), ["L0+L1", "L0+L2", "L0+L4", "G0+G1"])
+        self.assertEqual(cases["L0+L1"],
+                         [(67, [67, 68], list(range(22)))])
+        self.assertEqual(cases["L0+L2"], [
+            (67, [67], list(range(22))),
+            (69, [69], list(range(22, 44))),
+        ])
+        self.assertEqual(cases["L0+L4"], [
+            (67, [67], list(range(22))),
+            (71, [71], list(range(44, 64)) + [64, 65, 66]),
+        ])
+        self.assertEqual(cases["G0+G1"],
+                         [(64, [64, 65], list(range(64)))])
+        for overrides in ({"r": 2}, {"z": 3}):
+            result = self.run_plan("NLRC", 64, "double", **overrides)
+            self.assertNotEqual(result.returncode, 0)
+
+    def test_hlrc_k64_double_exact_sources_and_owners(self):
+        cases = self.parse_plan(self.run_plan("HLRC", 64, "double"),
+                                "HLRC", 64, "double")
+        self.assertEqual(list(cases), [
+            "L1+U0", "L1+L3", "L0+L1", "L0+L2",
+            "L1+U1", "L0+U1", "U0+U1", "G0+L0",
+        ])
+        self.assertEqual(cases["L1+U0"], [
+            (70, [70, 67], list(range(16, 32)) + list(range(1, 16))),
+        ])
+        self.assertEqual(cases["L1+L3"], [
+            (67, [67], list(range(16, 32))),
+            (69, [69], list(range(48, 64))),
+        ])
+        self.assertEqual(cases["L0+L1"], [
+            (66, [66], list(range(16)) + [64]),
+            (67, [67], list(range(16, 32))),
+        ])
+        self.assertEqual(cases["L0+L2"], [
+            (66, [66], list(range(16)) + [64]),
+            (68, [68], list(range(32, 48)) + [65]),
+        ])
+        u1_sources = list(range(33, 48)) + list(range(50, 64))
+        self.assertEqual(cases["L1+U1"], [
+            (67, [67], list(range(16, 32))), (71, [71], u1_sources),
+        ])
+        self.assertEqual(cases["L0+U1"], [
+            (66, [66], list(range(16)) + [64]), (71, [71], u1_sources),
+        ])
+        self.assertEqual(cases["U0+U1"], [
+            (70, [70], list(range(1, 16)) + list(range(18, 32))),
+            (71, [71], u1_sources),
+        ])
+        self.assertEqual(cases["G0+L0"],
+                         [(64, [64, 66], list(range(64)))])
+        for overrides in ({"r": 3}, {"z": 5}):
+            result = self.run_plan("HLRC", 64, "double", **overrides)
+            self.assertNotEqual(result.returncode, 0)
+
+    def test_hlrc_k64_triple_exact_sources_and_owners(self):
+        cases = self.parse_plan(self.run_plan("HLRC", 64, "triple"),
+                                "HLRC", 64, "triple")
+        self.assertEqual(list(cases), [
+            "L0+L1+U0", "L0+L3+U0", "L0+L2+U0", "L0+L1+L3",
+            "L0+L1+L2", "L0+U0+U1", "L0+L1+U1", "G0+G1+L1",
+        ])
+        shared = list(range(18, 32)) + list(range(16)) + [64]
+        shared_three = list(range(16, 32)) + list(range(16)) + [64]
+        l0 = list(range(16)) + [64]
+        l2 = list(range(32, 48)) + [65]
+        u1 = list(range(33, 48)) + list(range(50, 64))
+        self.assertEqual(cases["L0+L1+U0"], [(70, [70, 66, 67], shared_three)])
+        self.assertEqual(cases["L0+L3+U0"], [
+            (70, [70, 66], shared), (69, [69], list(range(48, 64))),
+        ])
+        self.assertEqual(cases["L0+L2+U0"], [
+            (70, [70, 66], shared), (68, [68], l2),
+        ])
+        self.assertEqual(cases["L0+L1+L3"], [
+            (66, [66], l0), (67, [67], list(range(16, 32))),
+            (69, [69], list(range(48, 64))),
+        ])
+        self.assertEqual(cases["L0+L1+L2"], [
+            (66, [66], l0), (67, [67], list(range(16, 32))), (68, [68], l2),
+        ])
+        self.assertEqual(cases["L0+U0+U1"], [
+            (70, [70, 66], shared), (71, [71], u1),
+        ])
+        self.assertEqual(cases["L0+L1+U1"], [
+            (66, [66], l0), (67, [67], list(range(16, 32))), (71, [71], u1),
+        ])
+        self.assertEqual(cases["G0+G1+L1"],
+                         [(64, [64, 65, 67], list(range(64)))])
 
     def test_nlrc_k64_triple_exact_sources_and_owners(self):
         cases = self.parse_plan(self.run_plan("NLRC", 64, "triple"),
@@ -126,6 +230,34 @@ class DispatchVerification(unittest.TestCase):
                          [(64, [64, 65, 66], list(range(64)))])
         for overrides in ({"r": 2}, {"z": 3}):
             result = self.run_plan("NLRC", 64, "triple", **overrides)
+            self.assertNotEqual(result.returncode, 0)
+
+    def test_azure_k96_single_exact_sources_and_owners(self):
+        cases = self.parse_plan(self.run_plan("AzureLRC", 96, "single"),
+                                "AzureLRC", 96, "single")
+        self.assertEqual(list(cases), ["L0", "G0"])
+        self.assertEqual(cases["L0"], [(99, [99], list(range(24)))])
+        self.assertEqual(cases["G0"], [(96, [96], list(range(96)))])
+        for overrides in ({"r": 2}, {"z": 3}):
+            result = self.run_plan("AzureLRC", 96, "single", **overrides)
+            self.assertNotEqual(result.returncode, 0)
+
+    def test_azure_k64_double_exact_sources_and_owners(self):
+        cases = self.parse_plan(self.run_plan("AzureLRC", 64, "double"),
+                                "AzureLRC", 64, "double")
+        self.assertEqual(list(cases), ["L0+L1", "L0+L2", "G0+G1"])
+        self.assertEqual(cases["L0+L1"], [
+            (67, [67], list(range(21))),
+            (68, [68], list(range(21, 42))),
+        ])
+        self.assertEqual(cases["L0+L2"], [
+            (67, [67], list(range(21))),
+            (69, [69], list(range(42, 64))),
+        ])
+        self.assertEqual(cases["G0+G1"],
+                         [(64, [64, 65], list(range(64)))])
+        for overrides in ({"r": 2}, {"z": 5}):
+            result = self.run_plan("AzureLRC", 64, "double", **overrides)
             self.assertNotEqual(result.returncode, 0)
 
     def test_optimal_k64_double_exact_sources_and_owners(self):

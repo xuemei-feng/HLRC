@@ -55,7 +55,7 @@ inline std::vector<RepairCase> make_azure_uneven_single_block_cases(int k, int r
     const auto bounds = get_azure_lrc_local_group_bounds(k, z);
     for (int local = 0; local < z; ++local)
     {
-        if (k == 64 && local == 1)
+        if ((k == 64 && local == 1) || (k == 96 && local != 0))
             continue;
         cases.push_back({"L" + std::to_string(local), k + r + local,
                          inclusive_range(bounds[local].first, bounds[local].second - 1)});
@@ -121,9 +121,9 @@ inline std::vector<DoubleRepairCase> make_nlrc_k64_double_block_cases()
     return {
         {"L0+L1", {{{67, 68}, inclusive_range(0, 21)}}},
         {"L0+L2", {{{67}, inclusive_range(0, 21)},
-                      {{69}, inclusive_range(22, 43)}}},
+                      {{69}, inclusive_range(22, 43)}}, false, true},
         {"L0+L4", {{{67}, inclusive_range(0, 21)},
-                      {{71}, std::move(l4_sources)}}},
+                      {{71}, std::move(l4_sources)}}, false, true},
         {"G0+G1", {{{64, 65}, inclusive_range(0, 63)}}},
     };
 }
@@ -212,7 +212,7 @@ inline std::vector<QuadrupleRepairCase> make_nlrc_k64_quadruple_block_cases()
     // sources once and forwards the other outputs to their owner proxies.
     return {
         {"L0+L1+L2+L3", {{{67, 68}, inclusive_range(0, 21)},
-                            {{69, 70}, inclusive_range(22, 43)}}},
+                            {{69, 70}, inclusive_range(22, 43)}}, false, true},
         {"G0+G1+G2+L0", {{{64, 65, 66, 67}, inclusive_range(0, 63)}}},
     };
 }
@@ -324,17 +324,17 @@ inline std::vector<DoubleRepairCase> make_hlrc_k64_double_block_cases()
     return {
         {"L1+U0", {{{70, 67}, std::move(l1_u0_sources)}}},
         {"L1+L3", {{{67}, inclusive_range(16, 31)},
-                     {{69}, inclusive_range(48, 63)}}},
+                     {{69}, inclusive_range(48, 63)}}, false, true},
         {"L0+L1", {{{66}, l0_sources},
-                     {{67}, inclusive_range(16, 31)}}},
+                     {{67}, inclusive_range(16, 31)}}, false, true},
         {"L0+L2", {{{66}, l0_sources},
-                     {{68}, std::move(l2_sources)}}},
+                     {{68}, std::move(l2_sources)}}, false, true},
         {"L1+U1", {{{67}, inclusive_range(16, 31)},
-                     {{71}, u1_sources}}},
+                     {{71}, u1_sources}}, false, true},
         {"L0+U1", {{{66}, std::move(l0_sources)},
-                     {{71}, u1_sources}}},
+                     {{71}, u1_sources}}, false, true},
         {"U0+U1", {{{70}, std::move(u0_sources)},
-                     {{71}, std::move(u1_sources)}}},
+                     {{71}, std::move(u1_sources)}}, false, true},
         {"G0+L0", {{{64, 66}, inclusive_range(0, 63)}}},
     };
 }
@@ -562,20 +562,20 @@ inline std::vector<TripleRepairCase> make_hlrc_k64_triple_block_cases()
     return {
         {"L0+L1+U0", {{{70, 66, 67}, std::move(shared_u0_l0_l1_sources)}}},
         {"L0+L3+U0", {{{70, 66}, shared_u0_l0_sources},
-                         {{69}, inclusive_range(48, 63)}}},
+                         {{69}, inclusive_range(48, 63)}}, false, true},
         {"L0+L2+U0", {{{70, 66}, shared_u0_l0_sources},
-                         {{68}, l2_sources}}},
+                         {{68}, l2_sources}}, false, true},
         {"L0+L1+L3", {{{66}, l0_sources},
                          {{67}, inclusive_range(16, 31)},
-                         {{69}, inclusive_range(48, 63)}}},
+                         {{69}, inclusive_range(48, 63)}}, false, true},
         {"L0+L1+L2", {{{66}, l0_sources},
                          {{67}, inclusive_range(16, 31)},
-                         {{68}, std::move(l2_sources)}}},
+                         {{68}, std::move(l2_sources)}}, false, true},
         {"L0+U0+U1", {{{70, 66}, std::move(shared_u0_l0_sources)},
-                         {{71}, u1_sources}}},
+                         {{71}, u1_sources}}, false, true},
         {"L0+L1+U1", {{{66}, std::move(l0_sources)},
                          {{67}, inclusive_range(16, 31)},
-                         {{71}, std::move(u1_sources)}}},
+                         {{71}, std::move(u1_sources)}}, false, true},
         {"G0+G1+L1", {{{64, 65, 67}, inclusive_range(0, 63)}}},
     };
 }
@@ -762,11 +762,11 @@ inline std::vector<QuadrupleRepairCase> make_hlrc_k64_quadruple_block_cases()
 
     return {
         {"L0+L1+L3+U0", {{{70, 66, 67}, shared_u0_l0_l1_sources},
-                            {{69}, inclusive_range(48, 63)}}},
+                            {{69}, inclusive_range(48, 63)}}, false, true},
         {"L0+L1+L2+U0", {{{70, 66, 67}, shared_u0_l0_l1_sources},
-                            {{68}, std::move(l2_sources)}}},
+                            {{68}, std::move(l2_sources)}}, false, true},
         {"L0+L1+U0+U1", {{{70, 66, 67}, std::move(shared_u0_l0_l1_sources)},
-                            {{71}, std::move(u1_sources)}}},
+                            {{71}, std::move(u1_sources)}}, false, true},
         {"G0+G1+L1+L3", {{{64, 65, 67, 69}, inclusive_range(0, 63)}}},
     };
 }
@@ -929,9 +929,9 @@ inline std::vector<DoubleRepairCase> make_azure_double_block_cases(int k)
     {
         return {
             {"L0+L1", {{{67}, inclusive_range(0, 20)},
-                        {{68}, inclusive_range(21, 41)}}},
+                        {{68}, inclusive_range(21, 41)}}, false, true},
             {"L0+L2", {{{67}, inclusive_range(0, 20)},
-                        {{69}, inclusive_range(42, 63)}}},
+                        {{69}, inclusive_range(42, 63)}}, false, true},
             {"G0+G1", {{{64, 65}, inclusive_range(0, 63)}}},
         };
     }

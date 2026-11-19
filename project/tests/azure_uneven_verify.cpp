@@ -186,6 +186,12 @@ void verify_k64_benchmark_double_cases()
         }
     }
 
+    check(cases[0].sum_task_times,
+          "k=64 L0+L1 must report both task times and their sum");
+    check(cases[1].sum_task_times,
+          "k=64 L0+L2 must report both task times and their sum");
+    check(!cases[2].sum_task_times,
+          "k=64 G0+G1 must keep shared-task wall timing");
     check(cases[2].tasks.size() == 1,
           "k=64 G0+G1 must use one shared multi-output task");
     if (cases[2].tasks.size() == 1)
@@ -471,6 +477,19 @@ void verify_larger_azure_double_cases(int k, int r, int z)
 void verify_uneven_benchmark_coverage(int k, int r, int z)
 {
     const auto cases = ECProject::RepairBenchmark::make_azure_uneven_single_block_cases(k, r, z);
+    if (k == 96) {
+        check(cases.size() == 2,
+              "Azure k=96 single plan must contain exactly L0 and G0");
+        if (cases.size() != 2)
+            return;
+        check(cases[0].failed_name == "L0" && cases[0].failed_block_id == 99 &&
+                  cases[0].source_block_ids == range(0, 24),
+              "Azure k=96 L0 single plan changed");
+        check(cases[1].failed_name == "G0" && cases[1].failed_block_id == 96 &&
+                  cases[1].source_block_ids == range(0, 96),
+              "Azure k=96 G0 single plan changed");
+        return;
+    }
     check(cases.size() == static_cast<size_t>(z + 1),
           "benchmark plan must retain every local case and G0 for k=" + std::to_string(k));
     if (cases.size() != static_cast<size_t>(z + 1))

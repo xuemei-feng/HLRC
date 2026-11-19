@@ -1029,7 +1029,8 @@ void print_ids(const std::vector<int> &ids)
     std::cout << (i == 0 ? "" : ",") << ids[i];
 }
 
-std::string repair_task_name(const RepairTask &task, int k, int r)
+std::string repair_task_name(const RepairTask &task, int k, int r, int z,
+                             const std::string &code_type)
 {
   std::string name;
   for (int id : task.failed_block_ids)
@@ -1037,7 +1038,14 @@ std::string repair_task_name(const RepairTask &task, int k, int r)
     if (!name.empty()) name += "+";
     if (id < k) name += "D" + std::to_string(id);
     else if (id < k + r) name += "G" + std::to_string(id - k);
-    else name += "L" + std::to_string(id - k - r);
+    else
+    {
+      const int local_id = id - k - r;
+      if (code_type == "HLRC" && local_id >= z - 2)
+        name += "U" + std::to_string(local_id - (z - 2));
+      else
+        name += "L" + std::to_string(local_id);
+    }
   }
   return name;
 }
@@ -1284,7 +1292,7 @@ int main(int argc, char **argv)
     if (test_case.sum_task_times)
       for (const auto &task : test_case.tasks)
         summary_names.push_back(test_case.failed_name + "/" +
-                                repair_task_name(task, config->k, config->r));
+                                repair_task_name(task, config->k, config->r, config->z, repair_plan.code_type));
     summary_names.push_back(test_case.failed_name);
   }
   for (int iteration = 0; iteration < options.warmup + options.repeat; ++iteration)
@@ -1332,7 +1340,8 @@ int main(int argc, char **argv)
           for (size_t i = 0; i < task_times.size(); ++i)
           {
             const std::string name = test_case.failed_name + "/" +
-                repair_task_name(test_case.tasks[i], config->k, config->r);
+                repair_task_name(test_case.tasks[i], config->k, config->r, config->z,
+                                 repair_plan.code_type);
             std::cout << (warming_up ? "Warmup task" : "Task result")
                       << " [" << repair_plan.code_type << "] " << name << ": "
                       << task_times[i] << " s" << std::endl;

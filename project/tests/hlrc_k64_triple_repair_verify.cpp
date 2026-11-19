@@ -70,6 +70,14 @@ void verify_registered_cases(const std::vector<TripleRepairCase> &cases)
     require_task(cases[6].tasks[1], {67}, range(16, 31));
     require_task(cases[6].tasks[2], {71}, u1);
     require_task(cases[7].tasks[0], {64, 65, 67}, range(0, 63));
+
+    require(!cases[0].sum_task_times,
+            "L0+L1+U0 must keep shared-task wall timing");
+    for (size_t i = 1; i < 7; ++i)
+        require(cases[i].sum_task_times,
+                "multi-task case must report task times and their sum");
+    require(!cases[7].sum_task_times,
+            "G0+G1+L1 must keep shared-task wall timing");
 }
 }
 

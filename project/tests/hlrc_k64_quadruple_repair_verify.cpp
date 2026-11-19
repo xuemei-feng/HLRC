@@ -57,6 +57,12 @@ void verify_registered_cases(const std::vector<QuadrupleRepairCase> &cases)
     require_task(cases[2].tasks[0], {70, 66, 67}, shared);
     require_task(cases[2].tasks[1], {71}, u1);
     require_task(cases[3].tasks[0], {64, 65, 67, 69}, range(0, 63));
+
+    for (size_t i = 0; i < 3; ++i)
+        require(cases[i].sum_task_times,
+                "local quadruple case must report task times and their sum");
+    require(!cases[3].sum_task_times,
+            "global quadruple case must keep shared-task wall timing");
 }
 }
 

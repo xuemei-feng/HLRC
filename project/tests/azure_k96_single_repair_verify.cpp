@@ -45,14 +45,14 @@ int main()
 
         const auto benchmark_cases =
             ECProject::RepairBenchmark::make_azure_uneven_single_block_cases(k, r, z);
-        require(benchmark_cases.size() == 5, "unexpected AzureLRC k96 case count");
+        require(benchmark_cases.size() == 2, "AzureLRC k96 must test only L0 and G0");
         require(benchmark_cases[0].failed_name == "L0" &&
                     benchmark_cases[0].failed_block_id == l0_id &&
                     benchmark_cases[0].source_block_ids == range(0, 24),
                 "L0 must read D0-D23");
-        require(benchmark_cases[4].failed_name == "G0" &&
-                    benchmark_cases[4].failed_block_id == g0_id &&
-                    benchmark_cases[4].source_block_ids == range(0, 96),
+        require(benchmark_cases[1].failed_name == "G0" &&
+                    benchmark_cases[1].failed_block_id == g0_id &&
+                    benchmark_cases[1].source_block_ids == range(0, 96),
                 "G0 must read D0-D95");
 
         std::vector<std::vector<unsigned char>> blocks(
@@ -72,7 +72,7 @@ int main()
         ECProject::encode_azure_lrc(k, r, z, data_ptrs.data(), parity_ptrs.data(), block_size);
 
         const std::vector<ECProject::RepairBenchmark::RepairCase> cases = {
-            benchmark_cases[0], benchmark_cases[4]};
+            benchmark_cases[0], benchmark_cases[1]};
         const auto group_by_block = ECProject::get_azurelrc_block_id_to_group_id(k, r, z);
 
         for (const auto &test_case : cases) {

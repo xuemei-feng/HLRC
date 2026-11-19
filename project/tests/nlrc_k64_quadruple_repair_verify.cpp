@@ -25,6 +25,10 @@ void verify(int block_size)
             "local quadruple must use two shared tasks");
     require(cases[1].failed_name == "G0+G1+G2+L0" && cases[1].tasks.size() == 1,
             "global quadruple must use one shared task");
+    require(cases[0].sum_task_times,
+            "local quadruple must report both shared-task times and their sum");
+    require(!cases[1].sum_task_times,
+            "global quadruple must keep shared-task wall timing");
     const std::vector<std::vector<std::vector<int>>> wanted_failed = {
         {{67, 68}, {69, 70}}, {{64, 65, 66, 67}}};
     const std::vector<std::vector<std::vector<int>>> wanted_sources = {
