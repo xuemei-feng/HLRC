@@ -39,12 +39,16 @@ void verify_registered_cases(const std::vector<QuadrupleRepairCase> &cases)
                 "local quadruple case changed: "+names[c]);
         for(size_t t=0;t<4;++t)
             require_task(cases[c].tasks[t],{failed[c][t]},sources[c][t],names[c]);
+        require(cases[c].sum_task_times,
+                "local quadruple must report all task times and their sum");
     }
     require(cases[2].failed_name=="G0+G1+G2+L0"&&cases[2].tasks.size()==1,
             "missing G0+G1+G2+L0 shared case");
     require_task(cases[2].tasks[0],{128,129,130,131},range(0,127),"G0+G1+G2+L0");
     require(cases[2].tasks[0].failed_block_ids.front()==128,
             "G0 must be the shared task owner proxy");
+    require(!cases[2].sum_task_times,
+            "G0+G1+G2+L0 must keep shared-task wall timing");
 }
 } // namespace
 

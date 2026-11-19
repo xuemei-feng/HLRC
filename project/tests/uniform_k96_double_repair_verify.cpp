@@ -18,7 +18,8 @@ void verify_cases(const std::vector<DoubleRepairCase> &cases){
     require(cases.size()==3,"case count");
     require(cases[0].failed_name=="L0+L1"&&cases[0].tasks.size()==2,"L0+L1");require_task(cases[0].tasks[0],{99},range(0,23),"L0");require_task(cases[0].tasks[1],{100},range(24,48),"L1");
     require(cases[1].failed_name=="L1+L2"&&cases[1].tasks.size()==2,"L1+L2");require_task(cases[1].tasks[0],{100},range(24,48),"L1");require_task(cases[1].tasks[1],{101},range(49,73),"L2");
-    require(cases[2].failed_name=="G0+G1"&&cases[2].tasks.size()==1,"G0+G1");require_task(cases[2].tasks[0],{96,97},range(0,95),"G0+G1");require(cases[2].tasks[0].failed_block_ids.front()==96,"G0 owner");
+    require(cases[0].sum_task_times&&cases[1].sum_task_times,"local pair timing sums");
+    require(cases[2].failed_name=="G0+G1"&&cases[2].tasks.size()==1,"G0+G1");require_task(cases[2].tasks[0],{96,97},range(0,95),"G0+G1");require(cases[2].tasks[0].failed_block_ids.front()==96,"G0 owner");require(!cases[2].sum_task_times,"global shared timing");
 }
 } // namespace
 

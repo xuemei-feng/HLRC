@@ -22,10 +22,11 @@ void verify_cases(const std::vector<QuadrupleRepairCase> &cases){
     const std::vector<std::vector<std::vector<int>>> sources={
         {globals(range(0,24)),globals(range(25,49)),globals(range(50,75)),globals(range(76,101))},
         {globals(range(25,49)),globals(range(50,75)),globals(range(76,101)),globals(range(102,127))}};
-    for(size_t c=0;c<2;++c){require(cases[c].failed_name==names[c]&&cases[c].tasks.size()==4,names[c]);for(size_t t=0;t<4;++t)check_task(cases[c].tasks[t],{ids[c][t]},sources[c][t],names[c]);}
+    for(size_t c=0;c<2;++c){require(cases[c].failed_name==names[c]&&cases[c].tasks.size()==4,names[c]);for(size_t t=0;t<4;++t)check_task(cases[c].tasks[t],{ids[c][t]},sources[c][t],names[c]);require(cases[c].sum_task_times,"local quadruple timing sum");}
     require(cases[2].failed_name=="G0+G1+G2+L0"&&cases[2].tasks.size()==1,"global case");
     check_task(cases[2].tasks[0],{128,129,130,131},range(0,127),"global case");
     require(cases[2].tasks[0].failed_block_ids.front()==128,"G0 owner");
+    require(!cases[2].sum_task_times,"global shared timing");
 }
 } // namespace
 

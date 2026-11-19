@@ -75,7 +75,10 @@ void verify_registered_cases(const std::vector<TripleRepairCase> &cases)
     require_task(cases[7].tasks[2], {105}, u1);
     require_task(cases[8].tasks[0], {104, 99}, shared_two);
     require_task(cases[8].tasks[1], {105}, u1);
+    for (size_t i = 1; i <= 8; ++i) require(cases[i].sum_task_times, "multi-task timing sum");
+    require(!cases[0].sum_task_times, "shared U0+L1+L2 timing");
     require_task(cases[9].tasks[0], {96, 97, 99}, range(0, 95));
+    require(!cases[9].sum_task_times, "shared global timing");
 }
 }
 

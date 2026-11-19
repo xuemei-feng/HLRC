@@ -19,7 +19,8 @@ void verify_cases(const std::vector<QuadrupleRepairCase> &cases){
     require(cases[0].failed_name=="L0+L1+L2+L3"&&cases[0].tasks.size()==4,"L0+L1+L2+L3");require_task(cases[0].tasks[0],{131},range(0,25),"L0");require_task(cases[0].tasks[1],{132},range(26,51),"L1");require_task(cases[0].tasks[2],{133},range(52,77),"L2");require_task(cases[0].tasks[3],{134},range(78,103),"L3");
     auto l4_sources=range(104,127);l4_sources.insert(l4_sources.end(),{128,129,130});
     require(cases[1].failed_name=="L0+L1+L2+L4"&&cases[1].tasks.size()==4,"L0+L1+L2+L4");require_task(cases[1].tasks[0],{131},range(0,25),"L0");require_task(cases[1].tasks[1],{132},range(26,51),"L1");require_task(cases[1].tasks[2],{133},range(52,77),"L2");require_task(cases[1].tasks[3],{135},l4_sources,"L4");
-    require(cases[2].failed_name=="G0+G1+G2+L4"&&cases[2].tasks.size()==1,"global case");require_task(cases[2].tasks[0],{128,129,130,135},range(0,127),"global case");require(cases[2].tasks[0].failed_block_ids.front()==128,"G0 owner");
+    require(cases[0].sum_task_times&&cases[1].sum_task_times,"local quadruple timing sums");
+    require(cases[2].failed_name=="G0+G1+G2+L4"&&cases[2].tasks.size()==1,"global case");require_task(cases[2].tasks[0],{128,129,130,135},range(0,127),"global case");require(cases[2].tasks[0].failed_block_ids.front()==128,"G0 owner");require(!cases[2].sum_task_times,"global shared timing");
 }
 } // namespace
 

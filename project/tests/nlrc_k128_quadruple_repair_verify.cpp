@@ -38,7 +38,8 @@ void verify_registered_cases(const std::vector<QuadrupleRepairCase> &cases)
     auto l8=range(104,127);l8.insert(l8.end(),{128,129,130});require_task(cases[2].tasks[0],{131,132},range(0,25));require_task(cases[2].tasks[1],{133},range(26,51));require_task(cases[2].tasks[2],{139},l8);
     require_task(cases[3].tasks[0],{131},range(0,25));require_task(cases[3].tasks[1],{133},range(26,51));require_task(cases[3].tasks[2],{135},range(52,77));require_task(cases[3].tasks[3],{137},range(78,103));
     require_task(cases[4].tasks[0],{131},range(0,25));require_task(cases[4].tasks[1],{133},range(26,51));require_task(cases[4].tasks[2],{135},range(52,77));require_task(cases[4].tasks[3],{139},l8);
-    require_task(cases[5].tasks[0],{128,129,130,139},range(0,127));
+    for(size_t i=0;i<5;++i)require(cases[i].sum_task_times,"local quadruple timing sum");
+    require_task(cases[5].tasks[0],{128,129,130,139},range(0,127));require(!cases[5].sum_task_times,"global shared timing");
 }
 }
 

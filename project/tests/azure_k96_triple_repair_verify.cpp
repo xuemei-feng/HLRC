@@ -41,6 +41,8 @@ void verify_registered_cases(const std::vector<TripleRepairCase> &cases)
     require_task(cases[0].tasks[0], {99}, range(0, 23), "L0");
     require_task(cases[0].tasks[1], {100}, range(24, 47), "L1");
     require_task(cases[0].tasks[2], {101}, range(48, 71), "L2");
+    require(cases[0].sum_task_times,
+            "L0+L1+L2 must report all task times and their sum");
 
     require(cases[1].failed_name == "G0+G1+G2", "missing G0+G1+G2 case");
     require(cases[1].tasks.size() == 1,
@@ -48,6 +50,8 @@ void verify_registered_cases(const std::vector<TripleRepairCase> &cases)
     require_task(cases[1].tasks[0], {96, 97, 98}, range(0, 95), "G0+G1+G2");
     require(cases[1].tasks[0].failed_block_ids.front() == 96,
             "G0 must be the shared task owner proxy");
+    require(!cases[1].sum_task_times,
+            "G0+G1+G2 must keep shared-task wall timing");
 }
 
 } // namespace

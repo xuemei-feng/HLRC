@@ -38,11 +38,15 @@ void verify_registered_cases(const std::vector<DoubleRepairCase> &cases)
             "missing L0+L1 case");
     require_task(cases[0].tasks[0],{99},with_globals(range(0,23)),"L0");
     require_task(cases[0].tasks[1],{100},with_globals(range(24,47)),"L1");
+    require(cases[0].sum_task_times,
+            "L0+L1 must report both task times and their sum");
     require(cases[1].failed_name=="G0+G1"&&cases[1].tasks.size()==1,
             "missing G0+G1 shared case");
     require_task(cases[1].tasks[0],{96,97},range(0,95),"G0+G1");
     require(cases[1].tasks[0].failed_block_ids.front()==96,
             "G0 must be the shared task owner proxy");
+    require(!cases[1].sum_task_times,
+            "G0+G1 must keep shared-task wall timing");
 }
 } // namespace
 

@@ -67,7 +67,10 @@ void verify_registered_cases(const std::vector<QuadrupleRepairCase> &cases)
     require_task(cases[8].tasks[0], {135}, range(80,95)); require_task(cases[8].tasks[1], {136}, range(96,111)); require_task(cases[8].tasks[2], {137}, range(112,127)); require_task(cases[8].tasks[3], {138}, u0);
     require_task(cases[9].tasks[0], {134}, l4); require_task(cases[9].tasks[1], {135}, range(80,95)); require_task(cases[9].tasks[2], {136}, range(96,111)); require_task(cases[9].tasks[3], {138}, u0);
     require_task(cases[10].tasks[0], {138,131}, shared_two); require_task(cases[10].tasks[1], {139,135}, shared_u1_l5);
+    for (size_t i = 1; i <= 10; ++i) require(cases[i].sum_task_times, "multi-task timing sum");
+    require(!cases[0].sum_task_times, "shared four-output timing");
     require_task(cases[11].tasks[0], {128,129,131,132}, range(0,127));
+    require(!cases[11].sum_task_times, "shared global timing");
 }
 }
 

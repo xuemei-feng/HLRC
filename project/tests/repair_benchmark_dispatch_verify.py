@@ -140,6 +140,123 @@ class DispatchVerification(unittest.TestCase):
             result = self.run_plan("NLRC", 64, "double", **overrides)
             self.assertNotEqual(result.returncode, 0)
 
+    def test_hlrc_k128_quadruple_exact_sources_and_owners(self):
+        cases=self.parse_plan(self.run_plan("HLRC",128,"quadruple"),"HLRC",128,"quadruple")
+        names=["L1+L2+L3+U0","L1+L2+L3+L5","L0+L1+L2+L3","L0+L1+L2+L4","L1+L2+L5+U0","L1+L2+L4+U0","L1+L5+L6+U0","L1+L4+L5+U0","L5+L6+L7+U0","L4+L5+L6+U0","L1+L5+U0+U1","G0+G1+L1+L2"]
+        self.assertEqual(list(cases),names)
+        l1=list(range(16,32));l2=list(range(32,48));l3=list(range(48,64));l0=list(range(16))+[128];l4=list(range(64,80))+[129];l5=list(range(80,96));l6=list(range(96,112));l7=list(range(112,128))
+        shared4=list(range(1,16))+l1+l2+l3;shared3=l1+l2+list(range(1,16))+list(range(50,64));shared2=l1+list(range(1,16))+list(range(34,48))+list(range(50,64));u0=list(range(1,16))+list(range(18,32))+list(range(34,48))+l3;sharedu1=list(range(64,80))+l5+list(range(98,112))+list(range(114,128))
+        expected={"L1+L2+L3+U0":[(138,[138,131,132,133],shared4)],"L1+L2+L3+L5":[(131,[131],l1),(132,[132],l2),(133,[133],l3),(135,[135],l5)],"L0+L1+L2+L3":[(130,[130],l0),(131,[131],l1),(132,[132],l2),(133,[133],l3)],"L0+L1+L2+L4":[(130,[130],l0),(131,[131],l1),(132,[132],l2),(134,[134],l4)],"L1+L2+L5+U0":[(138,[138,131,132],shared3),(135,[135],l5)],"L1+L2+L4+U0":[(138,[138,131,132],shared3),(134,[134],l4)],"L1+L5+L6+U0":[(138,[138,131],shared2),(135,[135],l5),(136,[136],l6)],"L1+L4+L5+U0":[(138,[138,131],shared2),(134,[134],l4),(135,[135],l5)],"L5+L6+L7+U0":[(135,[135],l5),(136,[136],l6),(137,[137],l7),(138,[138],u0)],"L4+L5+L6+U0":[(134,[134],l4),(135,[135],l5),(136,[136],l6),(138,[138],u0)],"L1+L5+U0+U1":[(138,[138,131],shared2),(139,[139,135],sharedu1)],"G0+G1+L1+L2":[(128,[128,129,131,132],list(range(128)))]}
+        for name,tasks in expected.items():self.assertEqual(cases[name],tasks)
+        for overrides in ({"r":3},{"z":8}):self.assertNotEqual(self.run_plan("HLRC",128,"quadruple",**overrides).returncode,0)
+
+    def test_hlrc_k128_triple_exact_sources_and_owners(self):
+        cases=self.parse_plan(self.run_plan("HLRC",128,"triple"),"HLRC",128,"triple")
+        self.assertEqual(list(cases),["L1+L2+L3","L0+L1+L2","L0+L1+L4","L1+L2+U0","L1+L5+U0","L1+L4+U0","L5+L6+U0","L4+L5+U0","L1+U0+U1","G0+G1+L1"])
+        l1=list(range(16,32));l2=list(range(32,48));l3=list(range(48,64));l0=list(range(16))+[128];l4=list(range(64,80))+[129];l5=list(range(80,96));l6=list(range(96,112))
+        shared3=l1+l2+list(range(1,16))+list(range(50,64));shared2=l1+list(range(1,16))+list(range(34,48))+list(range(50,64));u0=list(range(1,16))+list(range(18,32))+list(range(34,48))+list(range(48,64));u1=list(range(65,80))+list(range(82,96))+list(range(98,112))+list(range(114,128))
+        expected={"L1+L2+L3":[(131,[131],l1),(132,[132],l2),(133,[133],l3)],"L0+L1+L2":[(130,[130],l0),(131,[131],l1),(132,[132],l2)],"L0+L1+L4":[(130,[130],l0),(131,[131],l1),(134,[134],l4)],"L1+L2+U0":[(138,[138,131,132],shared3)],"L1+L5+U0":[(138,[138,131],shared2),(135,[135],l5)],"L1+L4+U0":[(138,[138,131],shared2),(134,[134],l4)],"L5+L6+U0":[(135,[135],l5),(136,[136],l6),(138,[138],u0)],"L4+L5+U0":[(134,[134],l4),(135,[135],l5),(138,[138],u0)],"L1+U0+U1":[(138,[138,131],shared2),(139,[139],u1)],"G0+G1+L1":[(128,[128,129,131],list(range(128)))]}
+        for name,tasks in expected.items():self.assertEqual(cases[name],tasks)
+        for overrides in ({"r":3},{"z":8}):self.assertNotEqual(self.run_plan("HLRC",128,"triple",**overrides).returncode,0)
+
+    def test_hlrc_k128_double_exact_sources_and_owners(self):
+        cases = self.parse_plan(self.run_plan("HLRC", 128, "double"),
+                                "HLRC", 128, "double")
+        self.assertEqual(list(cases), ["L1+L2", "L0+L1", "L0+L4", "L1+U0", "L5+U0", "L4+U0", "U0+U1", "G0+L0"])
+        l0=list(range(16))+[128];l4=list(range(64,80))+[129]
+        u0=list(range(1,16))+list(range(18,32))+list(range(34,48))+list(range(48,64))
+        shared=list(range(16,32))+list(range(1,16))+list(range(34,48))+list(range(48,64))
+        u1=list(range(65,80))+list(range(82,96))+list(range(98,112))+list(range(114,128))
+        expected={
+          "L1+L2":[(131,[131],list(range(16,32))),(132,[132],list(range(32,48)))],
+          "L0+L1":[(130,[130],l0),(131,[131],list(range(16,32)))],
+          "L0+L4":[(130,[130],l0),(134,[134],l4)],
+          "L1+U0":[(138,[138,131],shared)],
+          "L5+U0":[(135,[135],list(range(80,96))),(138,[138],u0)],
+          "L4+U0":[(134,[134],l4),(138,[138],u0)],
+          "U0+U1":[(138,[138],u0),(139,[139],u1)],
+          "G0+L0":[(128,[128,130],list(range(128)))],}
+        for name,tasks in expected.items(): self.assertEqual(cases[name],tasks)
+        for overrides in ({"r":3},{"z":8}):
+            self.assertNotEqual(self.run_plan("HLRC",128,"double",**overrides).returncode,0)
+
+    def test_hlrc_k96_quadruple_exact_sources_and_owners(self):
+        cases = self.parse_plan(self.run_plan("HLRC", 96, "quadruple"), "HLRC", 96, "quadruple")
+        self.assertEqual(list(cases), ["L0+L1+L2+U0", "L1+L2+L4+U0", "L1+L2+L4+L5", "L0+L1+L2+L4", "L0+L1+L2+L3", "L1+L4+L5+U0", "L1+L3+L4+U0", "L1+L4+U0+U1", "L0+L1+L2+U1", "G0+G1+L1+L2"])
+        l1=list(range(16,32));l2=list(range(32,48));l4=list(range(64,80));l5=list(range(80,96));l0=list(range(16))+[96];l3=list(range(48,64))+[97]
+        shared4=list(range(16))+[96]+l1+l2;shared3=list(range(1,16))+l1+l2;shared2=l1+list(range(1,16))+list(range(34,48));shared_u1=list(range(49,64))+l4+list(range(82,96));u1=list(range(49,64))+list(range(66,80))+list(range(82,96))
+        expected={
+          "L0+L1+L2+U0":[(104,[104,98,99,100],shared4)],
+          "L1+L2+L4+U0":[(104,[104,99,100],shared3),(102,[102],l4)],
+          "L1+L2+L4+L5":[(99,[99],l1),(100,[100],l2),(102,[102],l4),(103,[103],l5)],
+          "L0+L1+L2+L4":[(98,[98],l0),(99,[99],l1),(100,[100],l2),(102,[102],l4)],
+          "L0+L1+L2+L3":[(98,[98],l0),(99,[99],l1),(100,[100],l2),(101,[101],l3)],
+          "L1+L4+L5+U0":[(104,[104,99],shared2),(102,[102],l4),(103,[103],l5)],
+          "L1+L3+L4+U0":[(104,[104,99],shared2),(101,[101],l3),(102,[102],l4)],
+          "L1+L4+U0+U1":[(104,[104,99],shared2),(105,[105,102],shared_u1)],
+          "L0+L1+L2+U1":[(98,[98],l0),(99,[99],l1),(100,[100],l2),(105,[105],u1)],
+          "G0+G1+L1+L2":[(96,[96,97,99,100],list(range(96)))],}
+        for name,tasks in expected.items(): self.assertEqual(cases[name],tasks)
+        for overrides in ({"r":3},{"z":6}): self.assertNotEqual(self.run_plan("HLRC",96,"quadruple",**overrides).returncode,0)
+
+    def test_hlrc_k96_triple_exact_sources_and_owners(self):
+        cases = self.parse_plan(self.run_plan("HLRC", 96, "triple"),
+                                "HLRC", 96, "triple")
+        self.assertEqual(list(cases), [
+            "L1+L2+U0", "L1+L2+L4", "L0+L1+L2", "L0+L1+L3",
+            "L1+L4+U0", "L1+L3+U0", "L1+L2+U1", "L0+L1+U1",
+            "L1+U0+U1", "G0+G1+L1",
+        ])
+        l1 = list(range(16, 32)); l2 = list(range(32, 48))
+        l4 = list(range(64, 80)); l0 = list(range(16)) + [96]
+        l3 = list(range(48, 64)) + [97]
+        shared_three = l1 + l2 + list(range(1, 16))
+        shared_two = l1 + list(range(1, 16)) + list(range(34, 48))
+        u1 = list(range(49, 64)) + list(range(66, 80)) + list(range(82, 96))
+        self.assertEqual(cases["L1+L2+U0"], [(104, [104, 99, 100], shared_three)])
+        self.assertEqual(cases["L1+L2+L4"], [(99, [99], l1), (100, [100], l2), (102, [102], l4)])
+        self.assertEqual(cases["L0+L1+L2"], [(98, [98], l0), (99, [99], l1), (100, [100], l2)])
+        self.assertEqual(cases["L0+L1+L3"], [(98, [98], l0), (99, [99], l1), (101, [101], l3)])
+        self.assertEqual(cases["L1+L4+U0"], [(104, [104, 99], shared_two), (102, [102], l4)])
+        self.assertEqual(cases["L1+L3+U0"], [(104, [104, 99], shared_two), (101, [101], l3)])
+        self.assertEqual(cases["L1+L2+U1"], [(99, [99], l1), (100, [100], l2), (105, [105], u1)])
+        self.assertEqual(cases["L0+L1+U1"], [(98, [98], l0), (99, [99], l1), (105, [105], u1)])
+        self.assertEqual(cases["L1+U0+U1"], [(104, [104, 99], shared_two), (105, [105], u1)])
+        self.assertEqual(cases["G0+G1+L1"], [(96, [96, 97, 99], list(range(96)))])
+        for overrides in ({"r": 3}, {"z": 6}):
+            result = self.run_plan("HLRC", 96, "triple", **overrides)
+            self.assertNotEqual(result.returncode, 0)
+
+    def test_hlrc_k96_double_exact_sources_and_owners(self):
+        cases = self.parse_plan(self.run_plan("HLRC", 96, "double"),
+                                "HLRC", 96, "double")
+        self.assertEqual(list(cases), [
+            "L1+L2", "L0+L1", "L0+L3", "L1+U0",
+            "L4+U0", "L3+U0", "U0+U1", "G0+L0",
+        ])
+        l0 = list(range(16)) + [96]
+        l3 = list(range(48, 64)) + [97]
+        u0 = list(range(1, 16)) + list(range(18, 32)) + list(range(34, 48))
+        u1 = list(range(49, 64)) + list(range(66, 80)) + list(range(82, 96))
+        shared = list(range(16, 32)) + list(range(1, 16)) + list(range(34, 48))
+        self.assertEqual(cases["L1+L2"], [
+            (99, [99], list(range(16, 32))), (100, [100], list(range(32, 48))),
+        ])
+        self.assertEqual(cases["L0+L1"], [
+            (98, [98], l0), (99, [99], list(range(16, 32))),
+        ])
+        self.assertEqual(cases["L0+L3"], [(98, [98], l0), (101, [101], l3)])
+        self.assertEqual(cases["L1+U0"], [(104, [104, 99], shared)])
+        self.assertEqual(cases["L4+U0"], [
+            (102, [102], list(range(64, 80))), (104, [104], u0),
+        ])
+        self.assertEqual(cases["L3+U0"], [(101, [101], l3), (104, [104], u0)])
+        self.assertEqual(cases["U0+U1"], [(104, [104], u0), (105, [105], u1)])
+        self.assertEqual(cases["G0+L0"], [(96, [96, 98], list(range(96)))])
+        for overrides in ({"r": 3}, {"z": 6}):
+            result = self.run_plan("HLRC", 96, "double", **overrides)
+            self.assertNotEqual(result.returncode, 0)
+
     def test_hlrc_k64_double_exact_sources_and_owners(self):
         cases = self.parse_plan(self.run_plan("HLRC", 64, "double"),
                                 "HLRC", 64, "double")
@@ -214,6 +331,172 @@ class DispatchVerification(unittest.TestCase):
         self.assertEqual(cases["G0+G1+L1"],
                          [(64, [64, 65, 67], list(range(64)))])
 
+    def test_nlrc_k128_quadruple_exact_sources_and_owners(self):
+        cases = self.parse_plan(self.run_plan("NLRC", 128, "quadruple"),
+                                "NLRC", 128, "quadruple")
+        self.assertEqual(list(cases), [
+            "L0+L1+L2+L3", "L0+L1+L2+L4", "L0+L1+L2+L8",
+            "L0+L2+L4+L6", "L0+L2+L4+L8", "G0+G1+G2+L8",
+        ])
+        l8_sources = list(range(104, 128)) + [128, 129, 130]
+        self.assertEqual(cases["L0+L1+L2+L3"], [
+            (131, [131, 132], list(range(26))),
+            (133, [133, 134], list(range(26, 52))),
+        ])
+        self.assertEqual(cases["L0+L1+L2+L4"], [
+            (131, [131, 132], list(range(26))),
+            (133, [133], list(range(26, 52))), (135, [135], list(range(52, 78))),
+        ])
+        self.assertEqual(cases["L0+L1+L2+L8"], [
+            (131, [131, 132], list(range(26))),
+            (133, [133], list(range(26, 52))), (139, [139], l8_sources),
+        ])
+        self.assertEqual(cases["L0+L2+L4+L6"], [
+            (131, [131], list(range(26))), (133, [133], list(range(26, 52))),
+            (135, [135], list(range(52, 78))), (137, [137], list(range(78, 104))),
+        ])
+        self.assertEqual(cases["L0+L2+L4+L8"], [
+            (131, [131], list(range(26))), (133, [133], list(range(26, 52))),
+            (135, [135], list(range(52, 78))), (139, [139], l8_sources),
+        ])
+        self.assertEqual(cases["G0+G1+G2+L8"],
+                         [(128, [128, 129, 130, 139], list(range(128)))])
+        for overrides in ({"r": 2}, {"z": 7}):
+            result = self.run_plan("NLRC", 128, "quadruple", **overrides)
+            self.assertNotEqual(result.returncode, 0)
+
+    def test_nlrc_k128_triple_exact_sources_and_owners(self):
+        cases = self.parse_plan(self.run_plan("NLRC", 128, "triple"),
+                                "NLRC", 128, "triple")
+        self.assertEqual(list(cases), [
+            "L0+L1+L2", "L0+L1+L8", "L0+L2+L4", "L0+L2+L8", "G0+G1+G2",
+        ])
+        self.assertEqual(cases["L0+L1+L2"], [
+            (131, [131, 132], list(range(26))),
+            (133, [133], list(range(26, 52))),
+        ])
+        l8_sources = list(range(104, 128)) + [128, 129, 130]
+        self.assertEqual(cases["L0+L1+L8"], [
+            (131, [131, 132], list(range(26))), (139, [139], l8_sources),
+        ])
+        self.assertEqual(cases["L0+L2+L4"], [
+            (131, [131], list(range(26))),
+            (133, [133], list(range(26, 52))),
+            (135, [135], list(range(52, 78))),
+        ])
+        self.assertEqual(cases["L0+L2+L8"], [
+            (131, [131], list(range(26))),
+            (133, [133], list(range(26, 52))), (139, [139], l8_sources),
+        ])
+        self.assertEqual(cases["G0+G1+G2"],
+                         [(128, [128, 129, 130], list(range(128)))])
+        for overrides in ({"r": 2}, {"z": 7}):
+            result = self.run_plan("NLRC", 128, "triple", **overrides)
+            self.assertNotEqual(result.returncode, 0)
+
+    def test_nlrc_k128_double_exact_sources_and_owners(self):
+        cases = self.parse_plan(self.run_plan("NLRC", 128, "double"),
+                                "NLRC", 128, "double")
+        self.assertEqual(list(cases), ["L0+L1", "L0+L2", "L0+L8", "G0+G1"])
+        self.assertEqual(cases["L0+L1"],
+                         [(131, [131, 132], list(range(26)))])
+        self.assertEqual(cases["L0+L2"], [
+            (131, [131], list(range(26))),
+            (133, [133], list(range(26, 52))),
+        ])
+        self.assertEqual(cases["L0+L8"], [
+            (131, [131], list(range(26))),
+            (139, [139], list(range(104, 128)) + [128, 129, 130]),
+        ])
+        self.assertEqual(cases["G0+G1"],
+                         [(128, [128, 129], list(range(128)))])
+        for overrides in ({"r": 2}, {"z": 7}):
+            result = self.run_plan("NLRC", 128, "double", **overrides)
+            self.assertNotEqual(result.returncode, 0)
+
+    def test_nlrc_k96_quadruple_exact_sources_and_owners(self):
+        cases = self.parse_plan(self.run_plan("NLRC", 96, "quadruple"),
+                                "NLRC", 96, "quadruple")
+        self.assertEqual(list(cases), [
+            "L0+L1+L2+L3", "L2+L3+L4+L5", "L0+L2+L4+L5",
+            "L2+L3+L4+L6", "G0+G1+G2+L6",
+        ])
+        self.assertEqual(cases["L0+L1+L2+L3"], [
+            (99, [99, 100], list(range(24))),
+            (101, [101, 102], list(range(24, 49))),
+        ])
+        self.assertEqual(cases["L2+L3+L4+L5"], [
+            (101, [101, 102], list(range(24, 49))),
+            (103, [103, 104], list(range(49, 74))),
+        ])
+        self.assertEqual(cases["L0+L2+L4+L5"], [
+            (99, [99], list(range(24))),
+            (101, [101], list(range(24, 49))),
+            (103, [103, 104], list(range(49, 74))),
+        ])
+        self.assertEqual(cases["L2+L3+L4+L6"], [
+            (101, [101, 102], list(range(24, 49))),
+            (103, [103], list(range(49, 74))),
+            (105, [105], list(range(74, 96)) + [96, 97, 98]),
+        ])
+        self.assertEqual(cases["G0+G1+G2+L6"],
+                         [(96, [96, 97, 98, 105], list(range(96)))])
+        for overrides in ({"r": 2}, {"z": 5}):
+            result = self.run_plan("NLRC", 96, "quadruple", **overrides)
+            self.assertNotEqual(result.returncode, 0)
+
+    def test_nlrc_k96_triple_exact_sources_and_owners(self):
+        cases = self.parse_plan(self.run_plan("NLRC", 96, "triple"),
+                                "NLRC", 96, "triple")
+        self.assertEqual(list(cases), [
+            "L0+L1+L2", "L2+L3+L4", "L0+L2+L4", "L2+L4+L6", "G0+G1+G2",
+        ])
+        self.assertEqual(cases["L0+L1+L2"], [
+            (99, [99, 100], list(range(24))),
+            (101, [101], list(range(24, 49))),
+        ])
+        self.assertEqual(cases["L2+L3+L4"], [
+            (101, [101, 102], list(range(24, 49))),
+            (103, [103], list(range(49, 74))),
+        ])
+        self.assertEqual(cases["L0+L2+L4"], [
+            (99, [99], list(range(24))),
+            (101, [101], list(range(24, 49))),
+            (103, [103], list(range(49, 74))),
+        ])
+        self.assertEqual(cases["L2+L4+L6"], [
+            (101, [101], list(range(24, 49))),
+            (103, [103], list(range(49, 74))),
+            (105, [105], list(range(74, 96)) + [96, 97, 98]),
+        ])
+        self.assertEqual(cases["G0+G1+G2"],
+                         [(96, [96, 97, 98], list(range(96)))])
+        for overrides in ({"r": 2}, {"z": 5}):
+            result = self.run_plan("NLRC", 96, "triple", **overrides)
+            self.assertNotEqual(result.returncode, 0)
+
+    def test_nlrc_k96_double_exact_sources_and_owners(self):
+        cases = self.parse_plan(self.run_plan("NLRC", 96, "double"),
+                                "NLRC", 96, "double")
+        self.assertEqual(list(cases), ["L0+L1", "L2+L3", "L0+L2", "L2+L4", "G0+G1"])
+        self.assertEqual(cases["L0+L1"],
+                         [(99, [99, 100], list(range(24)))])
+        self.assertEqual(cases["L2+L3"],
+                         [(101, [101, 102], list(range(24, 49)))])
+        self.assertEqual(cases["L0+L2"], [
+            (99, [99], list(range(24))),
+            (101, [101], list(range(24, 49))),
+        ])
+        self.assertEqual(cases["L2+L4"], [
+            (101, [101], list(range(24, 49))),
+            (103, [103], list(range(49, 74))),
+        ])
+        self.assertEqual(cases["G0+G1"],
+                         [(96, [96, 97], list(range(96)))])
+        for overrides in ({"r": 2}, {"z": 5}):
+            result = self.run_plan("NLRC", 96, "double", **overrides)
+            self.assertNotEqual(result.returncode, 0)
+
     def test_nlrc_k64_triple_exact_sources_and_owners(self):
         cases = self.parse_plan(self.run_plan("NLRC", 64, "triple"),
                                 "NLRC", 64, "triple")
@@ -242,6 +525,108 @@ class DispatchVerification(unittest.TestCase):
             result = self.run_plan("AzureLRC", 96, "single", **overrides)
             self.assertNotEqual(result.returncode, 0)
 
+    def test_azure_k128_double_exact_sources_and_owners(self):
+        cases = self.parse_plan(self.run_plan("AzureLRC", 128, "double"),
+                                "AzureLRC", 128, "double")
+        self.assertEqual(list(cases), ["L0+L1", "L0+L2", "L2+L3", "G0+G1"])
+        self.assertEqual(cases["L0+L1"], [
+            (131, [131], list(range(25))),
+            (132, [132], list(range(25, 50))),
+        ])
+        self.assertEqual(cases["L0+L2"], [
+            (131, [131], list(range(25))),
+            (133, [133], list(range(50, 76))),
+        ])
+        self.assertEqual(cases["L2+L3"], [
+            (133, [133], list(range(50, 76))),
+            (134, [134], list(range(76, 102))),
+        ])
+        self.assertEqual(cases["G0+G1"],
+                         [(128, [128, 129], list(range(128)))])
+        for overrides in ({"r": 2}, {"z": 4}):
+            result = self.run_plan("AzureLRC", 128, "double", **overrides)
+            self.assertNotEqual(result.returncode, 0)
+
+    def test_azure_k128_quadruple_exact_sources_and_owners(self):
+        cases = self.parse_plan(self.run_plan("AzureLRC", 128, "quadruple"),
+                                "AzureLRC", 128, "quadruple")
+        self.assertEqual(list(cases), [
+            "L0+L1+L2+L3", "L1+L2+L3+L4", "G0+G1+G2+L0",
+        ])
+        self.assertEqual(cases["L0+L1+L2+L3"], [
+            (131, [131], list(range(25))),
+            (132, [132], list(range(25, 50))),
+            (133, [133], list(range(50, 76))),
+            (134, [134], list(range(76, 102))),
+        ])
+        self.assertEqual(cases["L1+L2+L3+L4"], [
+            (132, [132], list(range(25, 50))),
+            (133, [133], list(range(50, 76))),
+            (134, [134], list(range(76, 102))),
+            (135, [135], list(range(102, 128))),
+        ])
+        self.assertEqual(cases["G0+G1+G2+L0"],
+                         [(128, [128, 129, 130, 131], list(range(128)))])
+        for overrides in ({"r": 2}, {"z": 4}):
+            result = self.run_plan("AzureLRC", 128, "quadruple", **overrides)
+            self.assertNotEqual(result.returncode, 0)
+
+    def test_azure_k128_triple_exact_sources_and_owners(self):
+        cases = self.parse_plan(self.run_plan("AzureLRC", 128, "triple"),
+                                "AzureLRC", 128, "triple")
+        self.assertEqual(list(cases), [
+            "L0+L1+L2", "L1+L2+L3", "L2+L3+L4", "G0+G1+G2",
+        ])
+        self.assertEqual(cases["L0+L1+L2"], [
+            (131, [131], list(range(25))),
+            (132, [132], list(range(25, 50))),
+            (133, [133], list(range(50, 76))),
+        ])
+        self.assertEqual(cases["L1+L2+L3"], [
+            (132, [132], list(range(25, 50))),
+            (133, [133], list(range(50, 76))),
+            (134, [134], list(range(76, 102))),
+        ])
+        self.assertEqual(cases["L2+L3+L4"], [
+            (133, [133], list(range(50, 76))),
+            (134, [134], list(range(76, 102))),
+            (135, [135], list(range(102, 128))),
+        ])
+        self.assertEqual(cases["G0+G1+G2"],
+                         [(128, [128, 129, 130], list(range(128)))])
+        for overrides in ({"r": 2}, {"z": 4}):
+            result = self.run_plan("AzureLRC", 128, "triple", **overrides)
+            self.assertNotEqual(result.returncode, 0)
+
+    def test_azure_k96_triple_exact_sources_and_owners(self):
+        cases = self.parse_plan(self.run_plan("AzureLRC", 96, "triple"),
+                                "AzureLRC", 96, "triple")
+        self.assertEqual(list(cases), ["L0+L1+L2", "G0+G1+G2"])
+        self.assertEqual(cases["L0+L1+L2"], [
+            (99, [99], list(range(24))),
+            (100, [100], list(range(24, 48))),
+            (101, [101], list(range(48, 72))),
+        ])
+        self.assertEqual(cases["G0+G1+G2"],
+                         [(96, [96, 97, 98], list(range(96)))])
+        for overrides in ({"r": 2}, {"z": 3}):
+            result = self.run_plan("AzureLRC", 96, "triple", **overrides)
+            self.assertNotEqual(result.returncode, 0)
+
+    def test_azure_k96_double_exact_sources_and_owners(self):
+        cases = self.parse_plan(self.run_plan("AzureLRC", 96, "double"),
+                                "AzureLRC", 96, "double")
+        self.assertEqual(list(cases), ["L0+L1", "G0+G1"])
+        self.assertEqual(cases["L0+L1"], [
+            (99, [99], list(range(24))),
+            (100, [100], list(range(24, 48))),
+        ])
+        self.assertEqual(cases["G0+G1"],
+                         [(96, [96, 97], list(range(96)))])
+        for overrides in ({"r": 2}, {"z": 3}):
+            result = self.run_plan("AzureLRC", 96, "double", **overrides)
+            self.assertNotEqual(result.returncode, 0)
+
     def test_azure_k64_double_exact_sources_and_owners(self):
         cases = self.parse_plan(self.run_plan("AzureLRC", 64, "double"),
                                 "AzureLRC", 64, "double")
@@ -260,6 +645,113 @@ class DispatchVerification(unittest.TestCase):
             result = self.run_plan("AzureLRC", 64, "double", **overrides)
             self.assertNotEqual(result.returncode, 0)
 
+    def test_optimal_k128_quadruple_exact_sources_and_owners(self):
+        cases = self.parse_plan(self.run_plan("OptimalLRC", 128, "quadruple"),
+                                "OptimalLRC", 128, "quadruple")
+        globals_ = [128, 129, 130]
+        self.assertEqual(list(cases), [
+            "L0+L1+L2+L3", "L1+L2+L3+L4", "G0+G1+G2+L0",
+        ])
+        self.assertEqual(cases["L0+L1+L2+L3"], [
+            (131, [131], list(range(25)) + globals_),
+            (132, [132], list(range(25, 50)) + globals_),
+            (133, [133], list(range(50, 76)) + globals_),
+            (134, [134], list(range(76, 102)) + globals_),
+        ])
+        self.assertEqual(cases["L1+L2+L3+L4"], [
+            (132, [132], list(range(25, 50)) + globals_),
+            (133, [133], list(range(50, 76)) + globals_),
+            (134, [134], list(range(76, 102)) + globals_),
+            (135, [135], list(range(102, 128)) + globals_),
+        ])
+        self.assertEqual(cases["G0+G1+G2+L0"],
+                         [(128, [128, 129, 130, 131], list(range(128)))])
+        for overrides in ({"r": 2}, {"z": 4}):
+            result = self.run_plan("OptimalLRC", 128, "quadruple", **overrides)
+            self.assertNotEqual(result.returncode, 0)
+
+    def test_optimal_k128_triple_exact_sources_and_owners(self):
+        cases = self.parse_plan(self.run_plan("OptimalLRC", 128, "triple"),
+                                "OptimalLRC", 128, "triple")
+        globals_ = [128, 129, 130]
+        self.assertEqual(list(cases), [
+            "L0+L1+L2", "L1+L2+L3", "L2+L3+L4", "G0+G1+G2",
+        ])
+        self.assertEqual(cases["L0+L1+L2"], [
+            (131, [131], list(range(25)) + globals_),
+            (132, [132], list(range(25, 50)) + globals_),
+            (133, [133], list(range(50, 76)) + globals_),
+        ])
+        self.assertEqual(cases["L1+L2+L3"], [
+            (132, [132], list(range(25, 50)) + globals_),
+            (133, [133], list(range(50, 76)) + globals_),
+            (134, [134], list(range(76, 102)) + globals_),
+        ])
+        self.assertEqual(cases["L2+L3+L4"], [
+            (133, [133], list(range(50, 76)) + globals_),
+            (134, [134], list(range(76, 102)) + globals_),
+            (135, [135], list(range(102, 128)) + globals_),
+        ])
+        self.assertEqual(cases["G0+G1+G2"],
+                         [(128, [128, 129, 130], list(range(128)))])
+        for overrides in ({"r": 2}, {"z": 4}):
+            result = self.run_plan("OptimalLRC", 128, "triple", **overrides)
+            self.assertNotEqual(result.returncode, 0)
+
+    def test_optimal_k128_double_exact_sources_and_owners(self):
+        cases = self.parse_plan(self.run_plan("OptimalLRC", 128, "double"),
+                                "OptimalLRC", 128, "double")
+        globals_ = [128, 129, 130]
+        self.assertEqual(list(cases), ["L0+L1", "L0+L2", "L2+L3", "G0+G1"])
+        self.assertEqual(cases["L0+L1"], [
+            (131, [131], list(range(25)) + globals_),
+            (132, [132], list(range(25, 50)) + globals_),
+        ])
+        self.assertEqual(cases["L0+L2"], [
+            (131, [131], list(range(25)) + globals_),
+            (133, [133], list(range(50, 76)) + globals_),
+        ])
+        self.assertEqual(cases["L2+L3"], [
+            (133, [133], list(range(50, 76)) + globals_),
+            (134, [134], list(range(76, 102)) + globals_),
+        ])
+        self.assertEqual(cases["G0+G1"],
+                         [(128, [128, 129], list(range(128)))])
+        for overrides in ({"r": 2}, {"z": 4}):
+            result = self.run_plan("OptimalLRC", 128, "double", **overrides)
+            self.assertNotEqual(result.returncode, 0)
+
+    def test_optimal_k96_triple_exact_sources_and_owners(self):
+        cases = self.parse_plan(self.run_plan("OptimalLRC", 96, "triple"),
+                                "OptimalLRC", 96, "triple")
+        globals_ = [96, 97, 98]
+        self.assertEqual(list(cases), ["L0+L1+L2", "G0+G1+G2"])
+        self.assertEqual(cases["L0+L1+L2"], [
+            (99, [99], list(range(24)) + globals_),
+            (100, [100], list(range(24, 48)) + globals_),
+            (101, [101], list(range(48, 72)) + globals_),
+        ])
+        self.assertEqual(cases["G0+G1+G2"],
+                         [(96, [96, 97, 98], list(range(96)))])
+        for overrides in ({"r": 2}, {"z": 3}):
+            result = self.run_plan("OptimalLRC", 96, "triple", **overrides)
+            self.assertNotEqual(result.returncode, 0)
+
+    def test_optimal_k96_double_exact_sources_and_owners(self):
+        cases = self.parse_plan(self.run_plan("OptimalLRC", 96, "double"),
+                                "OptimalLRC", 96, "double")
+        globals_ = [96, 97, 98]
+        self.assertEqual(list(cases), ["L0+L1", "G0+G1"])
+        self.assertEqual(cases["L0+L1"], [
+            (99, [99], list(range(24)) + globals_),
+            (100, [100], list(range(24, 48)) + globals_),
+        ])
+        self.assertEqual(cases["G0+G1"],
+                         [(96, [96, 97], list(range(96)))])
+        for overrides in ({"r": 2}, {"z": 3}):
+            result = self.run_plan("OptimalLRC", 96, "double", **overrides)
+            self.assertNotEqual(result.returncode, 0)
+
     def test_optimal_k64_double_exact_sources_and_owners(self):
         cases = self.parse_plan(self.run_plan("OptimalLRC", 64, "double"),
                                 "OptimalLRC", 64, "double")
@@ -275,6 +767,106 @@ class DispatchVerification(unittest.TestCase):
         self.assertEqual(cases["G0+G1"], [(64, [64, 65], list(range(64)))])
         for overrides in ({"r": 2}, {"z": 5}):
             result = self.run_plan("OptimalLRC", 64, "double", **overrides)
+            self.assertNotEqual(result.returncode, 0)
+
+    def test_uniform_k128_quadruple_exact_sources_and_owners(self):
+        cases = self.parse_plan(self.run_plan("UniformLRC", 128, "quadruple"),
+                                "UniformLRC", 128, "quadruple")
+        self.assertEqual(list(cases), [
+            "L0+L1+L2+L3", "L0+L1+L2+L4", "G0+G1+G2+L4",
+        ])
+        self.assertEqual(cases["L0+L1+L2+L3"], [
+            (131, [131], list(range(26))),
+            (132, [132], list(range(26, 52))),
+            (133, [133], list(range(52, 78))),
+            (134, [134], list(range(78, 104))),
+        ])
+        self.assertEqual(cases["L0+L1+L2+L4"], [
+            (131, [131], list(range(26))),
+            (132, [132], list(range(26, 52))),
+            (133, [133], list(range(52, 78))),
+            (135, [135], list(range(104, 128)) + [128, 129, 130]),
+        ])
+        self.assertEqual(cases["G0+G1+G2+L4"],
+                         [(128, [128, 129, 130, 135], list(range(128)))])
+        for overrides in ({"r": 2}, {"z": 4}):
+            result = self.run_plan("UniformLRC", 128, "quadruple", **overrides)
+            self.assertNotEqual(result.returncode, 0)
+
+    def test_uniform_k128_triple_exact_sources_and_owners(self):
+        cases = self.parse_plan(self.run_plan("UniformLRC", 128, "triple"),
+                                "UniformLRC", 128, "triple")
+        self.assertEqual(list(cases), ["L0+L1+L2", "L0+L1+L4", "G0+G1+G2"])
+        self.assertEqual(cases["L0+L1+L2"], [
+            (131, [131], list(range(26))),
+            (132, [132], list(range(26, 52))),
+            (133, [133], list(range(52, 78))),
+        ])
+        self.assertEqual(cases["L0+L1+L4"], [
+            (131, [131], list(range(26))),
+            (132, [132], list(range(26, 52))),
+            (135, [135], list(range(104, 128)) + [128, 129, 130]),
+        ])
+        self.assertEqual(cases["G0+G1+G2"],
+                         [(128, [128, 129, 130], list(range(128)))])
+        for overrides in ({"r": 2}, {"z": 4}):
+            result = self.run_plan("UniformLRC", 128, "triple", **overrides)
+            self.assertNotEqual(result.returncode, 0)
+
+    def test_uniform_k128_double_exact_sources_and_owners(self):
+        cases = self.parse_plan(self.run_plan("UniformLRC", 128, "double"),
+                                "UniformLRC", 128, "double")
+        self.assertEqual(list(cases), ["L0+L1", "L0+L4", "G0+G1"])
+        self.assertEqual(cases["L0+L1"], [
+            (131, [131], list(range(26))),
+            (132, [132], list(range(26, 52))),
+        ])
+        self.assertEqual(cases["L0+L4"], [
+            (131, [131], list(range(26))),
+            (135, [135], list(range(104, 128)) + [128, 129, 130]),
+        ])
+        self.assertEqual(cases["G0+G1"],
+                         [(128, [128, 129], list(range(128)))])
+        for overrides in ({"r": 2}, {"z": 4}):
+            result = self.run_plan("UniformLRC", 128, "double", **overrides)
+            self.assertNotEqual(result.returncode, 0)
+
+    def test_uniform_k96_triple_exact_sources_and_owners(self):
+        cases = self.parse_plan(self.run_plan("UniformLRC", 96, "triple"),
+                                "UniformLRC", 96, "triple")
+        self.assertEqual(list(cases), ["L0+L1+L2", "L1+L2+L3", "G0+G1+G2"])
+        self.assertEqual(cases["L0+L1+L2"], [
+            (99, [99], list(range(24))),
+            (100, [100], list(range(24, 49))),
+            (101, [101], list(range(49, 74))),
+        ])
+        self.assertEqual(cases["L1+L2+L3"], [
+            (100, [100], list(range(24, 49))),
+            (101, [101], list(range(49, 74))),
+            (102, [102], list(range(74, 96)) + [96, 97, 98]),
+        ])
+        self.assertEqual(cases["G0+G1+G2"],
+                         [(96, [96, 97, 98], list(range(96)))])
+        for overrides in ({"r": 2}, {"z": 3}):
+            result = self.run_plan("UniformLRC", 96, "triple", **overrides)
+            self.assertNotEqual(result.returncode, 0)
+
+    def test_uniform_k96_double_exact_sources_and_owners(self):
+        cases = self.parse_plan(self.run_plan("UniformLRC", 96, "double"),
+                                "UniformLRC", 96, "double")
+        self.assertEqual(list(cases), ["L0+L1", "L1+L2", "G0+G1"])
+        self.assertEqual(cases["L0+L1"], [
+            (99, [99], list(range(24))),
+            (100, [100], list(range(24, 49))),
+        ])
+        self.assertEqual(cases["L1+L2"], [
+            (100, [100], list(range(24, 49))),
+            (101, [101], list(range(49, 74))),
+        ])
+        self.assertEqual(cases["G0+G1"],
+                         [(96, [96, 97], list(range(96)))])
+        for overrides in ({"r": 2}, {"z": 3}):
+            result = self.run_plan("UniformLRC", 96, "double", **overrides)
             self.assertNotEqual(result.returncode, 0)
 
     def test_uniform_k64_double_exact_sources_and_owners(self):

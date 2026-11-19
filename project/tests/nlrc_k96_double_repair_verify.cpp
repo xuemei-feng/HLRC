@@ -38,7 +38,8 @@ void verify_registered_cases(const std::vector<DoubleRepairCase> &cases)
     require(cases[1].tasks.size()==1,"L2+L3 shared task");require_task(cases[1].tasks[0],{101,102},range(24,48));require(cases[1].tasks[0].failed_block_ids.front()==101,"L2 owner");
     require(cases[2].tasks.size()==2,"L0+L2 independent tasks");require_task(cases[2].tasks[0],{99},range(0,23));require_task(cases[2].tasks[1],{101},range(24,48));
     require(cases[3].tasks.size()==2,"L2+L4 independent tasks");require_task(cases[3].tasks[0],{101},range(24,48));require_task(cases[3].tasks[1],{103},range(49,73));
-    require(cases[4].tasks.size()==1,"G0+G1 shared task");require_task(cases[4].tasks[0],{96,97},range(0,95));require(cases[4].tasks[0].failed_block_ids.front()==96,"G0 owner");
+    require(!cases[0].sum_task_times&&!cases[1].sum_task_times,"local shared timings");require(cases[2].sum_task_times&&cases[3].sum_task_times,"independent timing sums");
+    require(cases[4].tasks.size()==1,"G0+G1 shared task");require_task(cases[4].tasks[0],{96,97},range(0,95));require(cases[4].tasks[0].failed_block_ids.front()==96,"G0 owner");require(!cases[4].sum_task_times,"global shared timing");
 }
 }
 

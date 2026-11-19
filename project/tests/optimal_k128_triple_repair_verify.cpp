@@ -22,8 +22,8 @@ void verify(const std::vector<TripleRepairCase>&c){
   {globals(range(0,24)),globals(range(25,49)),globals(range(50,75))},
   {globals(range(25,49)),globals(range(50,75)),globals(range(76,101))},
   {globals(range(50,75)),globals(range(76,101)),globals(range(102,127))}};
- for(size_t x=0;x<3;++x){require(c[x].failed_name==names[x]&&c[x].tasks.size()==3,names[x]);for(size_t y=0;y<3;++y)task(c[x].tasks[y],{ids[x][y]},sources[x][y],names[x]);}
- require(c[3].failed_name=="G0+G1+G2"&&c[3].tasks.size()==1,"globals");task(c[3].tasks[0],{128,129,130},range(0,127),"globals");require(c[3].tasks[0].failed_block_ids.front()==128,"G0 owner");
+ for(size_t x=0;x<3;++x){require(c[x].failed_name==names[x]&&c[x].tasks.size()==3,names[x]);for(size_t y=0;y<3;++y)task(c[x].tasks[y],{ids[x][y]},sources[x][y],names[x]);require(c[x].sum_task_times,"local triple timing sum");}
+ require(c[3].failed_name=="G0+G1+G2"&&c[3].tasks.size()==1,"globals");task(c[3].tasks[0],{128,129,130},range(0,127),"globals");require(c[3].tasks[0].failed_block_ids.front()==128,"G0 owner");require(!c[3].sum_task_times,"global shared timing");
 }
 } // namespace
 int main(){try{

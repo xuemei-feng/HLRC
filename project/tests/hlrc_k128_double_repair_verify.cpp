@@ -67,8 +67,12 @@ void verify_registered_cases(const std::vector<DoubleRepairCase> &cases)
     require(cases[7].tasks.size() == 1, "G0+L0 shared task");
     require_task(cases[7].tasks[0], {128, 130}, range(0, 127));
     require(cases[7].tasks[0].failed_block_ids.front() == 128, "G0 owner");
-    for (size_t i : {0U, 1U, 2U, 4U, 5U, 6U})
+    for (size_t i : {0U, 1U, 2U, 4U, 5U, 6U}) {
         require(cases[i].tasks.size() == 2, "independent case task count");
+        require(cases[i].sum_task_times, "independent timing sum");
+    }
+    require(!cases[3].sum_task_times, "L1+U0 shared timing");
+    require(!cases[7].sum_task_times, "G0+L0 shared timing");
 }
 }
 

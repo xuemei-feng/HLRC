@@ -47,7 +47,8 @@ void verify_registered_cases(const std::vector<DoubleRepairCase> &cases)
     require_task(cases[5].tasks[0],{101},joined(range(48,63),{97}));require_task(cases[5].tasks[1],{104},u0);
     auto u1=joined(joined(range(49,63),range(66,79)),range(82,95));require_task(cases[6].tasks[0],{104},u0);require_task(cases[6].tasks[1],{105},u1);
     require(cases[7].tasks.size()==1,"G0+L0 shared task");require_task(cases[7].tasks[0],{96,98},range(0,95));require(cases[7].tasks[0].failed_block_ids.front()==96,"G0 owner");
-    for(size_t i: {0U,1U,2U,4U,5U,6U})require(cases[i].tasks.size()==2,"independent case task count");
+    for(size_t i: {0U,1U,2U,4U,5U,6U}){require(cases[i].tasks.size()==2,"independent case task count");require(cases[i].sum_task_times,"independent timing sum");}
+    require(!cases[3].sum_task_times,"L1+U0 shared timing");require(!cases[7].sum_task_times,"G0+L0 shared timing");
 }
 }
 

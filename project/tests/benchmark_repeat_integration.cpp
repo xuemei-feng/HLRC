@@ -111,11 +111,11 @@ public:
     }
 };
 std::pair<int, std::string> run(const std::string &binary, const std::filesystem::path &directory,
-                              const std::vector<std::string> &options)
+                              const std::vector<std::string> &options, int k = 64)
 {
     const auto output = directory / "output.txt";
     const auto config = (directory / "parameters.xml").string();
-    std::vector<std::string> arguments{binary, "64"};
+    std::vector<std::string> arguments{binary, std::to_string(k)};
     arguments.insert(arguments.end(), options.begin(), options.end());
     arguments.insert(arguments.end(), {"--config", config});
     std::vector<char *> argv;
@@ -168,14 +168,14 @@ int main(int argc, char **argv)
         builder.RegisterService(fixture);
         auto server = builder.BuildAndStart();
         require(server != nullptr, "fixture RPC server failed");
-        auto write_config = [&](const std::string &code, int z) {
+        auto write_config = [&](const std::string &code, int z, int k = 64) {
             std::ofstream config(directory / "parameters.xml");
             config << "<Configuration><AlignedSize>4096</AlignedSize><UnitSize>4096</UnitSize>"
                    << "<BlockSize>4096</BlockSize><CoordinatorIP>127.0.0.1</CoordinatorIP>"
                    << "<CoordinatorPort>" << port << "</CoordinatorPort><ClientIP>127.0.0.1</ClientIP>"
                    << "<AppendMode>UNILRC_MODE</AppendMode><CodeType>" << code << "</CodeType>"
-                   << "<k>64</k><r>" << (code == "HLRC" ? 2 : 3) << "</r><z>" << z
-                   << "</z><NodeNum>72</NodeNum></Configuration>";
+                   << "<k>" << k << "</k><r>" << (code == "HLRC" ? 2 : 3) << "</r><z>" << z
+                   << "</z><NodeNum>160</NodeNum></Configuration>";
         };
         write_config("NLRC", 5);
         fixture->reset(2);
@@ -313,6 +313,114 @@ int main(int argc, char **argv)
                 "HLRC global quadruple must keep end-to-end time: " +
                     hlrc_quadruple_timed.second);
 
+        write_config("HLRC", 8, 96);
+        fixture->reset(8);
+        auto hlrc_k96_double_timed = run(argv[1], directory,
+            {"double", "--stripe-id", "8", "--repeat", "2", "--warmup", "1"}, 96);
+        require(hlrc_k96_double_timed.first == 0 && fixture->multi_calls == 24,
+                hlrc_k96_double_timed.second);
+        const std::vector<std::pair<std::string, std::pair<std::string, std::string>>>
+            hlrc_k96_double_cases = {
+                {"L1+L2", {"L1", "L2"}}, {"L0+L1", {"L0", "L1"}},
+                {"L0+L3", {"L0", "L3"}}, {"L4+U0", {"L4", "U0"}},
+                {"L3+U0", {"L3", "U0"}}, {"U0+U1", {"U0", "U1"}},
+            };
+        for (const auto &[case_name, tasks] : hlrc_k96_double_cases) {
+            require(hlrc_k96_double_timed.second.find("Task result [HLRC] " + case_name +
+                        "/" + tasks.first + ": 0.012 s") != std::string::npos,
+                    "missing HLRC k96 first task timing: " + hlrc_k96_double_timed.second);
+            require(hlrc_k96_double_timed.second.find("Task result [HLRC] " + case_name +
+                        "/" + tasks.second + ": 0.023 s") != std::string::npos,
+                    "missing HLRC k96 second task timing: " + hlrc_k96_double_timed.second);
+            require(hlrc_k96_double_timed.second.find("Result [HLRC] " + case_name +
+                        ": 0.035 s (sum; wall=0.01 s)") != std::string::npos,
+                    "HLRC k96 double must report sum and wall time: " +
+                        hlrc_k96_double_timed.second);
+        }
+        for (const std::string case_name : {"L1+U0", "G0+L0"})
+            require(hlrc_k96_double_timed.second.find("Result [HLRC] " + case_name +
+                        ": 0.01 s") != std::string::npos,
+                    "HLRC k96 shared task must keep end-to-end time: " +
+                        hlrc_k96_double_timed.second);
+
+        fixture->reset(10);
+        auto hlrc_k96_triple_timed = run(argv[1], directory,
+            {"triple", "--stripe-id", "8", "--repeat", "2", "--warmup", "1"}, 96);
+        require(hlrc_k96_triple_timed.first == 0 && fixture->multi_calls == 30,
+                hlrc_k96_triple_timed.second);
+        const std::vector<std::pair<std::string, std::vector<std::string>>>
+            hlrc_k96_triple_cases = {
+                {"L1+L2+L4", {"L1", "L2", "L4"}},
+                {"L0+L1+L2", {"L0", "L1", "L2"}},
+                {"L0+L1+L3", {"L0", "L1", "L3"}},
+                {"L1+L4+U0", {"U0+L1", "L4"}},
+                {"L1+L3+U0", {"U0+L1", "L3"}},
+                {"L1+L2+U1", {"L1", "L2", "U1"}},
+                {"L0+L1+U1", {"L0", "L1", "U1"}},
+                {"L1+U0+U1", {"U0+L1", "U1"}},
+            };
+        for (const auto &[case_name, tasks] : hlrc_k96_triple_cases) {
+            for (size_t i = 0; i < tasks.size(); ++i) {
+                const std::string task_time = i == 0 ? "0.012" : "0.023";
+                require(hlrc_k96_triple_timed.second.find("Task result [HLRC] " +
+                            case_name + "/" + tasks[i] + ": " + task_time + " s")
+                            != std::string::npos,
+                        "missing HLRC k96 triple task timing: " +
+                            hlrc_k96_triple_timed.second);
+            }
+            const std::string sum = tasks.size() == 2 ? "0.035" : "0.058";
+            require(hlrc_k96_triple_timed.second.find("Result [HLRC] " + case_name +
+                        ": " + sum + " s (sum; wall=0.01 s)") != std::string::npos,
+                    "HLRC k96 triple must report sum and wall time: " +
+                        hlrc_k96_triple_timed.second);
+        }
+        for (const std::string case_name : {"L1+L2+U0", "G0+G1+L1"})
+            require(hlrc_k96_triple_timed.second.find("Result [HLRC] " + case_name +
+                        ": 0.01 s") != std::string::npos,
+                    "HLRC k96 shared triple must keep end-to-end time: " +
+                        hlrc_k96_triple_timed.second);
+
+        fixture->reset(10);
+        auto hlrc_k96_quadruple_timed = run(argv[1], directory, {"quadruple", "--stripe-id", "8", "--repeat", "2", "--warmup", "1"}, 96);
+        require(hlrc_k96_quadruple_timed.first == 0 && fixture->multi_calls == 30, hlrc_k96_quadruple_timed.second);
+        const std::vector<std::pair<std::string,std::vector<std::string>>> hlrc_k96_quadruple_cases={
+          {"L1+L2+L4+U0",{"U0+L1+L2","L4"}},{"L1+L2+L4+L5",{"L1","L2","L4","L5"}},
+          {"L0+L1+L2+L4",{"L0","L1","L2","L4"}},{"L0+L1+L2+L3",{"L0","L1","L2","L3"}},
+          {"L1+L4+L5+U0",{"U0+L1","L4","L5"}},{"L1+L3+L4+U0",{"U0+L1","L3","L4"}},
+          {"L1+L4+U0+U1",{"U0+L1","U1+L4"}},{"L0+L1+L2+U1",{"L0","L1","L2","U1"}}};
+        for(const auto &[case_name,tasks]:hlrc_k96_quadruple_cases){for(size_t i=0;i<tasks.size();++i){const std::string t=i==0?"0.012":"0.023";require(hlrc_k96_quadruple_timed.second.find("Task result [HLRC] "+case_name+"/"+tasks[i]+": "+t+" s")!=std::string::npos,"missing HLRC k96 quadruple task timing: "+hlrc_k96_quadruple_timed.second);}const std::string sum=tasks.size()==2?"0.035":tasks.size()==3?"0.058":"0.081";require(hlrc_k96_quadruple_timed.second.find("Result [HLRC] "+case_name+": "+sum+" s (sum; wall=0.01 s)")!=std::string::npos,"HLRC k96 quadruple sum missing: "+hlrc_k96_quadruple_timed.second);}
+        for(const std::string name:{"L0+L1+L2+U0","G0+G1+L1+L2"})require(hlrc_k96_quadruple_timed.second.find("Result [HLRC] "+name+": 0.01 s")!=std::string::npos,"HLRC k96 shared quadruple timing missing: "+hlrc_k96_quadruple_timed.second);
+
+        write_config("HLRC", 10, 128);
+        fixture->reset(8);
+        auto hlrc_k128_double_timed = run(argv[1], directory, {"double", "--stripe-id", "8", "--repeat", "2", "--warmup", "1"}, 128);
+        require(hlrc_k128_double_timed.first == 0 && fixture->multi_calls == 24, hlrc_k128_double_timed.second);
+        const std::vector<std::pair<std::string,std::pair<std::string,std::string>>> hlrc_k128_double_cases={
+          {"L1+L2",{"L1","L2"}},{"L0+L1",{"L0","L1"}},{"L0+L4",{"L0","L4"}},
+          {"L5+U0",{"L5","U0"}},{"L4+U0",{"L4","U0"}},{"U0+U1",{"U0","U1"}}};
+        for(const auto &[case_name,tasks]:hlrc_k128_double_cases){
+          require(hlrc_k128_double_timed.second.find("Task result [HLRC] "+case_name+"/"+tasks.first+": 0.012 s")!=std::string::npos,"missing HLRC k128 first task timing: "+hlrc_k128_double_timed.second);
+          require(hlrc_k128_double_timed.second.find("Task result [HLRC] "+case_name+"/"+tasks.second+": 0.023 s")!=std::string::npos,"missing HLRC k128 second task timing: "+hlrc_k128_double_timed.second);
+          require(hlrc_k128_double_timed.second.find("Result [HLRC] "+case_name+": 0.035 s (sum; wall=0.01 s)")!=std::string::npos,"HLRC k128 double sum missing: "+hlrc_k128_double_timed.second);}
+        for(const std::string name:{"L1+U0","G0+L0"})require(hlrc_k128_double_timed.second.find("Result [HLRC] "+name+": 0.01 s")!=std::string::npos,"HLRC k128 shared timing missing: "+hlrc_k128_double_timed.second);
+
+        fixture->reset(10);
+        auto hlrc_k128_triple_timed=run(argv[1],directory,{"triple","--stripe-id","8","--repeat","2","--warmup","1"},128);
+        require(hlrc_k128_triple_timed.first==0&&fixture->multi_calls==30,hlrc_k128_triple_timed.second);
+        const std::vector<std::pair<std::string,std::vector<std::string>>> hlrc_k128_triple_cases={
+          {"L1+L2+L3",{"L1","L2","L3"}},{"L0+L1+L2",{"L0","L1","L2"}},{"L0+L1+L4",{"L0","L1","L4"}},
+          {"L1+L5+U0",{"U0+L1","L5"}},{"L1+L4+U0",{"U0+L1","L4"}},{"L5+L6+U0",{"L5","L6","U0"}},
+          {"L4+L5+U0",{"L4","L5","U0"}},{"L1+U0+U1",{"U0+L1","U1"}}};
+        for(const auto &[name,tasks]:hlrc_k128_triple_cases){for(size_t i=0;i<tasks.size();++i){const std::string t=i==0?"0.012":"0.023";require(hlrc_k128_triple_timed.second.find("Task result [HLRC] "+name+"/"+tasks[i]+": "+t+" s")!=std::string::npos,"missing HLRC k128 triple task timing: "+hlrc_k128_triple_timed.second);}const std::string sum=tasks.size()==2?"0.035":"0.058";require(hlrc_k128_triple_timed.second.find("Result [HLRC] "+name+": "+sum+" s (sum; wall=0.01 s)")!=std::string::npos,"HLRC k128 triple sum missing: "+hlrc_k128_triple_timed.second);}
+        for(const std::string name:{"L1+L2+U0","G0+G1+L1"})require(hlrc_k128_triple_timed.second.find("Result [HLRC] "+name+": 0.01 s")!=std::string::npos,"HLRC k128 shared triple timing missing: "+hlrc_k128_triple_timed.second);
+
+        fixture->reset(12);
+        auto hlrc_k128_quadruple_timed=run(argv[1],directory,{"quadruple","--stripe-id","8","--repeat","2","--warmup","1"},128);
+        require(hlrc_k128_quadruple_timed.first==0&&fixture->multi_calls==36,hlrc_k128_quadruple_timed.second);
+        const std::vector<std::pair<std::string,std::vector<std::string>>> hlrc_k128_quadruple_cases={{"L1+L2+L3+L5",{"L1","L2","L3","L5"}},{"L0+L1+L2+L3",{"L0","L1","L2","L3"}},{"L0+L1+L2+L4",{"L0","L1","L2","L4"}},{"L1+L2+L5+U0",{"U0+L1+L2","L5"}},{"L1+L2+L4+U0",{"U0+L1+L2","L4"}},{"L1+L5+L6+U0",{"U0+L1","L5","L6"}},{"L1+L4+L5+U0",{"U0+L1","L4","L5"}},{"L5+L6+L7+U0",{"L5","L6","L7","U0"}},{"L4+L5+L6+U0",{"L4","L5","L6","U0"}},{"L1+L5+U0+U1",{"U0+L1","U1+L5"}}};
+        for(const auto &[name,tasks]:hlrc_k128_quadruple_cases){for(size_t i=0;i<tasks.size();++i){const std::string tm=i==0?"0.012":"0.023";require(hlrc_k128_quadruple_timed.second.find("Task result [HLRC] "+name+"/"+tasks[i]+": "+tm+" s")!=std::string::npos,"missing HLRC k128 quadruple task timing: "+hlrc_k128_quadruple_timed.second);}const std::string sum=tasks.size()==2?"0.035":tasks.size()==3?"0.058":"0.081";require(hlrc_k128_quadruple_timed.second.find("Result [HLRC] "+name+": "+sum+" s (sum; wall=0.01 s)")!=std::string::npos,"HLRC k128 quadruple sum missing: "+hlrc_k128_quadruple_timed.second);}
+        for(const std::string name:{"L1+L2+L3+U0","G0+G1+L1+L2"})require(hlrc_k128_quadruple_timed.second.find("Result [HLRC] "+name+": 0.01 s")!=std::string::npos,"HLRC k128 shared quadruple timing missing: "+hlrc_k128_quadruple_timed.second);
+
         write_config("AzureLRC", 3);
         fixture->reset(3);
         auto azure_timed = run(argv[1], directory,
@@ -338,6 +446,503 @@ int main(int argc, char **argv)
         require(azure_timed.second.find("Result [AzureLRC] G0+G1: 0.01 s")
                     != std::string::npos,
                 "AzureLRC shared global task must keep end-to-end time: " + azure_timed.second);
+
+        write_config("AzureLRC", 4, 96);
+        fixture->reset(2);
+        auto azure_k96_timed = run(argv[1], directory,
+            {"double", "--stripe-id", "8", "--repeat", "2", "--warmup", "1"}, 96);
+        require(azure_k96_timed.first == 0 && fixture->multi_calls == 6,
+                azure_k96_timed.second);
+        require(azure_k96_timed.second.find(
+                    "Task result [AzureLRC] L0+L1/L0: 0.012 s") != std::string::npos,
+                "missing AzureLRC k96 L0 timing: " + azure_k96_timed.second);
+        require(azure_k96_timed.second.find(
+                    "Task result [AzureLRC] L0+L1/L1: 0.023 s") != std::string::npos,
+                "missing AzureLRC k96 L1 timing: " + azure_k96_timed.second);
+        require(azure_k96_timed.second.find(
+                    "Result [AzureLRC] L0+L1: 0.035 s (sum; wall=0.01 s)")
+                    != std::string::npos,
+                "AzureLRC k96 L0+L1 must report sum and wall time: " +
+                    azure_k96_timed.second);
+        require(azure_k96_timed.second.find(
+                    "Summary [AzureLRC] L0+L1: success=2/2 min=0.035 median=0.035 "
+                    "p95=0.035 max=0.035 s") != std::string::npos,
+                "AzureLRC k96 sum statistics are wrong: " + azure_k96_timed.second);
+        require(azure_k96_timed.second.find("Result [AzureLRC] G0+G1: 0.01 s")
+                    != std::string::npos,
+                "AzureLRC k96 G0+G1 must keep end-to-end time: " +
+                    azure_k96_timed.second);
+
+        fixture->reset(2);
+        auto azure_k96_triple_timed = run(argv[1], directory,
+            {"triple", "--stripe-id", "8", "--repeat", "2", "--warmup", "1"}, 96);
+        require(azure_k96_triple_timed.first == 0 && fixture->multi_calls == 6,
+                azure_k96_triple_timed.second);
+        const std::vector<std::pair<std::string, std::string>> azure_k96_triple_tasks = {
+            {"L0", "0.012"}, {"L1", "0.023"}, {"L2", "0.023"},
+        };
+        for (const auto &[task_name, task_time] : azure_k96_triple_tasks)
+            require(azure_k96_triple_timed.second.find(
+                        "Task result [AzureLRC] L0+L1+L2/" + task_name + ": " +
+                        task_time + " s") != std::string::npos,
+                    "missing AzureLRC k96 triple task timing: " +
+                        azure_k96_triple_timed.second);
+        require(azure_k96_triple_timed.second.find(
+                    "Result [AzureLRC] L0+L1+L2: 0.058 s (sum; wall=0.01 s)")
+                    != std::string::npos,
+                "AzureLRC k96 local triple must report sum and wall time: " +
+                    azure_k96_triple_timed.second);
+        require(azure_k96_triple_timed.second.find(
+                    "Summary [AzureLRC] L0+L1+L2: success=2/2 min=0.058 median=0.058 "
+                    "p95=0.058 max=0.058 s") != std::string::npos,
+                "AzureLRC k96 triple sum statistics are wrong: " +
+                    azure_k96_triple_timed.second);
+        require(azure_k96_triple_timed.second.find(
+                    "Result [AzureLRC] G0+G1+G2: 0.01 s") != std::string::npos,
+                "AzureLRC k96 global triple must keep end-to-end time: " +
+                    azure_k96_triple_timed.second);
+
+        write_config("AzureLRC", 5, 128);
+        fixture->reset(4);
+        auto azure_k128_timed = run(argv[1], directory,
+            {"double", "--stripe-id", "8", "--repeat", "2", "--warmup", "1"}, 128);
+        require(azure_k128_timed.first == 0 && fixture->multi_calls == 12,
+                azure_k128_timed.second);
+        const std::vector<std::pair<std::string, std::pair<std::string, std::string>>>
+            azure_k128_cases = {
+                {"L0+L1", {"L0", "L1"}}, {"L0+L2", {"L0", "L2"}},
+                {"L2+L3", {"L2", "L3"}},
+            };
+        for (const auto &[case_name, tasks] : azure_k128_cases) {
+            require(azure_k128_timed.second.find("Task result [AzureLRC] " + case_name + "/" +
+                        tasks.first + ": 0.012 s") != std::string::npos,
+                    "missing AzureLRC k128 first task timing: " + azure_k128_timed.second);
+            require(azure_k128_timed.second.find("Task result [AzureLRC] " + case_name + "/" +
+                        tasks.second + ": 0.023 s") != std::string::npos,
+                    "missing AzureLRC k128 second task timing: " + azure_k128_timed.second);
+            require(azure_k128_timed.second.find("Result [AzureLRC] " + case_name +
+                        ": 0.035 s (sum; wall=0.01 s)") != std::string::npos,
+                    "AzureLRC k128 case must report sum and wall time: " +
+                        azure_k128_timed.second);
+            require(azure_k128_timed.second.find("Summary [AzureLRC] " + case_name +
+                        ": success=2/2 min=0.035 median=0.035 p95=0.035 max=0.035 s")
+                        != std::string::npos,
+                    "AzureLRC k128 sum statistics are wrong: " + azure_k128_timed.second);
+        }
+        require(azure_k128_timed.second.find("Result [AzureLRC] G0+G1: 0.01 s")
+                    != std::string::npos,
+                "AzureLRC k128 G0+G1 must keep end-to-end time: " +
+                    azure_k128_timed.second);
+
+        fixture->reset(4);
+        auto azure_k128_triple_timed = run(argv[1], directory,
+            {"triple", "--stripe-id", "8", "--repeat", "2", "--warmup", "1"}, 128);
+        require(azure_k128_triple_timed.first == 0 && fixture->multi_calls == 12,
+                azure_k128_triple_timed.second);
+        const std::vector<std::pair<std::string, std::vector<std::string>>>
+            azure_k128_triple_cases = {
+                {"L0+L1+L2", {"L0", "L1", "L2"}},
+                {"L1+L2+L3", {"L1", "L2", "L3"}},
+                {"L2+L3+L4", {"L2", "L3", "L4"}},
+            };
+        for (const auto &[case_name, tasks] : azure_k128_triple_cases) {
+            for (size_t i = 0; i < tasks.size(); ++i) {
+                const std::string task_time = i == 0 ? "0.012" : "0.023";
+                require(azure_k128_triple_timed.second.find("Task result [AzureLRC] " +
+                            case_name + "/" + tasks[i] + ": " + task_time + " s")
+                            != std::string::npos,
+                        "missing AzureLRC k128 triple task timing: " +
+                            azure_k128_triple_timed.second);
+            }
+            require(azure_k128_triple_timed.second.find("Result [AzureLRC] " + case_name +
+                        ": 0.058 s (sum; wall=0.01 s)") != std::string::npos,
+                    "AzureLRC k128 triple must report sum and wall time: " +
+                        azure_k128_triple_timed.second);
+            require(azure_k128_triple_timed.second.find("Summary [AzureLRC] " + case_name +
+                        ": success=2/2 min=0.058 median=0.058 p95=0.058 max=0.058 s")
+                        != std::string::npos,
+                    "AzureLRC k128 triple sum statistics are wrong: " +
+                        azure_k128_triple_timed.second);
+        }
+        require(azure_k128_triple_timed.second.find(
+                    "Result [AzureLRC] G0+G1+G2: 0.01 s") != std::string::npos,
+                "AzureLRC k128 global triple must keep end-to-end time: " +
+                    azure_k128_triple_timed.second);
+
+        fixture->reset(3);
+        auto azure_k128_quadruple_timed = run(argv[1], directory,
+            {"quadruple", "--stripe-id", "8", "--repeat", "2", "--warmup", "1"}, 128);
+        require(azure_k128_quadruple_timed.first == 0 && fixture->multi_calls == 9,
+                azure_k128_quadruple_timed.second);
+        const std::vector<std::pair<std::string, std::vector<std::string>>>
+            azure_k128_quadruple_cases = {
+                {"L0+L1+L2+L3", {"L0", "L1", "L2", "L3"}},
+                {"L1+L2+L3+L4", {"L1", "L2", "L3", "L4"}},
+            };
+        for (const auto &[case_name, tasks] : azure_k128_quadruple_cases) {
+            for (size_t i = 0; i < tasks.size(); ++i) {
+                const std::string task_time = i == 0 ? "0.012" : "0.023";
+                require(azure_k128_quadruple_timed.second.find("Task result [AzureLRC] " +
+                            case_name + "/" + tasks[i] + ": " + task_time + " s")
+                            != std::string::npos,
+                        "missing AzureLRC k128 quadruple task timing: " +
+                            azure_k128_quadruple_timed.second);
+            }
+            require(azure_k128_quadruple_timed.second.find("Result [AzureLRC] " + case_name +
+                        ": 0.081 s (sum; wall=0.01 s)") != std::string::npos,
+                    "AzureLRC k128 quadruple must report sum and wall time: " +
+                        azure_k128_quadruple_timed.second);
+            require(azure_k128_quadruple_timed.second.find("Summary [AzureLRC] " + case_name +
+                        ": success=2/2 min=0.081 median=0.081 p95=0.081 max=0.081 s")
+                        != std::string::npos,
+                    "AzureLRC k128 quadruple sum statistics are wrong: " +
+                        azure_k128_quadruple_timed.second);
+        }
+        require(azure_k128_quadruple_timed.second.find(
+                    "Result [AzureLRC] G0+G1+G2+L0: 0.01 s") != std::string::npos,
+                "AzureLRC k128 global quadruple must keep end-to-end time: " +
+                    azure_k128_quadruple_timed.second);
+
+        write_config("OptimalLRC", 4, 96);
+        fixture->reset(2);
+        auto optimal_k96_timed = run(argv[1], directory,
+            {"double", "--stripe-id", "8", "--repeat", "2", "--warmup", "1"}, 96);
+        require(optimal_k96_timed.first == 0 && fixture->multi_calls == 6,
+                optimal_k96_timed.second);
+        require(optimal_k96_timed.second.find(
+                    "Task result [OptimalLRC] L0+L1/L0: 0.012 s") != std::string::npos,
+                "missing OptimalLRC k96 L0 timing: " + optimal_k96_timed.second);
+        require(optimal_k96_timed.second.find(
+                    "Task result [OptimalLRC] L0+L1/L1: 0.023 s") != std::string::npos,
+                "missing OptimalLRC k96 L1 timing: " + optimal_k96_timed.second);
+        require(optimal_k96_timed.second.find(
+                    "Result [OptimalLRC] L0+L1: 0.035 s (sum; wall=0.01 s)")
+                    != std::string::npos,
+                "OptimalLRC k96 L0+L1 must report sum and wall time: " +
+                    optimal_k96_timed.second);
+        require(optimal_k96_timed.second.find(
+                    "Summary [OptimalLRC] L0+L1: success=2/2 min=0.035 median=0.035 "
+                    "p95=0.035 max=0.035 s") != std::string::npos,
+                "OptimalLRC k96 sum statistics are wrong: " + optimal_k96_timed.second);
+        require(optimal_k96_timed.second.find("Result [OptimalLRC] G0+G1: 0.01 s")
+                    != std::string::npos,
+                "OptimalLRC k96 G0+G1 must keep end-to-end time: " +
+                    optimal_k96_timed.second);
+
+        fixture->reset(2);
+        auto optimal_k96_triple_timed = run(argv[1], directory,
+            {"triple", "--stripe-id", "8", "--repeat", "2", "--warmup", "1"}, 96);
+        require(optimal_k96_triple_timed.first == 0 && fixture->multi_calls == 6,
+                optimal_k96_triple_timed.second);
+        const std::vector<std::pair<std::string, std::string>> optimal_k96_triple_tasks = {
+            {"L0", "0.012"}, {"L1", "0.023"}, {"L2", "0.023"},
+        };
+        for (const auto &[task_name, task_time] : optimal_k96_triple_tasks)
+            require(optimal_k96_triple_timed.second.find(
+                        "Task result [OptimalLRC] L0+L1+L2/" + task_name + ": " +
+                        task_time + " s") != std::string::npos,
+                    "missing OptimalLRC k96 triple task timing: " +
+                        optimal_k96_triple_timed.second);
+        require(optimal_k96_triple_timed.second.find(
+                    "Result [OptimalLRC] L0+L1+L2: 0.058 s (sum; wall=0.01 s)")
+                    != std::string::npos,
+                "OptimalLRC k96 local triple must report sum and wall time: " +
+                    optimal_k96_triple_timed.second);
+        require(optimal_k96_triple_timed.second.find(
+                    "Summary [OptimalLRC] L0+L1+L2: success=2/2 min=0.058 median=0.058 "
+                    "p95=0.058 max=0.058 s") != std::string::npos,
+                "OptimalLRC k96 triple sum statistics are wrong: " +
+                    optimal_k96_triple_timed.second);
+        require(optimal_k96_triple_timed.second.find(
+                    "Result [OptimalLRC] G0+G1+G2: 0.01 s") != std::string::npos,
+                "OptimalLRC k96 global triple must keep end-to-end time: " +
+                    optimal_k96_triple_timed.second);
+
+        write_config("OptimalLRC", 5, 128);
+        fixture->reset(4);
+        auto optimal_k128_timed = run(argv[1], directory,
+            {"double", "--stripe-id", "8", "--repeat", "2", "--warmup", "1"}, 128);
+        require(optimal_k128_timed.first == 0 && fixture->multi_calls == 12,
+                optimal_k128_timed.second);
+        const std::vector<std::pair<std::string, std::pair<std::string, std::string>>>
+            optimal_k128_cases = {
+                {"L0+L1", {"L0", "L1"}}, {"L0+L2", {"L0", "L2"}},
+                {"L2+L3", {"L2", "L3"}},
+            };
+        for (const auto &[case_name, tasks] : optimal_k128_cases) {
+            require(optimal_k128_timed.second.find("Task result [OptimalLRC] " + case_name +
+                        "/" + tasks.first + ": 0.012 s") != std::string::npos,
+                    "missing OptimalLRC k128 first task timing: " + optimal_k128_timed.second);
+            require(optimal_k128_timed.second.find("Task result [OptimalLRC] " + case_name +
+                        "/" + tasks.second + ": 0.023 s") != std::string::npos,
+                    "missing OptimalLRC k128 second task timing: " + optimal_k128_timed.second);
+            require(optimal_k128_timed.second.find("Result [OptimalLRC] " + case_name +
+                        ": 0.035 s (sum; wall=0.01 s)") != std::string::npos,
+                    "OptimalLRC k128 case must report sum and wall time: " +
+                        optimal_k128_timed.second);
+            require(optimal_k128_timed.second.find("Summary [OptimalLRC] " + case_name +
+                        ": success=2/2 min=0.035 median=0.035 p95=0.035 max=0.035 s")
+                        != std::string::npos,
+                    "OptimalLRC k128 sum statistics are wrong: " + optimal_k128_timed.second);
+        }
+        require(optimal_k128_timed.second.find("Result [OptimalLRC] G0+G1: 0.01 s")
+                    != std::string::npos,
+                "OptimalLRC k128 G0+G1 must keep end-to-end time: " +
+                    optimal_k128_timed.second);
+
+        fixture->reset(4);
+        auto optimal_k128_triple_timed = run(argv[1], directory,
+            {"triple", "--stripe-id", "8", "--repeat", "2", "--warmup", "1"}, 128);
+        require(optimal_k128_triple_timed.first == 0 && fixture->multi_calls == 12,
+                optimal_k128_triple_timed.second);
+        const std::vector<std::pair<std::string, std::vector<std::string>>>
+            optimal_k128_triple_cases = {
+                {"L0+L1+L2", {"L0", "L1", "L2"}},
+                {"L1+L2+L3", {"L1", "L2", "L3"}},
+                {"L2+L3+L4", {"L2", "L3", "L4"}},
+            };
+        for (const auto &[case_name, tasks] : optimal_k128_triple_cases) {
+            for (size_t i = 0; i < tasks.size(); ++i) {
+                const std::string task_time = i == 0 ? "0.012" : "0.023";
+                require(optimal_k128_triple_timed.second.find("Task result [OptimalLRC] " +
+                            case_name + "/" + tasks[i] + ": " + task_time + " s")
+                            != std::string::npos,
+                        "missing OptimalLRC k128 triple task timing: " +
+                            optimal_k128_triple_timed.second);
+            }
+            require(optimal_k128_triple_timed.second.find("Result [OptimalLRC] " + case_name +
+                        ": 0.058 s (sum; wall=0.01 s)") != std::string::npos,
+                    "OptimalLRC k128 triple must report sum and wall time: " +
+                        optimal_k128_triple_timed.second);
+            require(optimal_k128_triple_timed.second.find("Summary [OptimalLRC] " + case_name +
+                        ": success=2/2 min=0.058 median=0.058 p95=0.058 max=0.058 s")
+                        != std::string::npos,
+                    "OptimalLRC k128 triple sum statistics are wrong: " +
+                        optimal_k128_triple_timed.second);
+        }
+        require(optimal_k128_triple_timed.second.find(
+                    "Result [OptimalLRC] G0+G1+G2: 0.01 s") != std::string::npos,
+                "OptimalLRC k128 global triple must keep end-to-end time: " +
+                    optimal_k128_triple_timed.second);
+
+        fixture->reset(3);
+        auto optimal_k128_quadruple_timed = run(argv[1], directory,
+            {"quadruple", "--stripe-id", "8", "--repeat", "2", "--warmup", "1"}, 128);
+        require(optimal_k128_quadruple_timed.first == 0 && fixture->multi_calls == 9,
+                optimal_k128_quadruple_timed.second);
+        const std::vector<std::pair<std::string, std::vector<std::string>>>
+            optimal_k128_quadruple_cases = {
+                {"L0+L1+L2+L3", {"L0", "L1", "L2", "L3"}},
+                {"L1+L2+L3+L4", {"L1", "L2", "L3", "L4"}},
+            };
+        for (const auto &[case_name, tasks] : optimal_k128_quadruple_cases) {
+            for (size_t i = 0; i < tasks.size(); ++i) {
+                const std::string task_time = i == 0 ? "0.012" : "0.023";
+                require(optimal_k128_quadruple_timed.second.find("Task result [OptimalLRC] " +
+                            case_name + "/" + tasks[i] + ": " + task_time + " s")
+                            != std::string::npos,
+                        "missing OptimalLRC k128 quadruple task timing: " +
+                            optimal_k128_quadruple_timed.second);
+            }
+            require(optimal_k128_quadruple_timed.second.find("Result [OptimalLRC] " + case_name +
+                        ": 0.081 s (sum; wall=0.01 s)") != std::string::npos,
+                    "OptimalLRC k128 quadruple must report sum and wall time: " +
+                        optimal_k128_quadruple_timed.second);
+            require(optimal_k128_quadruple_timed.second.find("Summary [OptimalLRC] " + case_name +
+                        ": success=2/2 min=0.081 median=0.081 p95=0.081 max=0.081 s")
+                        != std::string::npos,
+                    "OptimalLRC k128 quadruple sum statistics are wrong: " +
+                        optimal_k128_quadruple_timed.second);
+        }
+        require(optimal_k128_quadruple_timed.second.find(
+                    "Result [OptimalLRC] G0+G1+G2+L0: 0.01 s") != std::string::npos,
+                "OptimalLRC k128 global quadruple must keep end-to-end time: " +
+                    optimal_k128_quadruple_timed.second);
+
+        write_config("NLRC", 7, 96);
+        fixture->reset(5);
+        auto nlrc_k96_double_timed = run(argv[1], directory,
+            {"double", "--stripe-id", "8", "--repeat", "2", "--warmup", "1"}, 96);
+        require(nlrc_k96_double_timed.first == 0 && fixture->multi_calls == 15,
+                nlrc_k96_double_timed.second);
+        const std::vector<std::pair<std::string, std::pair<std::string, std::string>>>
+            nlrc_k96_cases = {
+                {"L0+L2", {"L0", "L2"}}, {"L2+L4", {"L2", "L4"}},
+            };
+        for (const auto &[case_name, tasks] : nlrc_k96_cases) {
+            require(nlrc_k96_double_timed.second.find("Task result [NLRC] " + case_name +
+                        "/" + tasks.first + ": 0.012 s") != std::string::npos,
+                    "missing NLRC k96 first task timing: " + nlrc_k96_double_timed.second);
+            require(nlrc_k96_double_timed.second.find("Task result [NLRC] " + case_name +
+                        "/" + tasks.second + ": 0.023 s") != std::string::npos,
+                    "missing NLRC k96 second task timing: " + nlrc_k96_double_timed.second);
+            require(nlrc_k96_double_timed.second.find("Result [NLRC] " + case_name +
+                        ": 0.035 s (sum; wall=0.01 s)") != std::string::npos,
+                    "NLRC k96 case must report sum and wall time: " +
+                        nlrc_k96_double_timed.second);
+            require(nlrc_k96_double_timed.second.find("Summary [NLRC] " + case_name +
+                        ": success=2/2 min=0.035 median=0.035 p95=0.035 max=0.035 s")
+                        != std::string::npos,
+                    "NLRC k96 sum statistics are wrong: " + nlrc_k96_double_timed.second);
+        }
+        for (const std::string name : {"L0+L1", "L2+L3", "G0+G1"})
+            require(nlrc_k96_double_timed.second.find("Result [NLRC] " + name + ": 0.01 s")
+                        != std::string::npos,
+                    "NLRC k96 shared task must keep end-to-end time: " +
+                        nlrc_k96_double_timed.second);
+
+        fixture->reset(5);
+        auto nlrc_k96_triple_timed = run(argv[1], directory,
+            {"triple", "--stripe-id", "8", "--repeat", "2", "--warmup", "1"}, 96);
+        require(nlrc_k96_triple_timed.first == 0 && fixture->multi_calls == 15,
+                nlrc_k96_triple_timed.second);
+        const std::vector<std::pair<std::string, std::vector<std::string>>> nlrc_k96_triple_cases = {
+            {"L0+L1+L2", {"L0+L1", "L2"}},
+            {"L2+L3+L4", {"L2+L3", "L4"}},
+            {"L0+L2+L4", {"L0", "L2", "L4"}},
+            {"L2+L4+L6", {"L2", "L4", "L6"}},
+        };
+        for (const auto &[case_name, tasks] : nlrc_k96_triple_cases) {
+            for (size_t i = 0; i < tasks.size(); ++i) {
+                const std::string task_time = i == 0 ? "0.012" : "0.023";
+                require(nlrc_k96_triple_timed.second.find("Task result [NLRC] " + case_name +
+                            "/" + tasks[i] + ": " + task_time + " s") != std::string::npos,
+                        "missing NLRC k96 triple task timing: " + nlrc_k96_triple_timed.second);
+            }
+            const std::string sum = tasks.size() == 2 ? "0.035" : "0.058";
+            require(nlrc_k96_triple_timed.second.find("Result [NLRC] " + case_name + ": " +
+                        sum + " s (sum; wall=0.01 s)") != std::string::npos,
+                    "NLRC k96 triple must report sum and wall time: " +
+                        nlrc_k96_triple_timed.second);
+        }
+        require(nlrc_k96_triple_timed.second.find("Result [NLRC] G0+G1+G2: 0.01 s")
+                    != std::string::npos,
+                "NLRC k96 global triple must keep end-to-end time: " +
+                    nlrc_k96_triple_timed.second);
+
+        fixture->reset(5);
+        auto nlrc_k96_quadruple_timed = run(argv[1], directory,
+            {"quadruple", "--stripe-id", "8", "--repeat", "2", "--warmup", "1"}, 96);
+        require(nlrc_k96_quadruple_timed.first == 0 && fixture->multi_calls == 15,
+                nlrc_k96_quadruple_timed.second);
+        const std::vector<std::pair<std::string, std::vector<std::string>>>
+            nlrc_k96_quadruple_cases = {
+                {"L0+L1+L2+L3", {"L0+L1", "L2+L3"}},
+                {"L2+L3+L4+L5", {"L2+L3", "L4+L5"}},
+                {"L0+L2+L4+L5", {"L0", "L2", "L4+L5"}},
+                {"L2+L3+L4+L6", {"L2+L3", "L4", "L6"}},
+            };
+        for (const auto &[case_name, tasks] : nlrc_k96_quadruple_cases) {
+            for (size_t i = 0; i < tasks.size(); ++i) {
+                const std::string task_time = i == 0 ? "0.012" : "0.023";
+                require(nlrc_k96_quadruple_timed.second.find("Task result [NLRC] " +
+                            case_name + "/" + tasks[i] + ": " + task_time + " s")
+                            != std::string::npos,
+                        "missing NLRC k96 quadruple task timing: " +
+                            nlrc_k96_quadruple_timed.second);
+            }
+            const std::string sum = tasks.size() == 2 ? "0.035" : "0.058";
+            require(nlrc_k96_quadruple_timed.second.find("Result [NLRC] " + case_name +
+                        ": " + sum + " s (sum; wall=0.01 s)") != std::string::npos,
+                    "NLRC k96 quadruple must report sum and wall time: " +
+                        nlrc_k96_quadruple_timed.second);
+        }
+        require(nlrc_k96_quadruple_timed.second.find(
+                    "Result [NLRC] G0+G1+G2+L6: 0.01 s") != std::string::npos,
+                "NLRC k96 global quadruple must keep end-to-end time: " +
+                    nlrc_k96_quadruple_timed.second);
+
+        write_config("NLRC", 9, 128);
+        fixture->reset(4);
+        auto nlrc_k128_double_timed = run(argv[1], directory,
+            {"double", "--stripe-id", "8", "--repeat", "2", "--warmup", "1"}, 128);
+        require(nlrc_k128_double_timed.first == 0 && fixture->multi_calls == 12,
+                nlrc_k128_double_timed.second);
+        for (const auto &[case_name, tasks] :
+             std::vector<std::pair<std::string, std::pair<std::string, std::string>>>{
+                 {"L0+L2", {"L0", "L2"}}, {"L0+L8", {"L0", "L8"}}}) {
+            require(nlrc_k128_double_timed.second.find("Task result [NLRC] " + case_name +
+                        "/" + tasks.first + ": 0.012 s") != std::string::npos,
+                    "missing NLRC k128 first task timing: " + nlrc_k128_double_timed.second);
+            require(nlrc_k128_double_timed.second.find("Task result [NLRC] " + case_name +
+                        "/" + tasks.second + ": 0.023 s") != std::string::npos,
+                    "missing NLRC k128 second task timing: " + nlrc_k128_double_timed.second);
+            require(nlrc_k128_double_timed.second.find("Result [NLRC] " + case_name +
+                        ": 0.035 s (sum; wall=0.01 s)") != std::string::npos,
+                    "NLRC k128 double must report sum and wall time: " +
+                        nlrc_k128_double_timed.second);
+        }
+        for (const std::string case_name : {"L0+L1", "G0+G1"})
+            require(nlrc_k128_double_timed.second.find("Result [NLRC] " + case_name +
+                        ": 0.01 s") != std::string::npos,
+                    "NLRC k128 shared double must keep end-to-end time: " +
+                        nlrc_k128_double_timed.second);
+
+        fixture->reset(5);
+        auto nlrc_k128_triple_timed = run(argv[1], directory,
+            {"triple", "--stripe-id", "8", "--repeat", "2", "--warmup", "1"}, 128);
+        require(nlrc_k128_triple_timed.first == 0 && fixture->multi_calls == 15,
+                nlrc_k128_triple_timed.second);
+        const std::vector<std::pair<std::string, std::vector<std::string>>>
+            nlrc_k128_triple_cases = {
+                {"L0+L1+L2", {"L0+L1", "L2"}},
+                {"L0+L1+L8", {"L0+L1", "L8"}},
+                {"L0+L2+L4", {"L0", "L2", "L4"}},
+                {"L0+L2+L8", {"L0", "L2", "L8"}},
+            };
+        for (const auto &[case_name, tasks] : nlrc_k128_triple_cases) {
+            for (size_t i = 0; i < tasks.size(); ++i) {
+                const std::string task_time = i == 0 ? "0.012" : "0.023";
+                require(nlrc_k128_triple_timed.second.find("Task result [NLRC] " +
+                            case_name + "/" + tasks[i] + ": " + task_time + " s")
+                            != std::string::npos,
+                        "missing NLRC k128 triple task timing: " +
+                            nlrc_k128_triple_timed.second);
+            }
+            const std::string sum = tasks.size() == 2 ? "0.035" : "0.058";
+            require(nlrc_k128_triple_timed.second.find("Result [NLRC] " + case_name +
+                        ": " + sum + " s (sum; wall=0.01 s)") != std::string::npos,
+                    "NLRC k128 triple must report sum and wall time: " +
+                        nlrc_k128_triple_timed.second);
+        }
+        require(nlrc_k128_triple_timed.second.find(
+                    "Result [NLRC] G0+G1+G2: 0.01 s") != std::string::npos,
+                "NLRC k128 global triple must keep end-to-end time: " +
+                    nlrc_k128_triple_timed.second);
+
+        fixture->reset(6);
+        auto nlrc_k128_quadruple_timed = run(argv[1], directory,
+            {"quadruple", "--stripe-id", "8", "--repeat", "2", "--warmup", "1"}, 128);
+        require(nlrc_k128_quadruple_timed.first == 0 && fixture->multi_calls == 18,
+                nlrc_k128_quadruple_timed.second);
+        const std::vector<std::pair<std::string, std::vector<std::string>>>
+            nlrc_k128_quadruple_cases = {
+                {"L0+L1+L2+L3", {"L0+L1", "L2+L3"}},
+                {"L0+L1+L2+L4", {"L0+L1", "L2", "L4"}},
+                {"L0+L1+L2+L8", {"L0+L1", "L2", "L8"}},
+                {"L0+L2+L4+L6", {"L0", "L2", "L4", "L6"}},
+                {"L0+L2+L4+L8", {"L0", "L2", "L4", "L8"}},
+            };
+        for (const auto &[case_name, tasks] : nlrc_k128_quadruple_cases) {
+            for (size_t i = 0; i < tasks.size(); ++i) {
+                const std::string task_time = i == 0 ? "0.012" : "0.023";
+                require(nlrc_k128_quadruple_timed.second.find("Task result [NLRC] " +
+                            case_name + "/" + tasks[i] + ": " + task_time + " s")
+                            != std::string::npos,
+                        "missing NLRC k128 quadruple task timing: " +
+                            nlrc_k128_quadruple_timed.second);
+            }
+            const std::string sum = tasks.size() == 2 ? "0.035" :
+                                    tasks.size() == 3 ? "0.058" : "0.081";
+            require(nlrc_k128_quadruple_timed.second.find("Result [NLRC] " + case_name +
+                        ": " + sum + " s (sum; wall=0.01 s)") != std::string::npos,
+                    "NLRC k128 quadruple must report sum and wall time: " +
+                        nlrc_k128_quadruple_timed.second);
+        }
+        require(nlrc_k128_quadruple_timed.second.find(
+                    "Result [NLRC] G0+G1+G2+L8: 0.01 s") != std::string::npos,
+                "NLRC k128 global quadruple must keep end-to-end time: " +
+                    nlrc_k128_quadruple_timed.second);
 
         write_config("OptimalLRC", 3);
         fixture->reset(3);
@@ -365,6 +970,170 @@ int main(int argc, char **argv)
         require(stale.first != 0 && stale.second.find("Missing or invalid per-task") != std::string::npos,
                 "missing task timings silently produced a zero sum: " + stale.second);
         fixture->omit_task_times = false;
+        write_config("UniformLRC", 4, 96);
+        fixture->reset(3);
+        auto uniform_k96_timed = run(argv[1], directory,
+            {"double", "--stripe-id", "8", "--repeat", "2", "--warmup", "1"}, 96);
+        require(uniform_k96_timed.first == 0 && fixture->multi_calls == 9,
+                uniform_k96_timed.second);
+        const std::vector<std::pair<std::string, std::pair<std::string, std::string>>>
+            uniform_k96_cases = {
+                {"L0+L1", {"L0", "L1"}}, {"L1+L2", {"L1", "L2"}},
+            };
+        for (const auto &[case_name, tasks] : uniform_k96_cases) {
+            require(uniform_k96_timed.second.find("Task result [UniformLRC] " + case_name +
+                        "/" + tasks.first + ": 0.012 s") != std::string::npos,
+                    "missing UniformLRC k96 first task timing: " + uniform_k96_timed.second);
+            require(uniform_k96_timed.second.find("Task result [UniformLRC] " + case_name +
+                        "/" + tasks.second + ": 0.023 s") != std::string::npos,
+                    "missing UniformLRC k96 second task timing: " + uniform_k96_timed.second);
+            require(uniform_k96_timed.second.find("Result [UniformLRC] " + case_name +
+                        ": 0.035 s (sum; wall=0.01 s)") != std::string::npos,
+                    "UniformLRC k96 case must report sum and wall time: " +
+                        uniform_k96_timed.second);
+            require(uniform_k96_timed.second.find("Summary [UniformLRC] " + case_name +
+                        ": success=2/2 min=0.035 median=0.035 p95=0.035 max=0.035 s")
+                        != std::string::npos,
+                    "UniformLRC k96 sum statistics are wrong: " + uniform_k96_timed.second);
+        }
+        require(uniform_k96_timed.second.find("Result [UniformLRC] G0+G1: 0.01 s")
+                    != std::string::npos,
+                "UniformLRC k96 G0+G1 must keep end-to-end time: " +
+                    uniform_k96_timed.second);
+
+        fixture->reset(3);
+        auto uniform_k96_triple_timed = run(argv[1], directory,
+            {"triple", "--stripe-id", "8", "--repeat", "2", "--warmup", "1"}, 96);
+        require(uniform_k96_triple_timed.first == 0 && fixture->multi_calls == 9,
+                uniform_k96_triple_timed.second);
+        const std::vector<std::pair<std::string, std::vector<std::string>>>
+            uniform_k96_triple_cases = {
+                {"L0+L1+L2", {"L0", "L1", "L2"}},
+                {"L1+L2+L3", {"L1", "L2", "L3"}},
+            };
+        for (const auto &[case_name, tasks] : uniform_k96_triple_cases) {
+            for (size_t i = 0; i < tasks.size(); ++i) {
+                const std::string task_time = i == 0 ? "0.012" : "0.023";
+                require(uniform_k96_triple_timed.second.find("Task result [UniformLRC] " +
+                            case_name + "/" + tasks[i] + ": " + task_time + " s")
+                            != std::string::npos,
+                        "missing UniformLRC k96 triple task timing: " +
+                            uniform_k96_triple_timed.second);
+            }
+            require(uniform_k96_triple_timed.second.find("Result [UniformLRC] " + case_name +
+                        ": 0.058 s (sum; wall=0.01 s)") != std::string::npos,
+                    "UniformLRC k96 triple must report sum and wall time: " +
+                        uniform_k96_triple_timed.second);
+            require(uniform_k96_triple_timed.second.find("Summary [UniformLRC] " + case_name +
+                        ": success=2/2 min=0.058 median=0.058 p95=0.058 max=0.058 s")
+                        != std::string::npos,
+                    "UniformLRC k96 triple sum statistics are wrong: " +
+                        uniform_k96_triple_timed.second);
+        }
+        require(uniform_k96_triple_timed.second.find(
+                    "Result [UniformLRC] G0+G1+G2: 0.01 s") != std::string::npos,
+                "UniformLRC k96 global triple must keep end-to-end time: " +
+                    uniform_k96_triple_timed.second);
+
+        write_config("UniformLRC", 5, 128);
+        fixture->reset(3);
+        auto uniform_k128_timed = run(argv[1], directory,
+            {"double", "--stripe-id", "8", "--repeat", "2", "--warmup", "1"}, 128);
+        require(uniform_k128_timed.first == 0 && fixture->multi_calls == 9,
+                uniform_k128_timed.second);
+        const std::vector<std::pair<std::string, std::pair<std::string, std::string>>>
+            uniform_k128_cases = {
+                {"L0+L1", {"L0", "L1"}}, {"L0+L4", {"L0", "L4"}},
+            };
+        for (const auto &[case_name, tasks] : uniform_k128_cases) {
+            require(uniform_k128_timed.second.find("Task result [UniformLRC] " + case_name +
+                        "/" + tasks.first + ": 0.012 s") != std::string::npos,
+                    "missing UniformLRC k128 first task timing: " + uniform_k128_timed.second);
+            require(uniform_k128_timed.second.find("Task result [UniformLRC] " + case_name +
+                        "/" + tasks.second + ": 0.023 s") != std::string::npos,
+                    "missing UniformLRC k128 second task timing: " + uniform_k128_timed.second);
+            require(uniform_k128_timed.second.find("Result [UniformLRC] " + case_name +
+                        ": 0.035 s (sum; wall=0.01 s)") != std::string::npos,
+                    "UniformLRC k128 case must report sum and wall time: " +
+                        uniform_k128_timed.second);
+            require(uniform_k128_timed.second.find("Summary [UniformLRC] " + case_name +
+                        ": success=2/2 min=0.035 median=0.035 p95=0.035 max=0.035 s")
+                        != std::string::npos,
+                    "UniformLRC k128 sum statistics are wrong: " + uniform_k128_timed.second);
+        }
+        require(uniform_k128_timed.second.find("Result [UniformLRC] G0+G1: 0.01 s")
+                    != std::string::npos,
+                "UniformLRC k128 G0+G1 must keep end-to-end time: " +
+                    uniform_k128_timed.second);
+
+        fixture->reset(3);
+        auto uniform_k128_triple_timed = run(argv[1], directory,
+            {"triple", "--stripe-id", "8", "--repeat", "2", "--warmup", "1"}, 128);
+        require(uniform_k128_triple_timed.first == 0 && fixture->multi_calls == 9,
+                uniform_k128_triple_timed.second);
+        const std::vector<std::pair<std::string, std::vector<std::string>>>
+            uniform_k128_triple_cases = {
+                {"L0+L1+L2", {"L0", "L1", "L2"}},
+                {"L0+L1+L4", {"L0", "L1", "L4"}},
+            };
+        for (const auto &[case_name, tasks] : uniform_k128_triple_cases) {
+            for (size_t i = 0; i < tasks.size(); ++i) {
+                const std::string task_time = i == 0 ? "0.012" : "0.023";
+                require(uniform_k128_triple_timed.second.find("Task result [UniformLRC] " +
+                            case_name + "/" + tasks[i] + ": " + task_time + " s")
+                            != std::string::npos,
+                        "missing UniformLRC k128 triple task timing: " +
+                            uniform_k128_triple_timed.second);
+            }
+            require(uniform_k128_triple_timed.second.find("Result [UniformLRC] " + case_name +
+                        ": 0.058 s (sum; wall=0.01 s)") != std::string::npos,
+                    "UniformLRC k128 triple must report sum and wall time: " +
+                        uniform_k128_triple_timed.second);
+            require(uniform_k128_triple_timed.second.find("Summary [UniformLRC] " + case_name +
+                        ": success=2/2 min=0.058 median=0.058 p95=0.058 max=0.058 s")
+                        != std::string::npos,
+                    "UniformLRC k128 triple sum statistics are wrong: " +
+                        uniform_k128_triple_timed.second);
+        }
+        require(uniform_k128_triple_timed.second.find(
+                    "Result [UniformLRC] G0+G1+G2: 0.01 s") != std::string::npos,
+                "UniformLRC k128 global triple must keep end-to-end time: " +
+                    uniform_k128_triple_timed.second);
+
+        fixture->reset(3);
+        auto uniform_k128_quadruple_timed = run(argv[1], directory,
+            {"quadruple", "--stripe-id", "8", "--repeat", "2", "--warmup", "1"}, 128);
+        require(uniform_k128_quadruple_timed.first == 0 && fixture->multi_calls == 9,
+                uniform_k128_quadruple_timed.second);
+        const std::vector<std::pair<std::string, std::vector<std::string>>>
+            uniform_k128_quadruple_cases = {
+                {"L0+L1+L2+L3", {"L0", "L1", "L2", "L3"}},
+                {"L0+L1+L2+L4", {"L0", "L1", "L2", "L4"}},
+            };
+        for (const auto &[case_name, tasks] : uniform_k128_quadruple_cases) {
+            for (size_t i = 0; i < tasks.size(); ++i) {
+                const std::string task_time = i == 0 ? "0.012" : "0.023";
+                require(uniform_k128_quadruple_timed.second.find("Task result [UniformLRC] " +
+                            case_name + "/" + tasks[i] + ": " + task_time + " s")
+                            != std::string::npos,
+                        "missing UniformLRC k128 quadruple task timing: " +
+                            uniform_k128_quadruple_timed.second);
+            }
+            require(uniform_k128_quadruple_timed.second.find("Result [UniformLRC] " + case_name +
+                        ": 0.081 s (sum; wall=0.01 s)") != std::string::npos,
+                    "UniformLRC k128 quadruple must report sum and wall time: " +
+                        uniform_k128_quadruple_timed.second);
+            require(uniform_k128_quadruple_timed.second.find("Summary [UniformLRC] " + case_name +
+                        ": success=2/2 min=0.081 median=0.081 p95=0.081 max=0.081 s")
+                        != std::string::npos,
+                    "UniformLRC k128 quadruple sum statistics are wrong: " +
+                        uniform_k128_quadruple_timed.second);
+        }
+        require(uniform_k128_quadruple_timed.second.find(
+                    "Result [UniformLRC] G0+G1+G2+L4: 0.01 s") != std::string::npos,
+                "UniformLRC k128 global quadruple must keep end-to-end time: " +
+                    uniform_k128_quadruple_timed.second);
+
         write_config("UniformLRC", 3);
         fixture->reset(3);
         auto uniform_timed = run(argv[1], directory,
@@ -470,8 +1239,8 @@ int main(int argc, char **argv)
         require(nlrc_timed.second.find("Result [NLRC] G0+G1+G2: 0.01 s")
                     != std::string::npos,
                 "NLRC shared global task must keep end-to-end time: " + nlrc_timed.second);
-        std::cout << "PASS: HLRC double/triple/quadruple and AzureLRC/OptimalLRC/UniformLRC k64 task times, sums"
-                  << ", shared global timing; NLRC k64 double/triple/quadruple task times and sums"
+        std::cout << "PASS: HLRC k64/k96/k128 double/triple/quadruple, AzureLRC k64/k96/k128 multi-block timings, OptimalLRC k64/k96/k128 double/triple/quadruple timings, and UniformLRC k64/k96/k128 double/triple/quadruple timings, sums"
+                  << ", shared global timing; NLRC k64/k96/k128 multi-block task-time sums"
                   << "; stale replies" << std::endl;
         server->Shutdown();
         std::filesystem::remove_all(directory);
