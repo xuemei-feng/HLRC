@@ -29,7 +29,8 @@ namespace ECProject
       m_clientID = ClientIP + ":" + std::to_string(ClientPort);
     }
 
-    Client(std::string ClientIP, int ClientPort, std::string CoordinatorIpPort, std::string config_path) : m_coordinatorIpPort(CoordinatorIpPort),
+    Client(std::string ClientIP, int ClientPort, std::string CoordinatorIpPort, std::string config_path,
+           bool prepare_set_buffer = true) : m_coordinatorIpPort(CoordinatorIpPort),
                                                                                                            m_clientIPForGet(ClientIP),
                                                                                                            m_clientPortForGet(ClientPort),
                                                                                                            acceptor(io_context, asio::ip::tcp::endpoint(asio::ip::address::from_string(ClientIP.c_str()), m_clientPortForGet))
@@ -39,8 +40,11 @@ namespace ECProject
       m_clientID = ClientIP + ":" + std::to_string(ClientPort);
       m_sys_config = ECProject::Config::getInstance(config_path);
       m_toolbox = ECProject::ToolBox::getInstance();
-      m_pre_allocated_buffer = new char[static_cast<size_t> (m_sys_config->BlockSize) * static_cast<size_t> (m_sys_config->n)];
-      memset(m_pre_allocated_buffer, 0xaa, (m_sys_config->BlockSize) * static_cast<size_t> (m_sys_config->n));
+      if (prepare_set_buffer)
+      {
+        m_pre_allocated_buffer = new char[static_cast<size_t> (m_sys_config->BlockSize) * static_cast<size_t> (m_sys_config->n)];
+        memset(m_pre_allocated_buffer, 0xaa, (m_sys_config->BlockSize) * static_cast<size_t> (m_sys_config->n));
+      }
       if (m_sys_config->AppendMode == "CACHED_MODE")
       {
         m_cached_buffer = new char *[m_sys_config->r + m_sys_config->z];
@@ -81,7 +85,8 @@ namespace ECProject
     bool multi_recovery_with_sources(
         int stripe_id, const std::vector<std::vector<int>> &failed_block_ids,
         const std::vector<std::vector<int>> &source_block_ids, double &recovery_time,
-        bool optimal_g0_d0_chain = false);
+        bool optimal_g0_d0_chain = false,
+        std::vector<double> *task_recovery_times = nullptr);
     bool double_recovery_with_sources(
         int stripe_id, const std::vector<std::vector<int>> &failed_block_ids,
         const std::vector<std::vector<int>> &source_block_ids, double &recovery_time,

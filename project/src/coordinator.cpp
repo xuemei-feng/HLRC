@@ -2323,6 +2323,7 @@ namespace ECProject
     }
 
     std::vector<grpc::Status> statuses(static_cast<size_t>(request->tasks_size()));
+    std::vector<double> task_times(static_cast<size_t>(request->tasks_size()));
     std::vector<std::thread> workers;
     workers.reserve(static_cast<size_t>(request->tasks_size()));
     for (int i = 0; i < request->tasks_size(); ++i)
@@ -2330,8 +2331,11 @@ namespace ECProject
       workers.emplace_back([&, i]() {
         grpc::ClientContext proxy_context;
         proxy_proto::RecoveryReply proxy_reply;
+        const auto task_start = std::chrono::steady_clock::now();
         statuses[static_cast<size_t>(i)] = destination_stubs[static_cast<size_t>(i)]->recovery(
             &proxy_context, proxy_requests[static_cast<size_t>(i)], &proxy_reply);
+        task_times[static_cast<size_t>(i)] = std::chrono::duration<double>(
+            std::chrono::steady_clock::now() - task_start).count();
       });
     }
     for (auto &worker : workers)
@@ -2341,6 +2345,8 @@ namespace ECProject
       if (!status.ok())
         return finish(grpc::Status(grpc::StatusCode::INTERNAL,
                                    "custom multi recovery failed: " + status.error_message()));
+    for (double elapsed : task_times)
+      recoveryReply->add_custom_task_recovery_times(elapsed);
     return finish(grpc::Status::OK);
   }
 

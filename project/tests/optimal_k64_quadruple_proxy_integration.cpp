@@ -1,0 +1,211 @@
+#include "proxy.h"
+#include "datanode.h"
+#include "encoder.h"
+#include "repair_benchmark_plan.h"
+
+#include <asio.hpp>
+#include <chrono>
+#include <cstdlib>
+#include <filesystem>
+#include <fstream>
+#include <iostream>
+#include <memory>
+#include <random>
+#include <stdexcept>
+#include <thread>
+#include <unistd.h>
+#include <vector>
+
+namespace {
+constexpr int block_size = 1048576;
+void require(bool condition, const std::string &message)
+{
+    if (!condition) throw std::runtime_error(message);
+}
+
+struct Ports { int proxy, datanode; };
+
+Ports select_ports()
+{
+    for (int attempt = 0; attempt < 1000; ++attempt) {
+        const int offset = ((::getpid() + attempt) % 1000) * 4;
+        const Ports ports{28000 + offset, 40000 + offset};
+        asio::io_context context;
+        std::vector<std::unique_ptr<asio::ip::tcp::acceptor>> reservations;
+        try {
+            for (int index = 0; index < 4; ++index)
+                for (int port : {ports.proxy + index, ports.proxy + 1000 + index,
+                                 ports.proxy + 2000 + index, ports.datanode + index,
+                                 ports.datanode + 500 + index}) {
+                    auto acceptor = std::make_unique<asio::ip::tcp::acceptor>(context);
+                    acceptor->open(asio::ip::tcp::v4());
+                    acceptor->bind({asio::ip::make_address("127.0.0.1"),
+                                    static_cast<unsigned short>(port)});
+                    reservations.push_back(std::move(acceptor));
+                }
+            return ports;
+        } catch (const std::exception &) {}
+    }
+    throw std::runtime_error("no free loopback ports for quadruple repair test");
+}
+
+std::string endpoint(int port) { return "127.0.0.1:" + std::to_string(port); }
+std::string key(int id) { return "quadruple_block_" + std::to_string(id); }
+std::filesystem::path stored(const Ports &ports, int owner, int id)
+{
+    return std::filesystem::path("storage") / std::to_string(ports.datanode + owner) / key(id);
+}
+
+void write_fixtures(const Ports &ports, bool uniform)
+{
+    std::ofstream nodes("nodes.xml");
+    nodes << "<nodes>\n";
+    for (int index = 0; index < 4; ++index)
+        nodes << "<node id=\"" << index << "\" proxy=\"" << endpoint(ports.proxy + index)
+              << "\" datanode=\"" << endpoint(ports.datanode + index) << "\"/>\n";
+    nodes << "</nodes>\n";
+    std::ofstream parameters("parameters.xml");
+    parameters << "<Configuration>\n"
+        << "<AlignedSize>4096</AlignedSize><UnitSize>8</UnitSize><BlockSize>" << block_size
+        << "</BlockSize><CoordinatorIP>127.0.0.1</CoordinatorIP><CoordinatorPort>55000</CoordinatorPort>\n"
+        << "<AppendMode>UNILRC_MODE</AppendMode><CodeType>"
+        << (uniform ? "UniformLRC" : "OptimalLRC") << "</CodeType>\n"
+        << "<k>64</k><r>3</r><z>3</z><NodeNum>72</NodeNum>\n</Configuration>\n";
+}
+} // namespace
+
+int main(int argc, char **argv)
+{
+    const std::string mode = argc == 2 ? argv[1] : "quadruple";
+    const bool uniform = mode == "uniform-double";
+    const bool double_repair = mode == "double" || uniform;
+    // Servers run until process exit, just as in proxy_gateway_integration.
+    // Isolate every storage path from the caller's working directory.
+    const auto fixture = std::filesystem::temp_directory_path() /
+        (std::string("hlrc-") + (uniform ? "uniform-" : "optimal-") + "k64-" +
+         (double_repair ? "double-" : "quadruple-") +
+         std::to_string(::getpid()));
+    try {
+        require(std::filesystem::create_directory(fixture), "fixture directory already exists");
+        std::filesystem::current_path(fixture);
+        const Ports ports = select_ports();
+        write_fixtures(ports, uniform);
+        auto *config = ECProject::Config::getInstance("parameters.xml");
+
+        std::vector<std::vector<unsigned char>> blocks(70,
+            std::vector<unsigned char>(block_size));
+        std::mt19937 generator(0x643456u);
+        for (int id = 0; id < 64; ++id)
+            for (auto &byte : blocks[id]) byte = static_cast<unsigned char>(generator());
+        std::vector<unsigned char *> data(64), parity(6);
+        for (int id = 0; id < 64; ++id) data[id] = blocks[id].data();
+        for (int id = 0; id < 6; ++id) parity[id] = blocks[id + 64].data();
+        if (uniform)
+            ECProject::encode_uniform_lrc(64, 3, 3, data.data(), parity.data(), block_size);
+        else
+            ECProject::encode_optimal_lrc(64, 3, 3, data.data(), parity.data(), block_size);
+
+        // Only D0-D63 exist on disk. No failed parity or other parity can be read.
+        for (int owner = 0; owner < 4; ++owner)
+            std::filesystem::create_directories(stored(ports, owner, 0).parent_path());
+        for (int id = 0; id < 64; ++id) {
+            std::ofstream file(stored(ports, id % 4, id), std::ios::binary);
+            file.write(reinterpret_cast<const char *>(blocks[id].data()), block_size);
+            require(file.good(), "cannot seed data block");
+        }
+
+        for (int owner = 0; owner < 4; ++owner) {
+            const auto address = endpoint(ports.datanode + owner);
+            std::thread([address] { ECProject::DataNode(address, "parameters.xml").Run(); }).detach();
+            const auto channel = grpc::CreateChannel(address, grpc::InsecureChannelCredentials());
+            require(channel->WaitForConnected(std::chrono::system_clock::now() + std::chrono::seconds(5)),
+                    "datanode did not start");
+        }
+
+        std::vector<ECProject::ProxyImpl *> proxies;
+        for (int owner = 0; owner < 4; ++owner) {
+            auto *proxy = new ECProject::ProxyImpl(endpoint(ports.proxy + owner), "nodes.xml",
+                                                  endpoint(55000));
+            proxy->m_sys_config = config;
+            proxy->m_toolbox = ECProject::ToolBox::getInstance();
+            require(proxy->LocalDatanodeStubCountForTest() == 1,
+                    "each proxy must access only its paired datanode");
+            proxies.push_back(proxy);
+        }
+
+        // Only G0 exposes a recovery RPC. The other proxies can receive results
+        // only through the production peer gateway, then write their datanodes.
+        grpc::ServerBuilder builder;
+        builder.AddListeningPort(endpoint(ports.proxy), grpc::InsecureServerCredentials());
+        builder.RegisterService(proxies[0]);
+        auto server = builder.BuildAndStart();
+        require(server != nullptr, "G0 proxy RPC server did not start");
+        auto channel = grpc::CreateChannel(endpoint(ports.proxy), grpc::InsecureChannelCredentials());
+        require(channel->WaitForConnected(std::chrono::system_clock::now() + std::chrono::seconds(5)),
+                "G0 proxy did not become ready");
+        auto stub = proxy_proto::proxyService::NewStub(channel);
+
+        const auto cases = uniform
+            ? ECProject::RepairBenchmark::make_uniform_k64_double_block_cases()
+            : (double_repair
+                   ? ECProject::RepairBenchmark::make_optimal_k64_double_block_cases()
+                   : ECProject::RepairBenchmark::make_optimal_quadruple_block_cases(64));
+        const auto &test_case = double_repair ? cases.back() : cases.front();
+        require(test_case.tasks.size() == 1, "expected one shared task");
+        const auto &task = test_case.tasks[0];
+        require(task.failed_block_ids == (double_repair ? std::vector<int>{64, 65}
+                                                       : std::vector<int>{64, 65, 66, 67}),
+                "wrong failure order");
+        require(task.source_block_ids == ECProject::RepairBenchmark::inclusive_range(0, 63),
+                "wrong source set/order");
+        proxy_proto::RecoveryRequest request;
+        request.set_cross_rack_num(0);
+        request.set_failed_block_id(task.failed_block_ids.front());
+        request.set_failed_block_key(key(task.failed_block_ids.front()));
+        for (int id : task.failed_block_ids) {
+            request.add_failed_block_ids(id);
+            request.add_custom_failed_block_keys(key(id));
+            request.add_custom_target_proxy_ips("127.0.0.1");
+            request.add_custom_target_proxy_ports(ports.proxy + id - 64);
+        }
+        for (int id : task.source_block_ids) {
+            request.add_custom_source_block_ids(id);
+            request.add_blockids(id);
+            request.add_blockkeys(key(id));
+            request.add_source_proxy_ips("127.0.0.1");
+            request.add_source_proxy_ports(ports.proxy + id % 4);
+        }
+        grpc::ClientContext context;
+        context.set_deadline(std::chrono::system_clock::now() + std::chrono::seconds(45));
+        proxy_proto::RecoveryReply reply;
+        const auto status = stub->recovery(&context, request, &reply);
+        require(status.ok(), "G0 shared recovery failed: " + status.error_message());
+
+        for (int id : task.failed_block_ids) {
+            const int owner = id - 64;
+            require(std::filesystem::exists(stored(ports, owner, id)), "repaired block is missing");
+            require(std::filesystem::file_size(stored(ports, owner, id)) == block_size,
+                    "repaired block has the wrong length");
+            std::ifstream file(stored(ports, owner, id), std::ios::binary);
+            std::vector<unsigned char> actual(block_size);
+            file.read(reinterpret_cast<char *>(actual.data()), block_size);
+            require(file.gcount() == block_size && actual == blocks[id],
+                    "persisted block bytes differ from original: " + std::to_string(id));
+            for (int other = 0; other < 4; ++other)
+                if (other != owner)
+                    require(!std::filesystem::exists(stored(ports, other, id)),
+                            "repaired block was written to the wrong datanode");
+        }
+        server->Shutdown();
+        std::filesystem::current_path(fixture.parent_path());
+        std::filesystem::remove_all(fixture);
+        std::cout << "PASS: " << (uniform ? "UniformLRC" : "OptimalLRC")
+                  << " k64 G0 reads D0-D63, computes " << task.failed_block_ids.size()
+                  << " 1 MiB blocks, writes G0 locally and forwards remaining outputs"
+                     " to their owner proxies for persistence" << std::endl;
+        std::_Exit(0);
+    } catch (const std::exception &error) {
+        std::cerr << "FAIL: " << error.what() << "; fixture: " << fixture << std::endl;
+        std::_Exit(1);
+    }
+}

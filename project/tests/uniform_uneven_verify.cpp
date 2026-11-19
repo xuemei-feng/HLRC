@@ -223,6 +223,8 @@ void verify_k64_double_plan()
               "k64 double task count mismatch");
         check(!cases[case_index].optimal_g0_d0_chain,
               "Uniform k64 double cases must use the generic custom multi-recovery path");
+        check(cases[case_index].sum_task_times == (case_index < 2),
+              "Uniform k64 local pairs must report task times; G0+G1 must report wall time");
         if (cases[case_index].tasks.size() != expected[case_index].tasks.size())
             continue;
         for (size_t task_index = 0; task_index < cases[case_index].tasks.size(); ++task_index) {

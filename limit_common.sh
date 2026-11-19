@@ -9,6 +9,38 @@ IFB_DEV="${IFB_DEV:-ifb0}"
 PROXY_DATA_PORT_SHIFT=1000
 PROXY_PEER_PORT_SHIFT=2000
 FALLBACK_LINK_RATE="100gbit"
+# Explicit fair queueing for the rate-limited class on both egress and IFB.
+# Use legacy to keep the original HTB leaves for a controlled comparison.
+PROXY_QUEUE_MODE="${PROXY_QUEUE_MODE:-fq_codel}"
+PROXY_QUEUE_LIMIT="${PROXY_QUEUE_LIMIT:-4096}"
+PROXY_QUEUE_MEMORY_BYTES="${PROXY_QUEUE_MEMORY_BYTES:-16777216}"
+PROXY_QUEUE_TARGET_MS="${PROXY_QUEUE_TARGET_MS:-5}"
+PROXY_QUEUE_INTERVAL_MS="${PROXY_QUEUE_INTERVAL_MS:-100}"
+
+validate_queue_settings() {
+    case "$PROXY_QUEUE_MODE" in
+        fq_codel|legacy) ;;
+        *) echo "fail | invalid PROXY_QUEUE_MODE: use fq_codel or legacy" >&2; return 1 ;;
+    esac
+    local name maximum value
+    while read -r name maximum; do
+        value="${!name}"
+        if ! [[ "$value" =~ ^[1-9][0-9]*$ ]] ||
+            [ "${#value}" -gt 9 ] || [ "$value" -gt "$maximum" ]; then
+            echo "fail | $name must be an integer in 1..$maximum" >&2
+            return 1
+        fi
+    done <<'QUEUE_BOUNDS'
+PROXY_QUEUE_LIMIT 65536
+PROXY_QUEUE_MEMORY_BYTES 268435456
+PROXY_QUEUE_TARGET_MS 1000
+PROXY_QUEUE_INTERVAL_MS 10000
+QUEUE_BOUNDS
+    if [ "$PROXY_QUEUE_TARGET_MS" -ge "$PROXY_QUEUE_INTERVAL_MS" ]; then
+        echo "fail | PROXY_QUEUE_TARGET_MS must be smaller than PROXY_QUEUE_INTERVAL_MS" >&2
+        return 1
+    fi
+}
 
 get_ini() {
     local section="$1" key="$2" file="$3"
@@ -208,12 +240,20 @@ setup_htb() {
     tc class add dev "$dev" parent 1: classid 1:1 htb rate "$link_rate" ceil "$link_rate" || return 1
     tc class add dev "$dev" parent 1:1 classid 1:10 htb rate "$limited_rate" ceil "$limited_rate" prio 1 || return 1
     tc class add dev "$dev" parent 1:1 classid 1:30 htb rate "$link_rate" ceil "$link_rate" prio 3 || return 1
+    if [ "$PROXY_QUEUE_MODE" = fq_codel ]; then
+        tc qdisc add dev "$dev" parent 1:10 handle 110: fq_codel \
+            limit "$PROXY_QUEUE_LIMIT" flows 1024 \
+            memory_limit "$PROXY_QUEUE_MEMORY_BYTES" \
+            target "${PROXY_QUEUE_TARGET_MS}ms" interval "${PROXY_QUEUE_INTERVAL_MS}ms" ecn || return 1
+    fi
 }
 
 apply_proxy_limits() {
     local iface="$1" rate="$2" link_rate="$3" local_ip="$4"
     shift 4
 
+    # Reject invalid settings before removing any existing traffic controls.
+    validate_queue_settings || return 1
     clear_bandwidth_limits "$iface" 1
     setup_htb "$iface" "$rate" "$link_rate" || return 1
     add_proxy_filters "$iface" "1:0" egress "$local_ip" "$@" || return 1
@@ -247,7 +287,7 @@ apply_bandwidth_limits() {
         return 1
     fi
 
-    echo "ok | proxy=$local_ip iface=$iface | proxy-to-proxy=${label} aggregate | ports=${PROXY_PORT},$((PROXY_PORT + PROXY_DATA_PORT_SHIFT)),$((PROXY_PORT + PROXY_PEER_PORT_SHIFT)) sport+dport | egress+ingress"
+    echo "ok | proxy=$local_ip iface=$iface | proxy-to-proxy=${label} aggregate | ports=${PROXY_PORT},$((PROXY_PORT + PROXY_DATA_PORT_SHIFT)),$((PROXY_PORT + PROXY_PEER_PORT_SHIFT)) sport+dport | egress+ingress | queue=$PROXY_QUEUE_MODE limit=$PROXY_QUEUE_LIMIT memory_bytes=$PROXY_QUEUE_MEMORY_BYTES target_ms=$PROXY_QUEUE_TARGET_MS interval_ms=$PROXY_QUEUE_INTERVAL_MS"
 }
 
 # Sync the limit/unlimit runtime onto each proxy's ssh.remote_root.
@@ -313,6 +353,7 @@ run_limit_all_remote() {
 
     script_dir="$(cd "$(dirname "$0")" && pwd)"
     config_file="${script_dir}/project/config/cluster.ini"
+    validate_queue_settings || return 1
     sync_limit_runtime_to_proxies "$script_dir" || return 1
 
     hosts_file="${script_dir}/proxy_hosts"
@@ -322,7 +363,9 @@ run_limit_all_remote() {
     user="${user:-root}"
     port="${port:-22}"
     remote_root="${remote_root:-$script_dir}"
-    remote_cmd="cd '$remote_root' && bash limit_${proxy_gb}Gb.sh"
+    # pdsh does not automatically propagate the caller's environment. All
+    # interpolated queue values have been restricted to an enum or integers.
+    remote_cmd="cd '$remote_root' && env PROXY_QUEUE_MODE='$PROXY_QUEUE_MODE' PROXY_QUEUE_LIMIT='$PROXY_QUEUE_LIMIT' PROXY_QUEUE_MEMORY_BYTES='$PROXY_QUEUE_MEMORY_BYTES' PROXY_QUEUE_TARGET_MS='$PROXY_QUEUE_TARGET_MS' PROXY_QUEUE_INTERVAL_MS='$PROXY_QUEUE_INTERVAL_MS' bash limit_${proxy_gb}Gb.sh"
 
     echo ">> limit proxy-to-proxy=${proxy_gb}Gb/s on distributed proxy hosts ..."
     pdsh_output=$(sudo pdsh -R ssh -w ^"$hosts_file" -l "$user" -f 5 -x "-p $port" "$remote_cmd" 2>&1)

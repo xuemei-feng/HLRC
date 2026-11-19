@@ -27,6 +27,8 @@ struct RepairGroupCase
     std::string failed_name;
     std::vector<RepairTask> tasks;
     bool optimal_g0_d0_chain = false;
+    // Report each independent task and use their sum as the case sample.
+    bool sum_task_times = false;
 };
 
 using DoubleRepairCase = RepairGroupCase;
@@ -78,6 +80,8 @@ inline std::vector<RepairCase> make_optimal_uneven_single_block_cases(int k, int
 
 inline std::vector<RepairCase> make_optimal_k64_single_block_cases()
 {
+    // k=64, r=3, z=3: G0-G2 are 64-66; L0/L2 are 67/69.
+    // Recover each local parity from its weighted data group plus all globals.
     auto l0_sources = inclusive_range(0, 20);
     l0_sources.insert(l0_sources.end(), {64, 65, 66});
     auto l2_sources = inclusive_range(42, 63);
@@ -157,9 +161,9 @@ inline std::vector<TripleRepairCase> make_nlrc_k64_triple_block_cases()
     l4_sources.insert(l4_sources.end(), {64, 65, 66});
     return {
         {"L0+L1+L2", {{{67, 68}, inclusive_range(0, 21)},
-                          {{69}, inclusive_range(22, 43)}}},
+                          {{69}, inclusive_range(22, 43)}}, false, true},
         {"L0+L1+L4", {{{67, 68}, inclusive_range(0, 21)},
-                          {{71}, std::move(l4_sources)}}},
+                          {{71}, std::move(l4_sources)}}, false, true},
         {"G0+G1+G2", {{{64, 65, 66}, inclusive_range(0, 63)}}},
     };
 }
@@ -199,6 +203,17 @@ inline std::vector<TripleRepairCase> make_nlrc_k128_triple_block_cases()
                          {{133}, inclusive_range(26, 51)},
                          {{139}, std::move(l8_sources)}}},
         {"G0+G1+G2", {{{128, 129, 130}, inclusive_range(0, 127)}}},
+    };
+}
+
+inline std::vector<QuadrupleRepairCase> make_nlrc_k64_quadruple_block_cases()
+{
+    // Each shared task runs at its first failed block's proxy, reads its
+    // sources once and forwards the other outputs to their owner proxies.
+    return {
+        {"L0+L1+L2+L3", {{{67, 68}, inclusive_range(0, 21)},
+                            {{69, 70}, inclusive_range(22, 43)}}},
+        {"G0+G1+G2+L0", {{{64, 65, 66, 67}, inclusive_range(0, 63)}}},
     };
 }
 
@@ -827,9 +842,9 @@ inline std::vector<DoubleRepairCase> make_uniform_k64_double_block_cases()
 {
     return {
         {"L0+L1", {{{67}, inclusive_range(0, 21)},
-                     {{68}, inclusive_range(22, 43)}}},
+                     {{68}, inclusive_range(22, 43)}}, false, true},
         {"L0+L2", {{{67}, inclusive_range(0, 21)},
-                     {{69}, inclusive_range(44, 66)}}},
+                     {{69}, inclusive_range(44, 66)}}, false, true},
         {"G0+G1", {{{64, 65}, inclusive_range(0, 63)}}},
     };
 }
@@ -902,8 +917,8 @@ inline std::vector<DoubleRepairCase> make_optimal_k64_double_block_cases()
     auto l2_sources = inclusive_range(42, 63);
     l2_sources.insert(l2_sources.end(), {64, 65, 66});
     return {
-        {"L0+L1", {{{67}, l0_sources}, {{68}, std::move(l1_sources)}}},
-        {"L0+L2", {{{67}, std::move(l0_sources)}, {{69}, std::move(l2_sources)}}},
+        {"L0+L1", {{{67}, l0_sources}, {{68}, std::move(l1_sources)}}, false, true},
+        {"L0+L2", {{{67}, std::move(l0_sources)}, {{69}, std::move(l2_sources)}}, false, true},
         {"G0+G1", {{{64, 65}, inclusive_range(0, 63)}}},
     };
 }
@@ -1034,6 +1049,11 @@ inline std::vector<TripleRepairCase> make_optimal_k64_triple_block_cases()
 
 inline std::vector<QuadrupleRepairCase> make_optimal_quadruple_block_cases(int k)
 {
+    // One shared task: G0's proxy reads the data once, computes all four
+    // outputs, writes G0 locally and forwards the others to their owner proxies.
+    if (k == 64)
+        return {{"G0+G1+G2+L0",
+                 {{{64, 65, 66, 67}, inclusive_range(0, 63)}}}};
     if (k == 96)
         return {{"G0+G1+G2+L0",
                  {{{96, 97, 98, 99}, inclusive_range(0, 95)}}}};

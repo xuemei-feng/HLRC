@@ -15,6 +15,8 @@
 #include <config.h>
 #include <toolbox.h>
 #include <queue>
+#include <atomic>
+#include <functional>
 // #define IF_DEBUG true
 #define IF_DEBUG false
 namespace ECProject
@@ -35,7 +37,9 @@ namespace ECProject
     }
     ~ProxyImpl()
     {
+      if (m_recovery_pool) m_recovery_pool->join();
       if (m_peer_acceptor) { asio::error_code ec; m_peer_acceptor->close(ec); }
+      if (m_peer_pool) m_peer_pool->join();
       if (m_peer_thread.joinable()) m_peer_thread.detach();
     };
     grpc::Status checkalive(
@@ -142,6 +146,8 @@ namespace ECProject
     bool PeerDeleteForTest(const std::string &proxy_ip, int proxy_port, const std::string &key)
     { return DeleteFromOwnerProxy(proxy_ip, proxy_port, key); }
     size_t LocalDatanodeStubCountForTest() const { return m_datanode_ptrs.size(); }
+    size_t RecoveryWorkerCountForTest() const { return m_recovery_worker_count.load(); }
+    size_t RecoveryPoolStartsForTest() const { return m_recovery_pool_starts.load(); }
 
   private:
     std::mutex m_mutex;
@@ -151,6 +157,11 @@ namespace ECProject
     void run_peer_gateway();
     bool handle_peer_connection(asio::ip::tcp::socket socket);
     std::pair<std::string, int> paired_datanode_endpoint() const;
+    bool run_recovery_jobs(const std::vector<std::function<bool()>> &jobs);
+    std::once_flag m_recovery_pool_once;
+    std::unique_ptr<asio::thread_pool> m_recovery_pool;
+    std::atomic<size_t> m_recovery_worker_count{0};
+    std::atomic<size_t> m_recovery_pool_starts{0};
     std::unique_ptr<coordinator_proto::coordinatorService::Stub> m_coordinator_ptr;
     std::map<std::string, std::unique_ptr<datanode_proto::datanodeService::Stub>> m_datanode_ptrs;
     std::string config_path;
@@ -163,6 +174,7 @@ namespace ECProject
     std::map<std::string, std::string> m_datanode_owner_proxies;
     std::map<std::string, std::string> m_proxy_owned_datanodes;
     std::unique_ptr<asio::ip::tcp::acceptor> m_peer_acceptor;
+    std::unique_ptr<asio::thread_pool> m_peer_pool;
     std::thread m_peer_thread;
     std::mutex m_datanode_io_mutex;
     asio::io_context io_context;

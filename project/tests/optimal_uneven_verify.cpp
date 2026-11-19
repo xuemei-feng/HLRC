@@ -345,7 +345,7 @@ void verify_case(int k, int r, int z, const std::vector<int> &expected_sizes,
         }
     }
 
-    if (k == 96 || k == 128) {
+    if (k == 64 || k == 96 || k == 128) {
         const auto quadruples = ECProject::RepairBenchmark::make_optimal_quadruple_block_cases(k);
         if (k == 128) {
             check(quadruples.size() == 3, "k128 quadruple case count mismatch");
@@ -377,25 +377,25 @@ void verify_case(int k, int r, int z, const std::vector<int> &expected_sizes,
                 check(coefficients.size() == 4U * 128U, "k128 global quadruple coefficient count mismatch");
             }
         }
-        if (k == 96) {
-        check(quadruples.size() == 1, "k96 quadruple case count mismatch");
+        if (k == 64 || k == 96) {
+        check(quadruples.size() == 1, "quadruple case count mismatch");
         if (quadruples.size() == 1) {
             const auto &test_case = quadruples[0];
             check(test_case.failed_name == "G0+G1+G2+L0" && test_case.tasks.size() == 1,
-                  "k96 quadruple must use one shared task");
+                  "quadruple must use one shared task");
             if (test_case.tasks.size() == 1) {
                 const auto &task = test_case.tasks[0];
-                check(task.failed_block_ids == std::vector<int>({96, 97, 98, 99}),
-                      "k96 quadruple failed ID/order mismatch");
-                check(task.source_block_ids == range(0, 96),
-                      "k96 quadruple source order mismatch");
+                check(task.failed_block_ids == std::vector<int>({k, k + 1, k + 2, k + 3}),
+                      "quadruple failed ID/order mismatch");
+                check(task.source_block_ids == range(0, k),
+                      "quadruple source order mismatch");
                 coefficients.clear();
                 check(ECProject::get_local_fill_plan(k, r, z, "OptimalLRC",
                                                      task.failed_block_ids,
                                                      task.source_block_ids, coefficients),
-                      "k96 quadruple task is not recoverable");
-                check(coefficients.size() == 4U * 96U,
-                      "k96 quadruple coefficient count mismatch");
+                      "quadruple task is not recoverable");
+                check(coefficients.size() == 4U * static_cast<size_t>(k),
+                      "quadruple coefficient count mismatch");
             }
         }
         }

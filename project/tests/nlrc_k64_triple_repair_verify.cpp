@@ -43,6 +43,8 @@ void verify_registered_cases(const std::vector<TripleRepairCase> &cases)
     for (size_t i = 0; i < names.size(); ++i) {
         require(cases[i].failed_name == names[i], "case name or order mismatch");
         require(cases[i].tasks.size() == task_counts[i], "task count mismatch");
+        require(cases[i].sum_task_times == (i < 2), "task timing policy mismatch");
+        require(!cases[i].optimal_g0_d0_chain, "unexpected OptimalLRC chain policy");
     }
 
     require_task(cases[0].tasks[0], {67, 68}, range(0, 21));

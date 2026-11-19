@@ -368,6 +368,11 @@ namespace ECProject
   // add a stripe each time
   bool Client::set()
   {
+    if (m_pre_allocated_buffer == nullptr)
+    {
+      std::cerr << "[SET] Client was constructed without a set buffer" << std::endl;
+      return false;
+    }
     grpc::ClientContext get_proxy_ip_port;
     coordinator_proto::RequestProxyIPPort request;
     coordinator_proto::ReplyProxyIPsPorts reply;
@@ -715,9 +720,10 @@ namespace ECProject
   bool Client::multi_recovery_with_sources(
       int stripe_id, const std::vector<std::vector<int>> &failed_block_ids,
       const std::vector<std::vector<int>> &source_block_ids, double &recovery_time,
-      bool optimal_g0_d0_chain)
+      bool optimal_g0_d0_chain, std::vector<double> *task_recovery_times)
   {
     recovery_time = 0.0;
+    if (task_recovery_times != nullptr) task_recovery_times->clear();
     if (failed_block_ids.size() != source_block_ids.size() || failed_block_ids.empty())
       return false;
 
@@ -743,6 +749,9 @@ namespace ECProject
                 << status.error_message() << std::endl;
       return false;
     }
+    if (task_recovery_times != nullptr)
+      task_recovery_times->assign(reply.custom_task_recovery_times().begin(),
+                                  reply.custom_task_recovery_times().end());
     return true;
   }
 

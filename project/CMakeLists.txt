@@ -184,6 +184,11 @@ target_include_directories(layout_test PRIVATE
 
 # Legacy recovery-plan test executables are intentionally not built.
 # repair_benchmark is the only repair benchmark entry point.
+add_test(NAME repair_benchmark_dispatch_verify
+    COMMAND ${Python3_EXECUTABLE}
+            ${CMAKE_CURRENT_SOURCE_DIR}/tests/repair_benchmark_dispatch_verify.py
+            $<TARGET_FILE:repair_benchmark>)
+set_tests_properties(repair_benchmark_dispatch_verify PROPERTIES TIMEOUT 60)
 
 # Exp#7: pure encoding microbenchmark (no gRPC / cluster)
 add_executable(encode_benchmark
@@ -415,6 +420,59 @@ target_link_libraries(optimal_uneven_verify
 )
 add_test(NAME optimal_uneven_verify COMMAND optimal_uneven_verify)
 set_tests_properties(optimal_uneven_verify PROPERTIES TIMEOUT 30)
+
+# OptimalLRC k=64 exact L0/L2 single-block recovery verification.
+add_executable(optimal_k64_single_repair_verify
+    ${CMAKE_CURRENT_SOURCE_DIR}/tests/optimal_k64_single_repair_verify.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/encoder.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/encoder_layout.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/recovery_strategy.cpp
+    ${ASM_SOURCES}
+)
+target_include_directories(optimal_k64_single_repair_verify PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
+target_link_libraries(optimal_k64_single_repair_verify
+    -lpthread
+    -lJerasure
+    -lgf_complete
+)
+add_test(NAME optimal_k64_single_repair_verify COMMAND optimal_k64_single_repair_verify)
+set_tests_properties(optimal_k64_single_repair_verify PROPERTIES TIMEOUT 30)
+
+# OptimalLRC k=64 exact local pairs and shared G0/G1 reconstruction.
+add_executable(optimal_k64_double_repair_verify
+    ${CMAKE_CURRENT_SOURCE_DIR}/tests/optimal_k64_double_repair_verify.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/encoder.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/encoder_layout.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/recovery_strategy.cpp
+    ${ASM_SOURCES})
+target_link_libraries(optimal_k64_double_repair_verify -lpthread -lJerasure -lgf_complete)
+add_test(NAME optimal_k64_double_repair_verify COMMAND optimal_k64_double_repair_verify)
+set_tests_properties(optimal_k64_double_repair_verify PROPERTIES TIMEOUT 30)
+
+# UniformLRC k=64 exact local pairs and shared G0/G1 reconstruction.
+add_executable(uniform_k64_double_repair_verify
+    ${CMAKE_CURRENT_SOURCE_DIR}/tests/uniform_k64_double_repair_verify.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/encoder.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/encoder_layout.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/recovery_strategy.cpp
+    ${ASM_SOURCES})
+target_link_libraries(uniform_k64_double_repair_verify -lpthread -lJerasure -lgf_complete)
+add_test(NAME uniform_k64_double_repair_verify COMMAND uniform_k64_double_repair_verify)
+set_tests_properties(uniform_k64_double_repair_verify PROPERTIES TIMEOUT 30)
+
+# OptimalLRC k=64 shared G0+G1+G2+L0 repair verification.
+add_executable(optimal_k64_quadruple_repair_verify
+    ${CMAKE_CURRENT_SOURCE_DIR}/tests/optimal_k64_quadruple_repair_verify.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/encoder.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/encoder_layout.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/recovery_strategy.cpp
+    ${ASM_SOURCES}
+)
+target_link_libraries(optimal_k64_quadruple_repair_verify -lpthread -lJerasure -lgf_complete)
+add_test(NAME optimal_k64_quadruple_repair_verify COMMAND optimal_k64_quadruple_repair_verify)
+set_tests_properties(optimal_k64_quadruple_repair_verify PROPERTIES TIMEOUT 30)
 
 # OptimalLRC k=96 exact L0 single-block recovery verification.
 add_executable(optimal_k96_single_repair_verify
@@ -699,6 +757,31 @@ target_link_libraries(proxy_gateway_integration ${_REFLECTION} ${_GRPC_GRPCPP} $
 
 add_test(NAME proxy_gateway_integration COMMAND proxy_gateway_integration)
 set_tests_properties(proxy_gateway_integration PROPERTIES TIMEOUT 20)
+
+# Real four-proxy/datanode routing, multi-output reconstruction and disk verification.
+add_executable(optimal_k64_quadruple_proxy_integration
+    ${cn_proto_srcs} ${cn_grpc_srcs} ${pn_proto_srcs} ${pn_grpc_srcs} ${dn_proto_srcs} ${dn_grpc_srcs}
+    ${ASM_SOURCES}
+    ${CMAKE_CURRENT_SOURCE_DIR}/tests/optimal_k64_quadruple_proxy_integration.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/proxy.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/datanode.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/config.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/toolbox.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/tinyxml2.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/lrc.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/encoder.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/encoder_layout.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/recovery_strategy.cpp)
+target_link_libraries(optimal_k64_quadruple_proxy_integration
+    ${_REFLECTION} ${_GRPC_GRPCPP} ${_PROTOBUF_LIBPROTOBUF} -lpthread -lJerasure -lgf_complete)
+add_test(NAME optimal_k64_quadruple_proxy_integration COMMAND optimal_k64_quadruple_proxy_integration)
+set_tests_properties(optimal_k64_quadruple_proxy_integration PROPERTIES TIMEOUT 60)
+add_test(NAME optimal_k64_double_proxy_integration
+    COMMAND optimal_k64_quadruple_proxy_integration double)
+set_tests_properties(optimal_k64_double_proxy_integration PROPERTIES TIMEOUT 60)
+add_test(NAME uniform_k64_double_proxy_integration
+    COMMAND optimal_k64_quadruple_proxy_integration uniform-double)
+set_tests_properties(uniform_k64_double_proxy_integration PROPERTIES TIMEOUT 60)
 
 add_test(NAME layout_test COMMAND layout_test)
 set_tests_properties(layout_test
@@ -1052,6 +1135,39 @@ target_link_libraries(nlrc_k128_triple_repair_verify -lpthread -lJerasure -lgf_c
 add_test(NAME nlrc_k128_triple_repair_verify COMMAND nlrc_k128_triple_repair_verify)
 set_tests_properties(nlrc_k128_triple_repair_verify PROPERTIES TIMEOUT 30)
 
+# NLRC k=64 exact shared local-pair and global quadruple recovery verification.
+add_executable(nlrc_k64_quadruple_repair_verify
+    ${CMAKE_CURRENT_SOURCE_DIR}/tests/nlrc_k64_quadruple_repair_verify.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/encoder.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/encoder_layout.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/recovery_strategy.cpp
+    ${ASM_SOURCES}
+)
+target_link_libraries(nlrc_k64_quadruple_repair_verify -lpthread -lJerasure -lgf_complete)
+add_test(NAME nlrc_k64_quadruple_repair_verify COMMAND nlrc_k64_quadruple_repair_verify)
+set_tests_properties(nlrc_k64_quadruple_repair_verify PROPERTIES TIMEOUT 30)
+
+add_executable(nlrc_k64_quadruple_proxy_integration
+    ${cn_proto_srcs} ${cn_grpc_srcs} ${pn_proto_srcs} ${pn_grpc_srcs} ${dn_proto_srcs} ${dn_grpc_srcs}
+    ${ASM_SOURCES}
+    ${CMAKE_CURRENT_SOURCE_DIR}/tests/nlrc_k64_quadruple_proxy_integration.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/proxy.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/datanode.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/config.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/toolbox.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/tinyxml2.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/lrc.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/encoder.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/encoder_layout.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/recovery_strategy.cpp)
+target_link_libraries(nlrc_k64_quadruple_proxy_integration
+    ${_REFLECTION} ${_GRPC_GRPCPP} ${_PROTOBUF_LIBPROTOBUF} -lpthread -lJerasure -lgf_complete)
+add_test(NAME nlrc_k64_quadruple_proxy_integration COMMAND nlrc_k64_quadruple_proxy_integration)
+set_tests_properties(nlrc_k64_quadruple_proxy_integration PROPERTIES TIMEOUT 90)
+add_test(NAME nlrc_k64_triple_proxy_integration
+    COMMAND nlrc_k64_quadruple_proxy_integration triple)
+set_tests_properties(nlrc_k64_triple_proxy_integration PROPERTIES TIMEOUT 120)
+
 # NLRC k=96 exact local/shared and G0+G1+G2+L6 quadruple-block recovery verification.
 add_executable(nlrc_k96_quadruple_repair_verify
     ${CMAKE_CURRENT_SOURCE_DIR}/tests/nlrc_k96_quadruple_repair_verify.cpp
@@ -1077,3 +1193,17 @@ target_include_directories(nlrc_k128_quadruple_repair_verify PRIVATE ${CMAKE_CUR
 target_link_libraries(nlrc_k128_quadruple_repair_verify -lpthread -lJerasure -lgf_complete)
 add_test(NAME nlrc_k128_quadruple_repair_verify COMMAND nlrc_k128_quadruple_repair_verify)
 set_tests_properties(nlrc_k128_quadruple_repair_verify PROPERTIES TIMEOUT 30)
+
+# Run the actual benchmark CLI against a controlled RPC fixture.
+add_executable(benchmark_repeat_integration
+    ${cn_proto_srcs} ${cn_grpc_srcs} ${ASM_SOURCES}
+    ${CMAKE_CURRENT_SOURCE_DIR}/tests/benchmark_repeat_integration.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/encoder.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/encoder_layout.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/recovery_strategy.cpp)
+target_link_libraries(benchmark_repeat_integration
+    ${_GRPC_GRPCPP} ${_PROTOBUF_LIBPROTOBUF} -lpthread -lJerasure -lgf_complete)
+add_dependencies(benchmark_repeat_integration repair_benchmark)
+add_test(NAME benchmark_repeat_integration
+    COMMAND benchmark_repeat_integration $<TARGET_FILE:repair_benchmark>)
+set_tests_properties(benchmark_repeat_integration PROPERTIES TIMEOUT 45 RUN_SERIAL TRUE)

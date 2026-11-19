@@ -381,7 +381,8 @@ struct DegradedReadReplyDefaultTypeInternal {
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 DegradedReadReplyDefaultTypeInternal _DegradedReadReply_default_instance_;
 PROTOBUF_CONSTEXPR RecoveryReply::RecoveryReply(
     ::_pbi::ConstantInitialized): _impl_{
-    /*decltype(_impl_.maintenance_note_)*/{&::_pbi::fixed_address_empty_string, ::_pbi::ConstantInitialized{}}
+    /*decltype(_impl_.custom_task_recovery_times_)*/{}
+  , /*decltype(_impl_.maintenance_note_)*/{&::_pbi::fixed_address_empty_string, ::_pbi::ConstantInitialized{}}
   , /*decltype(_impl_.disk_read_time_)*/0
   , /*decltype(_impl_.network_time_)*/0
   , /*decltype(_impl_.decode_time_)*/0
@@ -622,6 +623,7 @@ const uint32_t TableStruct_coordinator_2eproto::offsets[] PROTOBUF_SECTION_VARIA
   PROTOBUF_FIELD_OFFSET(::coordinator_proto::RecoveryReply, _impl_.maintenance_fell_back_),
   PROTOBUF_FIELD_OFFSET(::coordinator_proto::RecoveryReply, _impl_.maintenance_note_),
   PROTOBUF_FIELD_OFFSET(::coordinator_proto::RecoveryReply, _impl_.custom_recovery_time_),
+  PROTOBUF_FIELD_OFFSET(::coordinator_proto::RecoveryReply, _impl_.custom_task_recovery_times_),
 };
 static const ::_pbi::MigrationSchema schemas[] PROTOBUF_SECTION_VARIABLE(protodesc_cold) = {
   { 0, -1, -1, sizeof(::coordinator_proto::RequestToCoordinator)},
@@ -724,83 +726,84 @@ const char descriptor_table_protodef_coordinator_2eproto[] PROTOBUF_SECTION_VARI
   "\" \n\013RepBlockNum\022\021\n\tblock_num\030\001 \001(\005\"m\n\021De"
   "gradedReadReply\022\024\n\014disk_io_time\030\001 \001(\001\022\024\n"
   "\014network_time\030\002 \001(\001\022\023\n\013decode_time\030\003 \001(\001"
-  "\022\027\n\017grpc_start_time\030\004 \001(\001\"\333\001\n\rRecoveryRe"
+  "\022\027\n\017grpc_start_time\030\004 \001(\001\"\377\001\n\rRecoveryRe"
   "ply\022\026\n\016disk_read_time\030\001 \001(\001\022\024\n\014network_t"
   "ime\030\002 \001(\001\022\023\n\013decode_time\030\003 \001(\001\022\027\n\017disk_w"
   "rite_time\030\004 \001(\001\022\027\n\017grpc_start_time\030\005 \001(\001"
   "\022\035\n\025maintenance_fell_back\030\006 \001(\010\022\030\n\020maint"
   "enance_note\030\007 \001(\t\022\034\n\024custom_recovery_tim"
-  "e\030\010 \001(\0012\314\024\n\022coordinatorService\022k\n\025sayHel"
-  "loToCoordinator\022\'.coordinator_proto.Requ"
-  "estToCoordinator\032\'.coordinator_proto.Rep"
-  "lyFromCoordinator\"\000\022`\n\ncheckalive\022\'.coor"
-  "dinator_proto.RequestToCoordinator\032\'.coo"
-  "rdinator_proto.ReplyFromCoordinator\"\000\022d\n"
-  "\024uploadOriginKeyValue\022%.coordinator_prot"
-  "o.RequestProxyIPPort\032#.coordinator_proto"
-  ".ReplyProxyIPPort\"\000\022a\n\021reportCommitAbort"
-  "\022!.coordinator_proto.CommitAbortKey\032\'.co"
-  "ordinator_proto.ReplyFromCoordinator\"\000\022V"
-  "\n\020checkCommitAbort\022\037.coordinator_proto.A"
-  "skIfSuccess\032\037.coordinator_proto.RepIfSuc"
-  "cess\"\000\022`\n\016uploadSetValue\022%.coordinator_p"
-  "roto.RequestProxyIPPort\032%.coordinator_pr"
-  "oto.ReplyProxyIPsPorts\"\000\022c\n\021uploadSubset"
-  "Value\022%.coordinator_proto.RequestProxyIP"
-  "Port\032%.coordinator_proto.ReplyProxyIPsPo"
-  "rts\"\000\022c\n\021uploadAppendValue\022%.coordinator"
-  "_proto.RequestProxyIPPort\032%.coordinator_"
-  "proto.ReplyProxyIPsPorts\"\000\022S\n\010getValue\022!"
-  ".coordinator_proto.KeyAndClientIP\032\".coor"
-  "dinator_proto.RepIfGetSuccess\"\000\022W\n\tgetSt"
-  "ripe\022!.coordinator_proto.KeyAndClientIP\032"
-  "%.coordinator_proto.ReplyProxyIPsPorts\"\000"
-  "\022\\\n\tgetBlocks\022&.coordinator_proto.BlockI"
-  "DsAndClientIP\032%.coordinator_proto.ReplyP"
-  "roxyIPsPorts\"\000\022h\n\025getDegradedReadBlocks\022"
-  "&.coordinator_proto.BlockIDsAndClientIP\032"
-  "%.coordinator_proto.ReplyProxyIPsPorts\"\000"
-  "\022a\n\024getDegradedReadBlock\022!.coordinator_p"
-  "roto.KeyAndClientIP\032$.coordinator_proto."
-  "DegradedReadReply\"\000\022j\n\035getDegradedReadBl"
-  "ockBreakdown\022!.coordinator_proto.KeyAndC"
-  "lientIP\032$.coordinator_proto.DegradedRead"
-  "Reply\"\000\022T\n\013getRecovery\022!.coordinator_pro"
-  "to.KeyAndClientIP\032 .coordinator_proto.Re"
-  "coveryReply\"\000\022]\n\024getRecoveryBreakdown\022!."
-  "coordinator_proto.KeyAndClientIP\032 .coord"
-  "inator_proto.RecoveryReply\"\000\022^\n\016customRe"
-  "covery\022(.coordinator_proto.CustomRecover"
-  "yRequest\032 .coordinator_proto.RecoveryRep"
-  "ly\"\000\022j\n\024customDoubleRecovery\022..coordinat"
-  "or_proto.CustomDoubleRecoveryRequest\032 .c"
-  "oordinator_proto.RecoveryReply\"\000\022Y\n\020full"
-  "NodeRecovery\022#.coordinator_proto.NodeIdF"
-  "romClient\032\036.coordinator_proto.RepBlockNu"
-  "m\"\000\022\\\n\017twoNodeRecovery\022\'.coordinator_pro"
-  "to.TwoNodeIdsFromClient\032\036.coordinator_pr"
-  "oto.RepBlockNum\"\000\022f\n\016globalRecovery\0220.co"
-  "ordinator_proto.StripeIdAndBlockIDsFromC"
-  "lient\032 .coordinator_proto.RecoveryReply\""
-  "\000\022o\n\027globalRecoveryBreakdown\0220.coordinat"
-  "or_proto.StripeIdAndBlockIDsFromClient\032 "
-  ".coordinator_proto.RecoveryReply\"\000\022f\n\025ma"
-  "intenanceReadStripe\022).coordinator_proto."
-  "MaintenanceReadRequest\032 .coordinator_pro"
-  "to.RecoveryReply\"\000\022N\n\010delByKey\022 .coordin"
-  "ator_proto.KeyFromClient\032\036.coordinator_p"
-  "roto.RepIfDeling\"\000\022V\n\013delByStripe\022%.coor"
-  "dinator_proto.StripeIdFromClient\032\036.coord"
-  "inator_proto.RepIfDeling\"\000\022Y\n\013listStripe"
-  "s\022\'.coordinator_proto.RequestToCoordinat"
-  "or\032\037.coordinator_proto.RepStripeIds\"\000\022W\n"
-  "\ndecodeTest\022!.coordinator_proto.KeyAndCl"
-  "ientIP\032$.coordinator_proto.DegradedReadR"
-  "eply\"\000b\006proto3"
+  "e\030\010 \001(\001\022\"\n\032custom_task_recovery_times\030\t "
+  "\003(\0012\314\024\n\022coordinatorService\022k\n\025sayHelloTo"
+  "Coordinator\022\'.coordinator_proto.RequestT"
+  "oCoordinator\032\'.coordinator_proto.ReplyFr"
+  "omCoordinator\"\000\022`\n\ncheckalive\022\'.coordina"
+  "tor_proto.RequestToCoordinator\032\'.coordin"
+  "ator_proto.ReplyFromCoordinator\"\000\022d\n\024upl"
+  "oadOriginKeyValue\022%.coordinator_proto.Re"
+  "questProxyIPPort\032#.coordinator_proto.Rep"
+  "lyProxyIPPort\"\000\022a\n\021reportCommitAbort\022!.c"
+  "oordinator_proto.CommitAbortKey\032\'.coordi"
+  "nator_proto.ReplyFromCoordinator\"\000\022V\n\020ch"
+  "eckCommitAbort\022\037.coordinator_proto.AskIf"
+  "Success\032\037.coordinator_proto.RepIfSuccess"
+  "\"\000\022`\n\016uploadSetValue\022%.coordinator_proto"
+  ".RequestProxyIPPort\032%.coordinator_proto."
+  "ReplyProxyIPsPorts\"\000\022c\n\021uploadSubsetValu"
+  "e\022%.coordinator_proto.RequestProxyIPPort"
+  "\032%.coordinator_proto.ReplyProxyIPsPorts\""
+  "\000\022c\n\021uploadAppendValue\022%.coordinator_pro"
+  "to.RequestProxyIPPort\032%.coordinator_prot"
+  "o.ReplyProxyIPsPorts\"\000\022S\n\010getValue\022!.coo"
+  "rdinator_proto.KeyAndClientIP\032\".coordina"
+  "tor_proto.RepIfGetSuccess\"\000\022W\n\tgetStripe"
+  "\022!.coordinator_proto.KeyAndClientIP\032%.co"
+  "ordinator_proto.ReplyProxyIPsPorts\"\000\022\\\n\t"
+  "getBlocks\022&.coordinator_proto.BlockIDsAn"
+  "dClientIP\032%.coordinator_proto.ReplyProxy"
+  "IPsPorts\"\000\022h\n\025getDegradedReadBlocks\022&.co"
+  "ordinator_proto.BlockIDsAndClientIP\032%.co"
+  "ordinator_proto.ReplyProxyIPsPorts\"\000\022a\n\024"
+  "getDegradedReadBlock\022!.coordinator_proto"
+  ".KeyAndClientIP\032$.coordinator_proto.Degr"
+  "adedReadReply\"\000\022j\n\035getDegradedReadBlockB"
+  "reakdown\022!.coordinator_proto.KeyAndClien"
+  "tIP\032$.coordinator_proto.DegradedReadRepl"
+  "y\"\000\022T\n\013getRecovery\022!.coordinator_proto.K"
+  "eyAndClientIP\032 .coordinator_proto.Recove"
+  "ryReply\"\000\022]\n\024getRecoveryBreakdown\022!.coor"
+  "dinator_proto.KeyAndClientIP\032 .coordinat"
+  "or_proto.RecoveryReply\"\000\022^\n\016customRecove"
+  "ry\022(.coordinator_proto.CustomRecoveryReq"
+  "uest\032 .coordinator_proto.RecoveryReply\"\000"
+  "\022j\n\024customDoubleRecovery\022..coordinator_p"
+  "roto.CustomDoubleRecoveryRequest\032 .coord"
+  "inator_proto.RecoveryReply\"\000\022Y\n\020fullNode"
+  "Recovery\022#.coordinator_proto.NodeIdFromC"
+  "lient\032\036.coordinator_proto.RepBlockNum\"\000\022"
+  "\\\n\017twoNodeRecovery\022\'.coordinator_proto.T"
+  "woNodeIdsFromClient\032\036.coordinator_proto."
+  "RepBlockNum\"\000\022f\n\016globalRecovery\0220.coordi"
+  "nator_proto.StripeIdAndBlockIDsFromClien"
+  "t\032 .coordinator_proto.RecoveryReply\"\000\022o\n"
+  "\027globalRecoveryBreakdown\0220.coordinator_p"
+  "roto.StripeIdAndBlockIDsFromClient\032 .coo"
+  "rdinator_proto.RecoveryReply\"\000\022f\n\025mainte"
+  "nanceReadStripe\022).coordinator_proto.Main"
+  "tenanceReadRequest\032 .coordinator_proto.R"
+  "ecoveryReply\"\000\022N\n\010delByKey\022 .coordinator"
+  "_proto.KeyFromClient\032\036.coordinator_proto"
+  ".RepIfDeling\"\000\022V\n\013delByStripe\022%.coordina"
+  "tor_proto.StripeIdFromClient\032\036.coordinat"
+  "or_proto.RepIfDeling\"\000\022Y\n\013listStripes\022\'."
+  "coordinator_proto.RequestToCoordinator\032\037"
+  ".coordinator_proto.RepStripeIds\"\000\022W\n\ndec"
+  "odeTest\022!.coordinator_proto.KeyAndClient"
+  "IP\032$.coordinator_proto.DegradedReadReply"
+  "\"\000b\006proto3"
   ;
 static ::_pbi::once_flag descriptor_table_coordinator_2eproto_once;
 const ::_pbi::DescriptorTable descriptor_table_coordinator_2eproto = {
-    false, false, 4654, descriptor_table_protodef_coordinator_2eproto,
+    false, false, 4690, descriptor_table_protodef_coordinator_2eproto,
     "coordinator.proto",
     &descriptor_table_coordinator_2eproto_once, nullptr, 0, 25,
     schemas, file_default_instances, TableStruct_coordinator_2eproto::offsets,
@@ -6627,7 +6630,8 @@ RecoveryReply::RecoveryReply(const RecoveryReply& from)
   : ::PROTOBUF_NAMESPACE_ID::Message() {
   RecoveryReply* const _this = this; (void)_this;
   new (&_impl_) Impl_{
-      decltype(_impl_.maintenance_note_){}
+      decltype(_impl_.custom_task_recovery_times_){from._impl_.custom_task_recovery_times_}
+    , decltype(_impl_.maintenance_note_){}
     , decltype(_impl_.disk_read_time_){}
     , decltype(_impl_.network_time_){}
     , decltype(_impl_.decode_time_){}
@@ -6657,7 +6661,8 @@ inline void RecoveryReply::SharedCtor(
   (void)arena;
   (void)is_message_owned;
   new (&_impl_) Impl_{
-      decltype(_impl_.maintenance_note_){}
+      decltype(_impl_.custom_task_recovery_times_){arena}
+    , decltype(_impl_.maintenance_note_){}
     , decltype(_impl_.disk_read_time_){0}
     , decltype(_impl_.network_time_){0}
     , decltype(_impl_.decode_time_){0}
@@ -6684,6 +6689,7 @@ RecoveryReply::~RecoveryReply() {
 
 inline void RecoveryReply::SharedDtor() {
   GOOGLE_DCHECK(GetArenaForAllocation() == nullptr);
+  _impl_.custom_task_recovery_times_.~RepeatedField();
   _impl_.maintenance_note_.Destroy();
 }
 
@@ -6697,6 +6703,7 @@ void RecoveryReply::Clear() {
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
 
+  _impl_.custom_task_recovery_times_.Clear();
   _impl_.maintenance_note_.ClearToEmpty();
   ::memset(&_impl_.disk_read_time_, 0, static_cast<size_t>(
       reinterpret_cast<char*>(&_impl_.maintenance_fell_back_) -
@@ -6772,6 +6779,17 @@ const char* RecoveryReply::_InternalParse(const char* ptr, ::_pbi::ParseContext*
       case 8:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 65)) {
           _impl_.custom_recovery_time_ = ::PROTOBUF_NAMESPACE_ID::internal::UnalignedLoad<double>(ptr);
+          ptr += sizeof(double);
+        } else
+          goto handle_unusual;
+        continue;
+      // repeated double custom_task_recovery_times = 9;
+      case 9:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 74)) {
+          ptr = ::PROTOBUF_NAMESPACE_ID::internal::PackedDoubleParser(_internal_mutable_custom_task_recovery_times(), ptr, ctx);
+          CHK_(ptr);
+        } else if (static_cast<uint8_t>(tag) == 73) {
+          _internal_add_custom_task_recovery_times(::PROTOBUF_NAMESPACE_ID::internal::UnalignedLoad<double>(ptr));
           ptr += sizeof(double);
         } else
           goto handle_unusual;
@@ -6881,6 +6899,11 @@ uint8_t* RecoveryReply::_InternalSerialize(
     target = ::_pbi::WireFormatLite::WriteDoubleToArray(8, this->_internal_custom_recovery_time(), target);
   }
 
+  // repeated double custom_task_recovery_times = 9;
+  if (this->_internal_custom_task_recovery_times_size() > 0) {
+    target = stream->WriteFixedPacked(9, _internal_custom_task_recovery_times(), target);
+  }
+
   if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
     target = ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
         _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
@@ -6896,6 +6919,17 @@ size_t RecoveryReply::ByteSizeLong() const {
   uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
+
+  // repeated double custom_task_recovery_times = 9;
+  {
+    unsigned int count = static_cast<unsigned int>(this->_internal_custom_task_recovery_times_size());
+    size_t data_size = 8UL * count;
+    if (data_size > 0) {
+      total_size += 1 +
+        ::_pbi::WireFormatLite::Int32Size(static_cast<int32_t>(data_size));
+    }
+    total_size += data_size;
+  }
 
   // string maintenance_note = 7;
   if (!this->_internal_maintenance_note().empty()) {
@@ -6981,6 +7015,7 @@ void RecoveryReply::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
+  _this->_impl_.custom_task_recovery_times_.MergeFrom(from._impl_.custom_task_recovery_times_);
   if (!from._internal_maintenance_note().empty()) {
     _this->_internal_set_maintenance_note(from._internal_maintenance_note());
   }
@@ -7048,6 +7083,7 @@ void RecoveryReply::InternalSwap(RecoveryReply* other) {
   auto* lhs_arena = GetArenaForAllocation();
   auto* rhs_arena = other->GetArenaForAllocation();
   _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  _impl_.custom_task_recovery_times_.InternalSwap(&other->_impl_.custom_task_recovery_times_);
   ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::InternalSwap(
       &_impl_.maintenance_note_, lhs_arena,
       &other->_impl_.maintenance_note_, rhs_arena

@@ -225,4 +225,8 @@ message RecoveryReply {
   // Coordinator-side elapsed time for custom recovery, measured from RPC handler entry
   // through validation, solvability checking, source reads, decode, and write-back.
   double custom_recovery_time = 8;
+  // Per-task coordinator-to-proxy RPC elapsed seconds, in request.tasks order.
+  // Each includes source reads, decoding, result forwarding and completed write-back.
+  // Populated for successful independent customDoubleRecovery tasks; these may overlap.
+  repeated double custom_task_recovery_times = 9;
 }

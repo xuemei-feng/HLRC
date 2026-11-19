@@ -6,7 +6,10 @@
 #include <algorithm>
 #include <chrono>
 #include <exception>
+#include <cmath>
 #include <iostream>
+#include <limits>
+#include <map>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -496,7 +499,11 @@ bool make_repair_plan(const std::string &code_type, int k,
   plan.code_type = code_type;
   plan.k = k;
 
-  if (failure_type == "triple")
+  // These shared branches own only the three standard LRC registries.
+  // NLRC/HLRC use their own parameter validation and registries below.
+  const bool standard_lrc = code_type == "AzureLRC" || code_type == "OptimalLRC" ||
+                            code_type == "UniformLRC";
+  if (standard_lrc && failure_type == "triple")
   {
     const bool azure_large = code_type == "AzureLRC" && (k == 96 || k == 128);
     const bool optimal_large = code_type == "OptimalLRC" && (k == 96 || k == 128);
@@ -530,13 +537,13 @@ bool make_repair_plan(const std::string &code_type, int k,
     return true;
   }
 
-  if (failure_type == "quadruple")
+  if (standard_lrc && failure_type == "quadruple")
   {
     const bool azure_large = code_type == "AzureLRC" && (k == 96 || k == 128);
     const bool optimal_large = code_type == "OptimalLRC" && (k == 96 || k == 128);
     const bool uniform_large = code_type == "UniformLRC" && (k == 96 || k == 128);
     const bool supported_k64 =
-        (code_type == "AzureLRC" || code_type == "UniformLRC") && k == 64;
+        (code_type == "AzureLRC" || code_type == "OptimalLRC" || code_type == "UniformLRC") && k == 64;
     if (!azure_large && !optimal_large && !uniform_large && !supported_k64)
     {
       error = "no repair plan is registered for CodeType=" + code_type +
@@ -845,7 +852,8 @@ bool make_repair_plan(const std::string &code_type, int k,
   if (code_type == "NLRC")
   {
     const bool k64_supported = k == 64 && (failure_type == "single" ||
-        failure_type == "double" || failure_type == "triple");
+        failure_type == "double" || failure_type == "triple" ||
+        failure_type == "quadruple");
     const bool k96_supported = k == 96 &&
         (failure_type == "single" || failure_type == "double" ||
          failure_type == "triple" || failure_type == "quadruple");
@@ -886,7 +894,9 @@ bool make_repair_plan(const std::string &code_type, int k,
     else
       plan.quadruple_cases = k == 128
           ? ECProject::RepairBenchmark::make_nlrc_k128_quadruple_block_cases()
-          : ECProject::RepairBenchmark::make_nlrc_k96_quadruple_block_cases();
+          : (k == 96
+                 ? ECProject::RepairBenchmark::make_nlrc_k96_quadruple_block_cases()
+                 : ECProject::RepairBenchmark::make_nlrc_k64_quadruple_block_cases());
     return true;
   }
 
@@ -1019,13 +1029,118 @@ void print_ids(const std::vector<int> &ids)
     std::cout << (i == 0 ? "" : ",") << ids[i];
 }
 
+std::string repair_task_name(const RepairTask &task, int k, int r)
+{
+  std::string name;
+  for (int id : task.failed_block_ids)
+  {
+    if (!name.empty()) name += "+";
+    if (id < k) name += "D" + std::to_string(id);
+    else if (id < k + r) name += "G" + std::to_string(id - k);
+    else name += "L" + std::to_string(id - k - r);
+  }
+  return name;
+}
+
+void print_repair_plan(const RepairPlan &plan, const std::string &failure_type)
+{
+  std::cout << "Repair plan: code=" << plan.code_type << ", k=" << plan.k
+            << ", r=" << plan.required_r << ", z=" << plan.required_z
+            << ", failure=" << failure_type << std::endl;
+  auto print_task = [](const RepairTask &task) {
+    std::cout << "  task owner=" << task.failed_block_ids.front() << " failed=[";
+    print_ids(task.failed_block_ids);
+    std::cout << "], sources=[";
+    print_ids(task.source_block_ids);
+    std::cout << "]" << std::endl;
+  };
+  for (const auto &test_case : plan.single_cases)
+  {
+    std::cout << "Case " << test_case.failed_name << std::endl;
+    print_task({{test_case.failed_block_id}, test_case.source_block_ids});
+  }
+  for (const auto *cases : {&plan.double_cases, &plan.triple_cases, &plan.quadruple_cases})
+    for (const auto &test_case : *cases)
+    {
+      std::cout << "Case " << test_case.failed_name << std::endl;
+      for (const auto &task : test_case.tasks)
+        print_task(task);
+    }
+}
+
+struct BenchmarkOptions
+{
+  int repeat = 1;
+  int warmup = 0;
+  int stripe_id = -1;
+  bool check_plan = false;
+  std::string config_path;
+};
+
+BenchmarkOptions parse_options(int argc, char **argv)
+{
+  BenchmarkOptions options;
+  std::vector<std::string> seen;
+  for (int i = 3; i < argc; ++i)
+  {
+    const std::string flag = argv[i];
+    if (std::find(seen.begin(), seen.end(), flag) != seen.end())
+      throw std::invalid_argument("duplicate option " + flag);
+    seen.push_back(flag);
+    if (flag == "--check-plan")
+    {
+      options.check_plan = true;
+      if (i + 1 < argc && std::string(argv[i + 1]).rfind("--", 0) != 0)
+      {
+        if (!options.config_path.empty()) throw std::invalid_argument("duplicate config path");
+        options.config_path = argv[++i];
+      }
+      continue;
+    }
+    if (flag != "--repeat" && flag != "--warmup" && flag != "--stripe-id" && flag != "--config")
+      throw std::invalid_argument("unknown option " + flag);
+    if (++i == argc) throw std::invalid_argument("missing value for " + flag);
+    const std::string value = argv[i];
+    if (flag == "--config")
+    {
+      if (!options.config_path.empty()) throw std::invalid_argument("duplicate config path");
+      if (value.empty() || value.rfind("--", 0) == 0) throw std::invalid_argument("missing config path");
+      options.config_path = value;
+      continue;
+    }
+    if (value.empty() || value.find_first_not_of("0123456789") != std::string::npos)
+      throw std::invalid_argument("invalid value for " + flag);
+    size_t parsed = 0;
+    const long long number = std::stoll(value, &parsed);
+    const long long maximum = flag == "--stripe-id" ? std::numeric_limits<int>::max() : 1000000;
+    const int minimum = flag == "--repeat" ? 1 : 0;
+    if (parsed != value.size() || number < minimum || number > maximum)
+      throw std::invalid_argument("value out of range for " + flag);
+    if (flag == "--repeat") options.repeat = static_cast<int>(number);
+    else if (flag == "--warmup") options.warmup = static_cast<int>(number);
+    else options.stripe_id = static_cast<int>(number);
+  }
+  return options;
+}
+
 } // namespace
 
 int main(int argc, char **argv)
 {
-  if (argc != 3)
+  if (argc < 3)
   {
-    std::cerr << "Usage: " << argv[0] << " <24|48|64|72|96|128> <single|double|triple|quadruple>" << std::endl;
+    std::cerr << "Usage: " << argv[0]
+              << " <24|48|64|72|96|128> <single|double|triple|quadruple>"
+              << " [--repeat N] [--warmup N] [--stripe-id ID]"
+              << " [--config config.xml] [--check-plan [config.xml]]" << std::endl;
+    return 2;
+  }
+
+  BenchmarkOptions options;
+  try { options = parse_options(argc, argv); }
+  catch (const std::exception &error)
+  {
+    std::cerr << "Error: " << error.what() << std::endl;
     return 2;
   }
 
@@ -1057,7 +1172,8 @@ int main(int argc, char **argv)
     return 2;
   }
 
-  const std::string config_path = config_path_from_executable(argv[0]);
+  const std::string config_path = options.config_path.empty()
+      ? config_path_from_executable(argv[0]) : options.config_path;
   const ECProject::Config *config = nullptr;
   try
   {
@@ -1096,63 +1212,93 @@ int main(int argc, char **argv)
     return 1;
   }
 
+  if (options.check_plan)
+  {
+    print_repair_plan(repair_plan, failure_type);
+    std::cout << "Benchmark options: repeat=" << options.repeat << ", warmup=" << options.warmup
+              << ", stripe=" << (options.stripe_id < 0 ? "new" : std::to_string(options.stripe_id))
+              << std::endl;
+    std::cout << "Repair plan check passed." << std::endl;
+    return 0;
+  }
+
   const std::string client_ip = config->ClientIP;
   const int client_port = 44444;
   ECProject::Client client(client_ip, client_port,
-      config->CoordinatorIP + ":" + std::to_string(config->CoordinatorPort), config_path);
+      config->CoordinatorIP + ":" + std::to_string(config->CoordinatorPort), config_path,
+      options.stripe_id < 0);
 
   std::cout << client.sayHelloToCoordinatorByGrpc(
       "Repair benchmark (" + config->CodeType + "): " + client_ip + ":" +
       std::to_string(client_port)) << std::endl;
-  if (!client.set())
+  int stripe_id = options.stripe_id;
+  const std::vector<int> previous_stripes = client.list_stripes();
+  if (stripe_id >= 0)
   {
-    std::cerr << "Error: failed to create the benchmark stripe." << std::endl;
-    return 1;
+    if (std::find(previous_stripes.begin(), previous_stripes.end(), stripe_id) == previous_stripes.end())
+    {
+      std::cerr << "Error: requested stripe " << stripe_id << " does not exist; no stripe was created."
+                << std::endl;
+      return 1;
+    }
+    std::cout << "Reusing existing stripe " << stripe_id << "; skipping set." << std::endl;
   }
-
-  std::vector<int> stripe_ids = client.list_stripes();
-  if (stripe_ids.empty())
+  else
   {
-    std::cerr << "Error: no stripe found after benchmark data was written." << std::endl;
-    return 1;
+    if (!client.set())
+    {
+      std::cerr << "Error: failed to create the benchmark stripe." << std::endl;
+      return 1;
+    }
+    std::vector<int> created;
+    for (int id : client.list_stripes())
+      if (std::find(previous_stripes.begin(), previous_stripes.end(), id) == previous_stripes.end())
+        created.push_back(id);
+    if (created.size() != 1)
+    {
+      std::cerr << "Error: cannot uniquely identify the newly created stripe; stop concurrent stripe creation."
+                << std::endl;
+      return 1;
+    }
+    stripe_id = created.front();
   }
-  const int stripe_id = *std::max_element(stripe_ids.begin(), stripe_ids.end());
 
   std::cout << "Repair benchmark: code=" << repair_plan.code_type
             << ", k=" << config->k << ", r=" << config->r
             << ", z=" << config->z << ", failure=" << failure_type
-            << ", stripe=" << stripe_id << std::endl;
-  bool all_succeeded = true;
+            << ", stripe=" << stripe_id << ", repeat=" << options.repeat
+            << ", warmup=" << options.warmup << std::endl;
+  std::vector<ECProject::RepairBenchmark::RepairGroupCase> cases;
   if (failure_type == "single")
-  {
-    for (const RepairCase &test_case : repair_plan.single_cases)
-    {
-      std::cout << "Case " << test_case.failed_name << " (block " << test_case.failed_block_id
-                << "), sources=[";
-      print_ids(test_case.source_block_ids);
-      std::cout << "]" << std::endl;
+    for (const auto &test : repair_plan.single_cases)
+      cases.push_back({test.failed_name, {{{test.failed_block_id}, test.source_block_ids}}, false});
+  else if (failure_type == "double") cases = repair_plan.double_cases;
+  else if (failure_type == "triple") cases = repair_plan.triple_cases;
+  else cases = repair_plan.quadruple_cases;
 
-      double recovery_time = 0.0;
-      const bool succeeded = client.recovery_with_sources(
-          stripe_id, test_case.failed_block_id, test_case.source_block_ids, recovery_time);
-      if (succeeded)
-        std::cout << "Result [" << repair_plan.code_type << "] " << test_case.failed_name << ": " << recovery_time << " s" << std::endl;
-      else
-      {
-        std::cout << "Result [" << repair_plan.code_type << "] " << test_case.failed_name << ": FAILED after "
-                  << recovery_time << " s" << std::endl;
-        all_succeeded = false;
-      }
-    }
-  }
-  else if (failure_type == "double")
+  bool all_succeeded = true;
+  std::map<std::string, std::vector<double>> samples;
+  std::vector<std::string> summary_names;
+  for (const auto &test_case : cases)
   {
-    for (const DoubleRepairCase &test_case : repair_plan.double_cases)
+    if (test_case.sum_task_times)
+      for (const auto &task : test_case.tasks)
+        summary_names.push_back(test_case.failed_name + "/" +
+                                repair_task_name(task, config->k, config->r));
+    summary_names.push_back(test_case.failed_name);
+  }
+  for (int iteration = 0; iteration < options.warmup + options.repeat; ++iteration)
+  {
+    const bool warming_up = iteration < options.warmup;
+    const int round = warming_up ? iteration + 1 : iteration - options.warmup + 1;
+    std::cout << (warming_up ? "Warmup round " : "Measured round ") << round
+              << "/" << (warming_up ? options.warmup : options.repeat)
+              << ", stripe=" << stripe_id << std::endl;
+    for (const auto &test_case : cases)
     {
       std::cout << "Case " << test_case.failed_name << std::endl;
-      std::vector<std::vector<int>> failed_ids;
-      std::vector<std::vector<int>> source_ids;
-      for (const RepairTask &task : test_case.tasks)
+      std::vector<std::vector<int>> failed_ids, source_ids;
+      for (const auto &task : test_case.tasks)
       {
         std::cout << "  task failed=[";
         print_ids(task.failed_block_ids);
@@ -1162,83 +1308,78 @@ int main(int argc, char **argv)
         failed_ids.push_back(task.failed_block_ids);
         source_ids.push_back(task.source_block_ids);
       }
-
       double recovery_time = 0.0;
-      const bool succeeded = client.double_recovery_with_sources(
-          stripe_id, failed_ids, source_ids, recovery_time,
-          test_case.optimal_g0_d0_chain);
+      std::vector<double> task_times;
+      bool succeeded = failure_type == "single"
+          ? client.recovery_with_sources(stripe_id, failed_ids[0][0], source_ids[0], recovery_time)
+          : client.multi_recovery_with_sources(stripe_id, failed_ids, source_ids, recovery_time,
+                                               test_case.optimal_g0_d0_chain,
+                                               test_case.sum_task_times ? &task_times : nullptr);
+      const double wall_time = recovery_time;
+      if (succeeded && test_case.sum_task_times)
+      {
+        if (task_times.size() != test_case.tasks.size() ||
+            std::any_of(task_times.begin(), task_times.end(),
+                        [](double value) { return !std::isfinite(value) || value < 0.0; }))
+        {
+          std::cerr << "Missing or invalid per-task recovery times; rebuild and restart the coordinator."
+                    << std::endl;
+          succeeded = false;
+        }
+        else
+        {
+          recovery_time = 0.0;
+          for (size_t i = 0; i < task_times.size(); ++i)
+          {
+            const std::string name = test_case.failed_name + "/" +
+                repair_task_name(test_case.tasks[i], config->k, config->r);
+            std::cout << (warming_up ? "Warmup task" : "Task result")
+                      << " [" << repair_plan.code_type << "] " << name << ": "
+                      << task_times[i] << " s" << std::endl;
+            recovery_time += task_times[i];
+            if (!warming_up) samples[name].push_back(task_times[i]);
+          }
+        }
+      }
+      std::cout << (warming_up ? "Warmup" : "Result") << " [" << repair_plan.code_type
+                << "] " << test_case.failed_name << ": ";
       if (succeeded)
-        std::cout << "Result [" << repair_plan.code_type << "] " << test_case.failed_name << ": " << recovery_time << " s" << std::endl;
+      {
+        std::cout << recovery_time << " s";
+        if (test_case.sum_task_times)
+          std::cout << " (sum; wall=" << wall_time << " s)";
+        std::cout << std::endl;
+        if (!warming_up) samples[test_case.failed_name].push_back(recovery_time);
+      }
       else
       {
-        std::cout << "Result [" << repair_plan.code_type << "] " << test_case.failed_name << ": FAILED after "
-                  << recovery_time << " s" << std::endl;
+        std::cout << "FAILED after " << recovery_time << " s" << std::endl;
         all_succeeded = false;
+        if (warming_up)
+        {
+          std::cerr << "Warmup failed; measured rounds were not started." << std::endl;
+          return 1;
+        }
       }
     }
   }
-  else if (failure_type == "triple")
-  {
-    for (const TripleRepairCase &test_case : repair_plan.triple_cases)
+  if (options.repeat > 1 || options.warmup > 0)
+    for (const auto &name : summary_names)
     {
-      std::cout << "Case " << test_case.failed_name << std::endl;
-      std::vector<std::vector<int>> failed_ids;
-      std::vector<std::vector<int>> source_ids;
-      for (const RepairTask &task : test_case.tasks)
+      auto values = samples[name];
+      std::sort(values.begin(), values.end());
+      std::cout << "Summary [" << repair_plan.code_type << "] " << name
+                << ": success=" << values.size() << "/" << options.repeat;
+      if (!values.empty())
       {
-        std::cout << "  task failed=[";
-        print_ids(task.failed_block_ids);
-        std::cout << "], sources=[";
-        print_ids(task.source_block_ids);
-        std::cout << "]" << std::endl;
-        failed_ids.push_back(task.failed_block_ids);
-        source_ids.push_back(task.source_block_ids);
+        const size_t count = values.size();
+        const double median = (values[(count - 1) / 2] + values[count / 2]) / 2.0;
+        const size_t p95_index = static_cast<size_t>(std::ceil(count * 0.95)) - 1;
+        std::cout << " min=" << values.front() << " median=" << median
+                  << " p95=" << values[p95_index] << " max=" << values.back() << " s";
       }
-
-      double recovery_time = 0.0;
-      const bool succeeded = client.multi_recovery_with_sources(
-          stripe_id, failed_ids, source_ids, recovery_time);
-      if (succeeded)
-        std::cout << "Result [" << repair_plan.code_type << "] " << test_case.failed_name << ": " << recovery_time << " s" << std::endl;
-      else
-      {
-        std::cout << "Result [" << repair_plan.code_type << "] " << test_case.failed_name << ": FAILED after "
-                  << recovery_time << " s" << std::endl;
-        all_succeeded = false;
-      }
+      std::cout << std::endl;
     }
-  }
-  else if (failure_type == "quadruple")
-  {
-    for (const QuadrupleRepairCase &test_case : repair_plan.quadruple_cases)
-    {
-      std::cout << "Case " << test_case.failed_name << std::endl;
-      std::vector<std::vector<int>> failed_ids;
-      std::vector<std::vector<int>> source_ids;
-      for (const RepairTask &task : test_case.tasks)
-      {
-        std::cout << "  task failed=[";
-        print_ids(task.failed_block_ids);
-        std::cout << "], sources=[";
-        print_ids(task.source_block_ids);
-        std::cout << "]" << std::endl;
-        failed_ids.push_back(task.failed_block_ids);
-        source_ids.push_back(task.source_block_ids);
-      }
-
-      double recovery_time = 0.0;
-      const bool succeeded = client.multi_recovery_with_sources(
-          stripe_id, failed_ids, source_ids, recovery_time);
-      if (succeeded)
-        std::cout << "Result [" << repair_plan.code_type << "] " << test_case.failed_name << ": " << recovery_time << " s" << std::endl;
-      else
-      {
-        std::cout << "Result [" << repair_plan.code_type << "] " << test_case.failed_name << ": FAILED after "
-                  << recovery_time << " s" << std::endl;
-        all_succeeded = false;
-      }
-    }
-  }
 
   std::cout << "Benchmark completed: code=" << repair_plan.code_type
             << ", result=" << (all_succeeded ? "SUCCESS" : "FAILED") << std::endl;

@@ -4463,6 +4463,7 @@ class RecoveryReply final :
   // accessors -------------------------------------------------------
 
   enum : int {
+    kCustomTaskRecoveryTimesFieldNumber = 9,
     kMaintenanceNoteFieldNumber = 7,
     kDiskReadTimeFieldNumber = 1,
     kNetworkTimeFieldNumber = 2,
@@ -4472,6 +4473,28 @@ class RecoveryReply final :
     kCustomRecoveryTimeFieldNumber = 8,
     kMaintenanceFellBackFieldNumber = 6,
   };
+  // repeated double custom_task_recovery_times = 9;
+  int custom_task_recovery_times_size() const;
+  private:
+  int _internal_custom_task_recovery_times_size() const;
+  public:
+  void clear_custom_task_recovery_times();
+  private:
+  double _internal_custom_task_recovery_times(int index) const;
+  const ::PROTOBUF_NAMESPACE_ID::RepeatedField< double >&
+      _internal_custom_task_recovery_times() const;
+  void _internal_add_custom_task_recovery_times(double value);
+  ::PROTOBUF_NAMESPACE_ID::RepeatedField< double >*
+      _internal_mutable_custom_task_recovery_times();
+  public:
+  double custom_task_recovery_times(int index) const;
+  void set_custom_task_recovery_times(int index, double value);
+  void add_custom_task_recovery_times(double value);
+  const ::PROTOBUF_NAMESPACE_ID::RepeatedField< double >&
+      custom_task_recovery_times() const;
+  ::PROTOBUF_NAMESPACE_ID::RepeatedField< double >*
+      mutable_custom_task_recovery_times();
+
   // string maintenance_note = 7;
   void clear_maintenance_note();
   const std::string& maintenance_note() const;
@@ -4557,6 +4580,7 @@ class RecoveryReply final :
   typedef void InternalArenaConstructable_;
   typedef void DestructorSkippable_;
   struct Impl_ {
+    ::PROTOBUF_NAMESPACE_ID::RepeatedField< double > custom_task_recovery_times_;
     ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr maintenance_note_;
     double disk_read_time_;
     double network_time_;
@@ -6832,6 +6856,53 @@ inline void RecoveryReply::_internal_set_custom_recovery_time(double value) {
 inline void RecoveryReply::set_custom_recovery_time(double value) {
   _internal_set_custom_recovery_time(value);
   // @@protoc_insertion_point(field_set:coordinator_proto.RecoveryReply.custom_recovery_time)
+}
+
+// repeated double custom_task_recovery_times = 9;
+inline int RecoveryReply::_internal_custom_task_recovery_times_size() const {
+  return _impl_.custom_task_recovery_times_.size();
+}
+inline int RecoveryReply::custom_task_recovery_times_size() const {
+  return _internal_custom_task_recovery_times_size();
+}
+inline void RecoveryReply::clear_custom_task_recovery_times() {
+  _impl_.custom_task_recovery_times_.Clear();
+}
+inline double RecoveryReply::_internal_custom_task_recovery_times(int index) const {
+  return _impl_.custom_task_recovery_times_.Get(index);
+}
+inline double RecoveryReply::custom_task_recovery_times(int index) const {
+  // @@protoc_insertion_point(field_get:coordinator_proto.RecoveryReply.custom_task_recovery_times)
+  return _internal_custom_task_recovery_times(index);
+}
+inline void RecoveryReply::set_custom_task_recovery_times(int index, double value) {
+  _impl_.custom_task_recovery_times_.Set(index, value);
+  // @@protoc_insertion_point(field_set:coordinator_proto.RecoveryReply.custom_task_recovery_times)
+}
+inline void RecoveryReply::_internal_add_custom_task_recovery_times(double value) {
+  _impl_.custom_task_recovery_times_.Add(value);
+}
+inline void RecoveryReply::add_custom_task_recovery_times(double value) {
+  _internal_add_custom_task_recovery_times(value);
+  // @@protoc_insertion_point(field_add:coordinator_proto.RecoveryReply.custom_task_recovery_times)
+}
+inline const ::PROTOBUF_NAMESPACE_ID::RepeatedField< double >&
+RecoveryReply::_internal_custom_task_recovery_times() const {
+  return _impl_.custom_task_recovery_times_;
+}
+inline const ::PROTOBUF_NAMESPACE_ID::RepeatedField< double >&
+RecoveryReply::custom_task_recovery_times() const {
+  // @@protoc_insertion_point(field_list:coordinator_proto.RecoveryReply.custom_task_recovery_times)
+  return _internal_custom_task_recovery_times();
+}
+inline ::PROTOBUF_NAMESPACE_ID::RepeatedField< double >*
+RecoveryReply::_internal_mutable_custom_task_recovery_times() {
+  return &_impl_.custom_task_recovery_times_;
+}
+inline ::PROTOBUF_NAMESPACE_ID::RepeatedField< double >*
+RecoveryReply::mutable_custom_task_recovery_times() {
+  // @@protoc_insertion_point(field_mutable_list:coordinator_proto.RecoveryReply.custom_task_recovery_times)
+  return _internal_mutable_custom_task_recovery_times();
 }
 
 #ifdef __GNUC__

@@ -93,7 +93,7 @@ start_storage_node() {
   local id proxy datanode host
   read -r id proxy datanode <<<"$entry"
   host="${proxy%:*}"
-  remote "$host" "cd '$REMOTE_ROOT'; pkill -9 run_datanode 2>/dev/null || true; pkill -9 run_proxy 2>/dev/null || true; nohup env LD_LIBRARY_PATH='$RUNTIME_LIB' ./project/cmake/build/run_datanode '$datanode' </dev/null >'/tmp/hlrc-datanode-$id.log' 2>&1 & echo \$! >'/tmp/hlrc-datanode-$id.pid'; nohup env LD_LIBRARY_PATH='$RUNTIME_LIB' ./project/cmake/build/run_proxy '$proxy' </dev/null >'/tmp/hlrc-proxy-$id.log' 2>&1 & echo \$! >'/tmp/hlrc-proxy-$id.pid'"
+  remote "$host" "cd '$REMOTE_ROOT'; pkill -9 run_datanode 2>/dev/null || true; pkill -9 run_proxy 2>/dev/null || true; nohup env LD_LIBRARY_PATH='$RUNTIME_LIB' ./project/cmake/build/run_datanode '$datanode' </dev/null >'/tmp/hlrc-datanode-$id.log' 2>&1 & echo \$! >'/tmp/hlrc-datanode-$id.pid'; nohup env LD_LIBRARY_PATH='$RUNTIME_LIB' HLRC_REPAIR_WORKERS='$REPAIR_WORKERS' ./project/cmake/build/run_proxy '$proxy' </dev/null >'/tmp/hlrc-proxy-$id.log' 2>&1 & echo \$! >'/tmp/hlrc-proxy-$id.pid'"
 }
 
 wait_storage_node() {
@@ -150,6 +150,11 @@ case "$ACTION" in
     ;;
   start)
     require_distributed
+    REPAIR_WORKERS="${HLRC_REPAIR_WORKERS:-32}"
+    if ! [[ "$REPAIR_WORKERS" =~ ^[1-9][0-9]{0,2}$ ]] || [ "$REPAIR_WORKERS" -gt 128 ]; then
+      echo "HLRC_REPAIR_WORKERS must be in 1..128" >&2
+      exit 2
+    fi
     echo "Start storage nodes -> ${#NODE_LINES[@]} hosts (parallel=$PARALLEL)"
     parallel_items start_storage_node "${NODE_LINES[@]}"
     echo "Wait for storage ports (parallel=$PARALLEL)"
@@ -183,12 +188,14 @@ case "$ACTION" in
   benchmark)
     require_distributed
     K="${3:?Usage: $0 benchmark CONFIG K single|double|triple|quadruple}"; FAILURE="${4:?missing failure type}"
-    remote "$CLIENT_IP" "cd '$REMOTE_ROOT'; env LD_LIBRARY_PATH='$RUNTIME_LIB' ./project/cmake/build/repair_benchmark '$K' '$FAILURE'"
+    printf -v benchmark_args '%q ' "$K" "$FAILURE" "${@:5}"
+    remote "$CLIENT_IP" "cd '$REMOTE_ROOT'; env LD_LIBRARY_PATH='$RUNTIME_LIB' ./project/cmake/build/repair_benchmark $benchmark_args"
     ;;
   *)
     echo "Usage: $0 {generate|deploy|start|stop|status} [cluster.ini]"
-    echo "       $0 benchmark [cluster.ini] K {single|double|triple|quadruple}"
+    echo "       $0 benchmark [cluster.ini] K {single|double|triple|quadruple} [--repeat N] [--warmup N] [--stripe-id ID]"
     echo "Env:   PARALLEL=32 (max concurrent SSH/rsync jobs)"
+    echo "       HLRC_REPAIR_WORKERS=32 (repair pool workers per proxy, start only)"
     exit 2
     ;;
 esac

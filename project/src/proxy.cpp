@@ -15,6 +15,8 @@
 #include <unordered_map>
 #include <array>
 #include <cstdint>
+#include <cstdlib>
+#include <future>
 template <typename T>
 inline T ceil(T const &A, T const &B)
 {
@@ -22,6 +24,69 @@ inline T ceil(T const &A, T const &B)
 };
 namespace ECProject
 {
+  bool ProxyImpl::run_recovery_jobs(const std::vector<std::function<bool()>> &jobs)
+  {
+    std::vector<std::shared_ptr<std::packaged_task<bool()>>> tasks;
+    std::vector<std::future<bool>> results;
+    try
+    {
+      std::call_once(m_recovery_pool_once, [this] {
+        size_t workers = 32;
+        if (const char *configured = std::getenv("HLRC_REPAIR_WORKERS"))
+        {
+          const std::string text(configured);
+          size_t parsed = 0;
+          workers = std::stoul(text, &parsed);
+          if (parsed != text.size() || workers < 1 || workers > 128)
+            throw std::invalid_argument("HLRC_REPAIR_WORKERS must be in 1..128");
+        }
+        m_recovery_pool = std::make_unique<asio::thread_pool>(workers);
+        m_recovery_worker_count.store(workers);
+        m_recovery_pool_starts.fetch_add(1);
+        std::cout << "[RecoveryPool] node=" << m_self_node_id
+                  << " workers=" << workers << std::endl;
+      });
+      tasks.reserve(jobs.size());
+      results.reserve(jobs.size());
+      // Allocate every task before posting any work, so allocation failures
+      // cannot leave a job using a caller's buffers after the caller returns.
+      for (const auto &job : jobs)
+      {
+        auto task = std::make_shared<std::packaged_task<bool()>>(job);
+        results.push_back(task->get_future());
+        tasks.push_back(std::move(task));
+      }
+    }
+    catch (const std::exception &error)
+    {
+      std::cerr << "Recovery pool setup failed: " << error.what() << std::endl;
+      return false;
+    }
+    try
+    {
+      for (const auto &task : tasks)
+        asio::post(*m_recovery_pool, [task] { (*task)(); });
+    }
+    catch (const std::exception &error)
+    {
+      std::cerr << "Recovery job submission failed: " << error.what() << std::endl;
+    }
+    // Unsubmitted tasks become broken promises. Submitted tasks retain their
+    // shared ownership and must all finish before the source/output buffers go away.
+    tasks.clear();
+    bool succeeded = true;
+    for (auto &result : results)
+    {
+      try { if (!result.get()) succeeded = false; }
+      catch (const std::exception &error)
+      {
+        succeeded = false;
+        std::cerr << "Recovery job failed: " << error.what() << std::endl;
+      }
+    }
+    return succeeded;
+  }
+
   bool ProxyImpl::init_coordinator()
   {
     // Initialize coordinator stub once; reuse the same channel to avoid repeated
@@ -104,6 +169,9 @@ namespace ECProject
         grpc::CreateChannel(m_paired_datanode, grpc::InsecureChannelCredentials())));
     m_peer_acceptor = std::make_unique<asio::ip::tcp::acceptor>(
         io_context, asio::ip::tcp::endpoint(asio::ip::address::from_string(m_ip), m_port + PROXY_PEER_PORT_SHIFT));
+    // Keep incoming peer work separate from outgoing repair work: sharing one
+    // bounded pool can deadlock if all repair workers wait for incoming reads.
+    m_peer_pool = std::make_unique<asio::thread_pool>(4);
     m_peer_thread = std::thread(&ProxyImpl::run_peer_gateway, this);
     return true;
   }
@@ -122,7 +190,9 @@ namespace ECProject
       {
         asio::ip::tcp::socket socket(io_context);
         m_peer_acceptor->accept(socket);
-        std::thread(&ProxyImpl::handle_peer_connection, this, std::move(socket)).detach();
+        asio::post(*m_peer_pool, [this, socket = std::move(socket)]() mutable {
+          handle_peer_connection(std::move(socket));
+        });
       }
       catch (const std::exception &e)
       {
@@ -816,10 +886,11 @@ namespace ECProject
         std::cout << "[Proxy" << m_self_node_id << "][GET]"
                   << " Call datanode to handle get " << key << std::endl;
       }
-      else if (IF_DEBUG)
+      else if (!stat.ok())
       {
-        std::cout << "[Proxy" << m_self_node_id << "][GET]"
-                  << " Call datanode to handle get " << key << " failed!" << std::endl;
+        std::cerr << "[Proxy" << m_self_node_id << "][GET]"
+                  << " Call datanode to handle get " << key << " failed: "
+                  << stat.error_message() << std::endl;
         return false;
       }
 
@@ -2643,10 +2714,8 @@ namespace ECProject
         std::vector<int> source_ids;
         source_ids.reserve(static_cast<size_t>(source_num));
         std::vector<char *> source_bufs(static_cast<size_t>(source_num), nullptr);
-        std::unique_ptr<bool[]> read_ok(new bool[source_num]);
-        std::fill_n(read_ok.get(), source_num, false);
-        std::vector<std::thread> read_threads;
-        read_threads.reserve(static_cast<size_t>(source_num));
+        std::vector<std::function<bool()>> read_jobs;
+        read_jobs.reserve(static_cast<size_t>(source_num));
 
         for (int i = 0; i < source_num; ++i)
         {
@@ -2672,18 +2741,14 @@ namespace ECProject
           const std::string source_proxy_ip = recovery_request->source_proxy_ips(i);
           const int source_proxy_port = recovery_request->source_proxy_ports(i);
           const std::string block_key = recovery_request->blockkeys(i);
-          read_threads.emplace_back([this, &source_bufs, &read_ok, i, source_proxy_ip,
+          read_jobs.emplace_back([this, &source_bufs, i, source_proxy_ip,
                                      source_proxy_port, block_key]() {
-            read_ok[i] = GetFromOwnerProxy(source_proxy_ip, source_proxy_port, block_key,
+            return GetFromOwnerProxy(source_proxy_ip, source_proxy_port, block_key,
                                            source_bufs[static_cast<size_t>(i)],
                                            m_sys_config->BlockSize);
           });
         }
-        for (auto &thread : read_threads)
-          thread.join();
-
-        const bool all_read = std::all_of(read_ok.get(), read_ok.get() + source_num,
-                                           [](bool value) { return value; });
+        const bool all_read = run_recovery_jobs(read_jobs);
         if (!all_read)
         {
           for (char *buffer : source_bufs)
@@ -2818,10 +2883,8 @@ namespace ECProject
         for (char *buffer : source_bufs)
           std::free(buffer);
 
-        std::unique_ptr<bool[]> write_ok(new bool[output_num]);
-        std::fill_n(write_ok.get(), output_num, false);
-        std::vector<std::thread> write_threads;
-        write_threads.reserve(static_cast<size_t>(output_num));
+        std::vector<std::function<bool()>> write_jobs;
+        write_jobs.reserve(static_cast<size_t>(output_num));
         for (int i = 0; i < output_num; ++i)
         {
           const int failed_id = failed_ids[static_cast<size_t>(i)];
@@ -2834,18 +2897,15 @@ namespace ECProject
           const int target_port = multi_output
               ? recovery_request->custom_target_proxy_ports(i)
               : std::stoi(proxy_ip_port.substr(proxy_ip_port.rfind(':') + 1));
-          write_threads.emplace_back([this, &write_ok, recovered, i, failed_id,
+          write_jobs.emplace_back([this, recovered, i, failed_id,
                                       key, target_ip, target_port]() {
-            write_ok[i] = RecoveryToDatanode(
+            return RecoveryToDatanode(
                 key.c_str(), failed_id,
                 recovered + static_cast<size_t>(i) * m_sys_config->BlockSize,
                 target_ip.c_str(), target_port);
           });
         }
-        for (auto &thread : write_threads)
-          thread.join();
-        const bool all_written = std::all_of(write_ok.get(), write_ok.get() + output_num,
-                                              [](bool value) { return value; });
+        const bool all_written = run_recovery_jobs(write_jobs);
         std::free(recovered);
         if (!all_written)
           return grpc::Status(grpc::StatusCode::INTERNAL,
