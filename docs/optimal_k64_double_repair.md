@@ -10,15 +10,15 @@
 
 | 场景 | 读取和计算 |
 | --- | --- |
-| L0+L1 | L0 proxy 读取 D0–D20、G0/G1/G2；L1 proxy 读取 D21–D41、G0/G1/G2，各自计算并写回 |
-| L0+L2 | L0 proxy 读取 D0–D20、G0/G1/G2；L2 proxy 读取 D42–D63、G0/G1/G2，各自计算并写回 |
+| L0+L1 | L0 proxy 单次读取 D0–D41、G0/G1/G2，一次计算 L0、L1；L0 写入本地 datanode，L1 转发到 owner proxy 写入其 datanode |
+| L0+L2 | L0 proxy 单次读取 D0–D20、D42–D63、G0/G1/G2，一次计算 L0、L2；L0 写入本地 datanode，L2 转发到 owner proxy 写入其 datanode |
 | G0+G1 | G0 proxy 读取一次 D0–D63，计算 G0、G1；G0 写入本地 datanode，G1 发往所属 proxy，再写入其 datanode |
 
-本地校验块任务沿用并行执行。每项计时从 coordinator 发起对应 proxy 的 recovery RPC 开始，到读取、计算和写回完成后 RPC 返回为止；不包含 coordinator 预先进行的请求校验和可恢复性检查。
+三个场景均为单任务多输出。每项计时从 coordinator 发起 owner proxy 的 recovery RPC 开始，到源块读取、一次多输出计算、本地写回及远端转发写回全部完成后 RPC 返回为止；不包含 coordinator 预先进行的请求校验和可恢复性检查。
 
-每轮 L0+L1 输出 `Task result ... L0+L1/L0`、`Task result ... L0+L1/L1` 两项时间，再输出 `Result ... L0+L1: ... s (sum; wall=... s)`；L0+L2 同理。`sum` 是两项时间之和，`wall` 是整组请求从 coordinator 入口到完成的实际耗时。重复测试的 `Summary` 分别统计各项和总和，预热不计入统计。G0+G1 的 `Result` 包含读取、两个输出的计算、本地写回和远端转发写回。
+每轮每个场景只输出端到端 `Result`，不再输出本地场景的独立 `Task result` 或任务时间总和。重复测试的 `Summary` 统计该单任务端到端时间，预热不计入统计。
 
-更新涉及 coordinator 回复协议，需要重新构建、部署并重启 coordinator，同时更新 `repair_benchmark`。proxy 需运行当前源码构建的 `run_proxy`，以使用共享多输出和转发写回实现；测试旧 coordinator 缺失分项时间时会明确报错。
+需重新构建并部署 `run_coordinator`、`run_proxy` 和 `repair_benchmark`。proxy 使用共享多输出和 owner 转发写回实现。
 
 本地构建与验证（需要项目现有 Linux 依赖）：
 

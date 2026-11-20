@@ -775,16 +775,10 @@ inline std::vector<DoubleRepairCase> make_optimal_uneven_double_block_cases(int 
 {
     if (k == 96)
     {
-        auto l0_sources = inclusive_range(0, 23);
-        auto l1_sources = inclusive_range(24, 47);
-        for (int global = 96; global <= 98; ++global)
-        {
-            l0_sources.push_back(global);
-            l1_sources.push_back(global);
-        }
+        auto l0_l1_sources = inclusive_range(0, 47);
+        l0_l1_sources.insert(l0_l1_sources.end(), {96, 97, 98});
         return {
-            {"L0+L1", {{{99}, std::move(l0_sources)},
-                         {{100}, std::move(l1_sources)}}, false, true},
+            {"L0+L1", {{{99, 100}, std::move(l0_l1_sources)}}},
             {"G0+G1", {{{96, 97}, inclusive_range(0, 95)}}},
         };
     }
@@ -794,13 +788,15 @@ inline std::vector<DoubleRepairCase> make_optimal_uneven_double_block_cases(int 
             sources.insert(sources.end(), {128, 129, 130});
             return sources;
         };
+        auto l0_l1_sources = inclusive_range(0, 49);
+        auto l0_l2_sources = inclusive_range(0, 24);
+        const auto l2_data = inclusive_range(50, 75);
+        l0_l2_sources.insert(l0_l2_sources.end(), l2_data.begin(), l2_data.end());
+        auto l2_l3_sources = inclusive_range(50, 101);
         return {
-            {"L0+L1", {{{131}, with_globals(inclusive_range(0, 24))},
-                         {{132}, with_globals(inclusive_range(25, 49))}}, false, true},
-            {"L0+L2", {{{131}, with_globals(inclusive_range(0, 24))},
-                         {{133}, with_globals(inclusive_range(50, 75))}}, false, true},
-            {"L2+L3", {{{133}, with_globals(inclusive_range(50, 75))},
-                         {{134}, with_globals(inclusive_range(76, 101))}}, false, true},
+            {"L0+L1", {{{131, 132}, with_globals(std::move(l0_l1_sources))}}},
+            {"L0+L2", {{{131, 133}, with_globals(std::move(l0_l2_sources))}}},
+            {"L2+L3", {{{133, 134}, with_globals(std::move(l2_l3_sources))}}},
             {"G0+G1", {{{128, 129}, inclusive_range(0, 127)}}},
         };
     }
@@ -910,15 +906,15 @@ inline std::vector<TripleRepairCase> make_uniform_k128_triple_block_cases()
 
 inline std::vector<DoubleRepairCase> make_optimal_k64_double_block_cases()
 {
-    auto l0_sources = inclusive_range(0, 20);
-    l0_sources.insert(l0_sources.end(), {64, 65, 66});
-    auto l1_sources = inclusive_range(21, 41);
-    l1_sources.insert(l1_sources.end(), {64, 65, 66});
-    auto l2_sources = inclusive_range(42, 63);
-    l2_sources.insert(l2_sources.end(), {64, 65, 66});
+    auto l0_l1_sources = inclusive_range(0, 41);
+    l0_l1_sources.insert(l0_l1_sources.end(), {64, 65, 66});
+    auto l0_l2_sources = inclusive_range(0, 20);
+    const auto l2_data = inclusive_range(42, 63);
+    l0_l2_sources.insert(l0_l2_sources.end(), l2_data.begin(), l2_data.end());
+    l0_l2_sources.insert(l0_l2_sources.end(), {64, 65, 66});
     return {
-        {"L0+L1", {{{67}, l0_sources}, {{68}, std::move(l1_sources)}}, false, true},
-        {"L0+L2", {{{67}, std::move(l0_sources)}, {{69}, std::move(l2_sources)}}, false, true},
+        {"L0+L1", {{{67, 68}, std::move(l0_l1_sources)}}},
+        {"L0+L2", {{{67, 69}, std::move(l0_l2_sources)}}},
         {"G0+G1", {{{64, 65}, inclusive_range(0, 63)}}},
     };
 }
@@ -1004,19 +1000,10 @@ inline std::vector<TripleRepairCase> make_optimal_triple_block_cases(int k)
 {
     if (k == 96)
     {
-        auto l0_sources = inclusive_range(0, 23);
-        auto l1_sources = inclusive_range(24, 47);
-        auto l2_sources = inclusive_range(48, 71);
-        for (int global = 96; global <= 98; ++global)
-        {
-            l0_sources.push_back(global);
-            l1_sources.push_back(global);
-            l2_sources.push_back(global);
-        }
+        auto local_sources = inclusive_range(0, 71);
+        local_sources.insert(local_sources.end(), {96, 97, 98});
         return {
-            {"L0+L1+L2", {{{99}, std::move(l0_sources)},
-                            {{100}, std::move(l1_sources)},
-                            {{101}, std::move(l2_sources)}}, false, true},
+            {"L0+L1+L2", {{{99, 100, 101}, std::move(local_sources)}}},
             {"G0+G1+G2", {{{96, 97, 98}, inclusive_range(0, 95)}}},
         };
     }
@@ -1027,15 +1014,9 @@ inline std::vector<TripleRepairCase> make_optimal_triple_block_cases(int k)
             return sources;
         };
         return {
-            {"L0+L1+L2", {{{131}, with_globals(inclusive_range(0, 24))},
-                            {{132}, with_globals(inclusive_range(25, 49))},
-                            {{133}, with_globals(inclusive_range(50, 75))}}, false, true},
-            {"L1+L2+L3", {{{132}, with_globals(inclusive_range(25, 49))},
-                            {{133}, with_globals(inclusive_range(50, 75))},
-                            {{134}, with_globals(inclusive_range(76, 101))}}, false, true},
-            {"L2+L3+L4", {{{133}, with_globals(inclusive_range(50, 75))},
-                            {{134}, with_globals(inclusive_range(76, 101))},
-                            {{135}, with_globals(inclusive_range(102, 127))}}, false, true},
+            {"L0+L1+L2", {{{131, 132, 133}, with_globals(inclusive_range(0, 75))}}},
+            {"L1+L2+L3", {{{132, 133, 134}, with_globals(inclusive_range(25, 101))}}},
+            {"L2+L3+L4", {{{133, 134, 135}, with_globals(inclusive_range(50, 127))}}},
             {"G0+G1+G2", {{{128, 129, 130}, inclusive_range(0, 127)}}},
         };
     }
@@ -1064,14 +1045,10 @@ inline std::vector<QuadrupleRepairCase> make_optimal_quadruple_block_cases(int k
             return sources;
         };
         return {
-            {"L0+L1+L2+L3", {{{131}, with_globals(inclusive_range(0, 24))},
-                               {{132}, with_globals(inclusive_range(25, 49))},
-                               {{133}, with_globals(inclusive_range(50, 75))},
-                               {{134}, with_globals(inclusive_range(76, 101))}}, false, true},
-            {"L1+L2+L3+L4", {{{132}, with_globals(inclusive_range(25, 49))},
-                               {{133}, with_globals(inclusive_range(50, 75))},
-                               {{134}, with_globals(inclusive_range(76, 101))},
-                               {{135}, with_globals(inclusive_range(102, 127))}}, false, true},
+            {"L0+L1+L2+L3",
+             {{{131, 132, 133, 134}, with_globals(inclusive_range(0, 101))}}},
+            {"L1+L2+L3+L4",
+             {{{132, 133, 134, 135}, with_globals(inclusive_range(25, 127))}}},
             {"G0+G1+G2+L0",
              {{{128, 129, 130, 131}, inclusive_range(0, 127)}}},
         };

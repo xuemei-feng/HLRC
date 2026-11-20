@@ -16,10 +16,11 @@ std::vector<int> globals(std::vector<int>s){s.insert(s.end(),{128,129,130});retu
 void task(const RepairTask&t,const std::vector<int>&f,const std::vector<int>&s,const std::string&n){require(t.failed_block_ids==f,n+" failed IDs");require(t.source_block_ids==s,n+" sources");}
 void verify(const std::vector<DoubleRepairCase>&c){
  require(c.size()==4,"case count");
- require(c[0].failed_name=="L0+L1"&&c[0].tasks.size()==2,"L0+L1");task(c[0].tasks[0],{131},globals(range(0,24)),"L0");task(c[0].tasks[1],{132},globals(range(25,49)),"L1");
- require(c[1].failed_name=="L0+L2"&&c[1].tasks.size()==2,"L0+L2");task(c[1].tasks[0],{131},globals(range(0,24)),"L0");task(c[1].tasks[1],{133},globals(range(50,75)),"L2");
- require(c[2].failed_name=="L2+L3"&&c[2].tasks.size()==2,"L2+L3");task(c[2].tasks[0],{133},globals(range(50,75)),"L2");task(c[2].tasks[1],{134},globals(range(76,101)),"L3");
- for(size_t i=0;i<3;++i)require(c[i].sum_task_times,"local pair timing sum");
+ require(c[0].failed_name=="L0+L1"&&c[0].tasks.size()==1,"L0+L1");task(c[0].tasks[0],{131,132},globals(range(0,49)),"L0+L1");
+ auto l0_l2=range(0,24);const auto l2=range(50,75);l0_l2.insert(l0_l2.end(),l2.begin(),l2.end());
+ require(c[1].failed_name=="L0+L2"&&c[1].tasks.size()==1,"L0+L2");task(c[1].tasks[0],{131,133},globals(l0_l2),"L0+L2");
+ require(c[2].failed_name=="L2+L3"&&c[2].tasks.size()==1,"L2+L3");task(c[2].tasks[0],{133,134},globals(range(50,101)),"L2+L3");
+ for(size_t i=0;i<3;++i)require(!c[i].sum_task_times,"local pair end-to-end timing");
  require(c[3].failed_name=="G0+G1"&&c[3].tasks.size()==1,"G0+G1");task(c[3].tasks[0],{128,129},range(0,127),"globals");require(c[3].tasks[0].failed_block_ids.front()==128,"G0 owner");require(!c[3].sum_task_times,"global shared timing");
 }
 } // namespace

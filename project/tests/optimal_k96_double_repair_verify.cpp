@@ -34,12 +34,13 @@ void require_task(const RepairTask &task,const std::vector<int> &failed,
 void verify_registered_cases(const std::vector<DoubleRepairCase> &cases)
 {
     require(cases.size()==2,"unexpected OptimalLRC k96 double case count");
-    require(cases[0].failed_name=="L0+L1"&&cases[0].tasks.size()==2,
-            "missing L0+L1 case");
-    require_task(cases[0].tasks[0],{99},with_globals(range(0,23)),"L0");
-    require_task(cases[0].tasks[1],{100},with_globals(range(24,47)),"L1");
-    require(cases[0].sum_task_times,
-            "L0+L1 must report both task times and their sum");
+    require(cases[0].failed_name=="L0+L1"&&cases[0].tasks.size()==1,
+            "missing L0+L1 shared case");
+    require_task(cases[0].tasks[0],{99,100},with_globals(range(0,47)),"L0+L1");
+    require(cases[0].tasks[0].failed_block_ids.front()==99,
+            "L0 must be the shared task owner proxy");
+    require(!cases[0].sum_task_times,
+            "L0+L1 must keep shared-task wall timing");
     require(cases[1].failed_name=="G0+G1"&&cases[1].tasks.size()==1,
             "missing G0+G1 shared case");
     require_task(cases[1].tasks[0],{96,97},range(0,95),"G0+G1");
@@ -88,11 +89,11 @@ int main()
                     require(recovered[row]==blocks[task.failed_block_ids[row]],
                             test_case.failed_name+" recovered bytes mismatch");
                 }
-                if(test_case.failed_name=="G0+G1"){
-                    require(rows==2,"G0 owner must produce two output rows");
-                    require(recovered[0]==blocks[96],"G0 local write value mismatch");
-                    require(recovered[1]==blocks[97],"G1 forwarded value mismatch");
-                }
+                require(rows==2,test_case.failed_name+" owner must produce two output rows");
+                require(recovered[0]==blocks[task.failed_block_ids[0]],
+                        test_case.failed_name+" local write value mismatch");
+                require(recovered[1]==blocks[task.failed_block_ids[1]],
+                        test_case.failed_name+" forwarded value mismatch");
             }
         }
         std::cout<<"OptimalLRC k96 L0+L1/G0+G1 double repair verification passed"<<std::endl;

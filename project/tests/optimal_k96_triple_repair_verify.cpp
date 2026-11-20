@@ -13,18 +13,18 @@ using ECProject::RepairBenchmark::RepairTask;
 using ECProject::RepairBenchmark::TripleRepairCase;
 void require(bool condition,const std::string &message){if(!condition)throw std::runtime_error(message);}
 std::vector<int> range(int first,int last){return ECProject::RepairBenchmark::inclusive_range(first,last);}
-std::vector<int> with_globals(std::vector<int> sources){sources.insert(sources.end(),{96,97,98});return sources;}
 void require_task(const RepairTask &task,const std::vector<int> &failed,const std::vector<int> &sources,const std::string &name){
     require(task.failed_block_ids==failed,name+" failed block order mismatch");
     require(task.source_block_ids==sources,name+" source block order mismatch");
 }
 void verify_registered_cases(const std::vector<TripleRepairCase> &cases){
     require(cases.size()==2,"unexpected OptimalLRC k96 triple case count");
-    require(cases[0].failed_name=="L0+L1+L2"&&cases[0].tasks.size()==3,"missing L0+L1+L2 case");
-    require_task(cases[0].tasks[0],{99},with_globals(range(0,23)),"L0");
-    require_task(cases[0].tasks[1],{100},with_globals(range(24,47)),"L1");
-    require_task(cases[0].tasks[2],{101},with_globals(range(48,71)),"L2");
-    require(cases[0].sum_task_times,"L0+L1+L2 must report all task times and their sum");
+    require(cases[0].failed_name=="L0+L1+L2"&&cases[0].tasks.size()==1,"missing L0+L1+L2 shared case");
+    auto local_sources=range(0,71);
+    local_sources.insert(local_sources.end(),{96,97,98});
+    require_task(cases[0].tasks[0],{99,100,101},local_sources,"L0+L1+L2");
+    require(cases[0].tasks[0].failed_block_ids.front()==99,"L0 must be the shared task owner proxy");
+    require(!cases[0].sum_task_times,"L0+L1+L2 must keep shared-task wall timing");
     require(cases[1].failed_name=="G0+G1+G2"&&cases[1].tasks.size()==1,"missing G0+G1+G2 shared case");
     require_task(cases[1].tasks[0],{96,97,98},range(0,95),"G0+G1+G2");
     require(cases[1].tasks[0].failed_block_ids.front()==96,"G0 must be the shared task owner proxy");
@@ -60,12 +60,10 @@ int main(){
                         recovered[row][byte]^=ECProject::gf_mul(coefficients[row*columns+col],blocks[task.source_block_ids[col]][byte]);
                     require(recovered[row]==blocks[task.failed_block_ids[row]],test_case.failed_name+" recovered bytes mismatch");
                 }
-                if(test_case.failed_name=="G0+G1+G2"){
-                    require(rows==3,"G0 owner must produce three output rows");
-                    require(recovered[0]==blocks[96],"G0 local write value mismatch");
-                    require(recovered[1]==blocks[97],"G1 forwarded value mismatch");
-                    require(recovered[2]==blocks[98],"G2 forwarded value mismatch");
-                }
+                require(rows==3,test_case.failed_name+" owner must produce three output rows");
+                for(size_t row=0;row<rows;++row)
+                    require(recovered[row]==blocks[task.failed_block_ids[row]],
+                            test_case.failed_name+" output order mismatch");
             }
         }
         std::cout<<"OptimalLRC k96 L0+L1+L2/G0+G1+G2 triple repair verification passed"<<std::endl;return 0;

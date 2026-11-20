@@ -2843,8 +2843,12 @@ namespace ECProject
         std::vector<unsigned char> tables(
             static_cast<size_t>(decode_source_num) * output_num * 32);
         ec_init_tables(decode_source_num, output_num, coefficients.data(), tables.data());
-        ec_encode_data_avx2(m_sys_config->BlockSize, decode_source_num, output_num,
-                            tables.data(), source_ptrs.data(), output_ptrs.data());
+        if (decode_source_num >= 128)
+          ec_encode_data_base(m_sys_config->BlockSize, decode_source_num, output_num,
+                              tables.data(), source_ptrs.data(), output_ptrs.data());
+        else
+          ec_encode_data_avx2(m_sys_config->BlockSize, decode_source_num, output_num,
+                              tables.data(), source_ptrs.data(), output_ptrs.data());
 
         if (recovery_request->optimal_return_global_sum())
         {

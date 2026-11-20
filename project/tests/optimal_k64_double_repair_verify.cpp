@@ -16,9 +16,11 @@ void require(bool condition, const std::string &message)
     if (!condition) throw std::runtime_error(message);
 }
 
-std::vector<int> local_sources(int first, int last)
+std::vector<int> local_pair_sources(int second_first, int second_last)
 {
-    auto sources = ECProject::RepairBenchmark::inclusive_range(first, last);
+    auto sources = ECProject::RepairBenchmark::inclusive_range(0, 20);
+    const auto second = ECProject::RepairBenchmark::inclusive_range(second_first, second_last);
+    sources.insert(sources.end(), second.begin(), second.end());
     sources.insert(sources.end(), {64, 65, 66});
     return sources;
 }
@@ -28,8 +30,8 @@ void verify(int block_size)
     using ECProject::RepairBenchmark::DoubleRepairCase;
     const auto cases = ECProject::RepairBenchmark::make_optimal_k64_double_block_cases();
     const std::vector<DoubleRepairCase> expected = {
-        {"L0+L1", {{{67}, local_sources(0, 20)}, {{68}, local_sources(21, 41)}}, false, true},
-        {"L0+L2", {{{67}, local_sources(0, 20)}, {{69}, local_sources(42, 63)}}, false, true},
+        {"L0+L1", {{{67, 68}, local_pair_sources(21, 41)}}},
+        {"L0+L2", {{{67, 69}, local_pair_sources(42, 63)}}},
         {"G0+G1", {{{64, 65}, ECProject::RepairBenchmark::inclusive_range(0, 63)}}},
     };
     require(cases.size() == expected.size(), "wrong double repair case count");
