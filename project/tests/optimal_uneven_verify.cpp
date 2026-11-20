@@ -175,26 +175,46 @@ void verify_case(int k, int r, int z, const std::vector<int> &expected_sizes,
         }
     } else {
         const auto singles = ECProject::RepairBenchmark::make_optimal_uneven_single_block_cases(k, r, z);
-        check(singles.size() == static_cast<size_t>(z + 1),
-              "registered single case count mismatch");
-        for (int local = 0; local < z; ++local) {
-            const auto &test_case = singles[local];
-            std::vector<int> expected_sources = range(bounds[local].first, bounds[local].second);
-            const auto globals = range(k, k + r);
+        if (k == 96) {
+            auto expected_sources = range(0, 24);
+            const auto globals = range(96, 99);
             expected_sources.insert(expected_sources.end(), globals.begin(), globals.end());
-            check(test_case.failed_name == "L" + std::to_string(local),
-                  "single local case name mismatch");
-            check(test_case.failed_block_id == k + r + local, "single local failed ID mismatch");
-            check(test_case.source_block_ids == expected_sources, "single local sources mismatch");
-            check(ECProject::get_local_fill_plan(k, r, z, "OptimalLRC", {test_case.failed_block_id},
-                                                 test_case.source_block_ids, coefficients),
-                  "single local case is not recoverable");
+            check(singles.size() == 1, "k96 registered single case count mismatch");
+            if (!singles.empty()) {
+                check(singles.front().failed_name == "L0", "k96 single case name mismatch");
+                check(singles.front().failed_block_id == 99, "k96 single failed ID mismatch");
+                check(singles.front().source_block_ids == expected_sources,
+                      "k96 single source order mismatch");
+                check(ECProject::get_local_fill_plan(k, r, z, "OptimalLRC", {99},
+                                                     singles.front().source_block_ids, coefficients),
+                      "k96 L0 single case is not recoverable");
+            }
+        } else {
+            check(singles.size() == static_cast<size_t>(z + 1),
+                  "k128 registered single case count mismatch");
+            for (int local = 0; local < z; ++local) {
+                const auto &test_case = singles[local];
+                std::vector<int> expected_sources = range(bounds[local].first, bounds[local].second);
+                const auto globals = range(k, k + r);
+                expected_sources.insert(expected_sources.end(), globals.begin(), globals.end());
+                check(test_case.failed_name == "L" + std::to_string(local),
+                      "k128 single local case name mismatch");
+                check(test_case.failed_block_id == k + r + local,
+                      "k128 single local failed ID mismatch");
+                check(test_case.source_block_ids == expected_sources,
+                      "k128 single local sources mismatch");
+                check(ECProject::get_local_fill_plan(k, r, z, "OptimalLRC",
+                                                     {test_case.failed_block_id},
+                                                     test_case.source_block_ids, coefficients),
+                      "k128 single local case is not recoverable");
+            }
+            check(singles.back().failed_name == "G0" && singles.back().failed_block_id == k &&
+                      singles.back().source_block_ids == range(0, k),
+                  "k128 G0 single case mismatch");
+            check(ECProject::get_local_fill_plan(k, r, z, "OptimalLRC", {k}, range(0, k),
+                                                 coefficients),
+                  "k128 G0 single case is not recoverable");
         }
-        check(singles.back().failed_name == "G0" && singles.back().failed_block_id == k &&
-                  singles.back().source_block_ids == range(0, k),
-              "G0 single case mismatch");
-        check(ECProject::get_local_fill_plan(k, r, z, "OptimalLRC", {k}, range(0, k), coefficients),
-              "G0 single case is not recoverable");
     }
 
     const auto doubles = k == 64

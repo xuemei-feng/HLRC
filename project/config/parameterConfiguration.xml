@@ -2,15 +2,15 @@
 <Configuration>
     <AlignedSize>4096</AlignedSize>
     <UnitSize>8192</UnitSize>
-    <BlockSize>4194304</BlockSize>
+    <BlockSize>67108864</BlockSize>
     <CoordinatorIP>172.16.2.163</CoordinatorIP>
     <CoordinatorPort>55555</CoordinatorPort>
     <AppendMode>UNILRC_MODE</AppendMode>
     <alpha>2</alpha>
-    <CodeType>HLRC</CodeType>
+    <CodeType>AzureLRC</CodeType>
     <k>96</k>
-    <r>2</r>
-    <z>8</z>
+    <r>3</r>
+    <z>4</z>
     <NodeNum>106</NodeNum>
     <ClientIP>172.16.2.54</ClientIP>
 </Configuration>

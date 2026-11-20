@@ -36,11 +36,11 @@ int main()
         expected_sources.insert(expected_sources.end(),globals.begin(),globals.end());
 
         const auto cases=ECProject::RepairBenchmark::make_optimal_uneven_single_block_cases(k,r,z);
-        require(cases.size()==5,"unexpected OptimalLRC k96 single case count");
-        require(cases[0].failed_name=="L0"&&cases[0].failed_block_id==l0_id,
-                "unexpected L0 case identity");
-        require(cases[0].source_block_ids==expected_sources,
-                "L0 must read D0-D23 and G0-G2");
+        require(cases.size()==1,"OptimalLRC k96 single benchmark must contain only L0");
+        require(cases.front().failed_name=="L0"&&cases.front().failed_block_id==l0_id,
+                "unexpected sole L0 case identity");
+        require(cases.front().source_block_ids==expected_sources,
+                "sole L0 case must read D0-D23 and G0-G2 in order");
 
         const auto plan=ECProject::get_recovery_group_and_block_ids("OptimalLRC",k,r,z,l0_id);
         const auto sources=flatten(plan);

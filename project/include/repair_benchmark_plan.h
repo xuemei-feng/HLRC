@@ -68,13 +68,15 @@ inline std::vector<RepairCase> make_optimal_uneven_single_block_cases(int k, int
 {
     std::vector<RepairCase> cases;
     const auto bounds = get_optimal_lrc_local_group_bounds(k, z);
-    for (int local = 0; local < z; ++local) {
+    const int local_case_count = k == 96 ? 1 : z;
+    for (int local = 0; local < local_case_count; ++local) {
         auto sources = inclusive_range(bounds[local].first, bounds[local].second - 1);
         for (int global = 0; global < r; ++global)
             sources.push_back(k + global);
         cases.push_back({"L" + std::to_string(local), k + r + local, std::move(sources)});
     }
-    cases.push_back({"G0", k, inclusive_range(0, k - 1)});
+    if (k != 96)
+        cases.push_back({"G0", k, inclusive_range(0, k - 1)});
     return cases;
 }
 

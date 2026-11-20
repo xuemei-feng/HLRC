@@ -706,6 +706,18 @@ class DispatchVerification(unittest.TestCase):
             result = self.run_plan("OptimalLRC", 128, "double", **overrides)
             self.assertNotEqual(result.returncode, 0)
 
+    def test_optimal_k96_single_exact_plan(self):
+        cases = self.parse_plan(self.run_plan("OptimalLRC", 96, "single"),
+                                "OptimalLRC", 96, "single")
+        self.assertEqual(list(cases), ["L0"])
+        self.assertEqual(cases["L0"], [
+            (99, [99], list(range(24)) + [96, 97, 98]),
+        ])
+        for overrides in ({"r": 2}, {"z": 3}):
+            result = self.run_plan("OptimalLRC", 96, "single", **overrides)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertNotIn("Repair plan check passed.", result.stdout)
+
     def test_optimal_k96_triple_exact_sources_and_owners(self):
         cases = self.parse_plan(self.run_plan("OptimalLRC", 96, "triple"),
                                 "OptimalLRC", 96, "triple")
