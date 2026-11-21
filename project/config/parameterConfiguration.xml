@@ -2,15 +2,15 @@
 <Configuration>
     <AlignedSize>4096</AlignedSize>
     <UnitSize>8192</UnitSize>
-    <BlockSize>1048576</BlockSize>
-    <CoordinatorIP>172.16.2.55</CoordinatorIP>
+    <BlockSize>16777216</BlockSize>
+    <CoordinatorIP>172.16.2.163</CoordinatorIP>
     <CoordinatorPort>55555</CoordinatorPort>
     <AppendMode>UNILRC_MODE</AppendMode>
     <alpha>2</alpha>
-    <CodeType>NLRC</CodeType>
-    <k>64</k>
+    <CodeType>UniformLRC</CodeType>
+    <k>128</k>
     <r>3</r>
     <z>5</z>
-    <NodeNum>72</NodeNum>
+    <NodeNum>140</NodeNum>
     <ClientIP>172.16.2.54</ClientIP>
 </Configuration>
