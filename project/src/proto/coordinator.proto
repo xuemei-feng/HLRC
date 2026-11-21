@@ -229,4 +229,8 @@ message RecoveryReply {
   // Each includes source reads, decoding, result forwarding and completed write-back.
   // Populated for successful independent customDoubleRecovery tasks; these may overlap.
   repeated double custom_task_recovery_times = 9;
+  double source_read_time = 10;
+  double coefficient_solve_time = 11;
+  double avx2_encode_time = 12;
+  repeated double per_output_write_back_times = 13;
 }

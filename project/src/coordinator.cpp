@@ -2323,6 +2323,8 @@ namespace ECProject
     }
 
     std::vector<grpc::Status> statuses(static_cast<size_t>(request->tasks_size()));
+    std::vector<proxy_proto::RecoveryReply> proxy_replies(
+        static_cast<size_t>(request->tasks_size()));
     std::vector<double> task_times(static_cast<size_t>(request->tasks_size()));
     std::vector<std::thread> workers;
     workers.reserve(static_cast<size_t>(request->tasks_size()));
@@ -2330,7 +2332,7 @@ namespace ECProject
     {
       workers.emplace_back([&, i]() {
         grpc::ClientContext proxy_context;
-        proxy_proto::RecoveryReply proxy_reply;
+        proxy_proto::RecoveryReply &proxy_reply = proxy_replies[static_cast<size_t>(i)];
         const auto task_start = std::chrono::steady_clock::now();
         statuses[static_cast<size_t>(i)] = destination_stubs[static_cast<size_t>(i)]->recovery(
             &proxy_context, proxy_requests[static_cast<size_t>(i)], &proxy_reply);
@@ -2347,6 +2349,15 @@ namespace ECProject
                                    "custom multi recovery failed: " + status.error_message()));
     for (double elapsed : task_times)
       recoveryReply->add_custom_task_recovery_times(elapsed);
+    if (request->tasks_size() == 1)
+    {
+      const auto &proxy_reply = proxy_replies.front();
+      recoveryReply->set_source_read_time(proxy_reply.source_read_time());
+      recoveryReply->set_coefficient_solve_time(proxy_reply.coefficient_solve_time());
+      recoveryReply->set_avx2_encode_time(proxy_reply.avx2_encode_time());
+      for (double elapsed : proxy_reply.per_output_write_back_times())
+        recoveryReply->add_per_output_write_back_times(elapsed);
+    }
     return finish(grpc::Status::OK);
   }
 

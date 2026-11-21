@@ -187,13 +187,13 @@ case "$ACTION" in
     ;;
   benchmark)
     require_distributed
-    K="${3:?Usage: $0 benchmark CONFIG K single|double|triple|quadruple}"; FAILURE="${4:?missing failure type}"
+    K="${3:?Usage: $0 benchmark CONFIG K single|double|triple|quadruple|muti}"; FAILURE="${4:?missing failure type}"
     printf -v benchmark_args '%q ' "$K" "$FAILURE" "${@:5}"
     remote "$CLIENT_IP" "cd '$REMOTE_ROOT'; env LD_LIBRARY_PATH='$RUNTIME_LIB' ./project/cmake/build/repair_benchmark $benchmark_args"
     ;;
   *)
     echo "Usage: $0 {generate|deploy|start|stop|status} [cluster.ini]"
-    echo "       $0 benchmark [cluster.ini] K {single|double|triple|quadruple} [--repeat N] [--warmup N] [--stripe-id ID]"
+    echo "       $0 benchmark [cluster.ini] K {single|double|triple|quadruple|muti} [--repeat N] [--warmup N] [--stripe-id ID]"
     echo "Env:   PARALLEL=32 (max concurrent SSH/rsync jobs)"
     echo "       HLRC_REPAIR_WORKERS=32 (repair pool workers per proxy, start only)"
     exit 2

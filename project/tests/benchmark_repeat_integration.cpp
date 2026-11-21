@@ -95,6 +95,13 @@ public:
             for (int i = 0; i < request->tasks_size(); ++i)
                 reply->add_custom_task_recovery_times(call <= warmup_calls.load()
                     ? 100.0 + i : (i == 0 ? 0.012 : 0.023));
+        if (status.ok() && request->tasks_size() == 1) {
+            reply->set_source_read_time(0.101);
+            reply->set_coefficient_solve_time(0.202);
+            reply->set_avx2_encode_time(0.303);
+            for (int i = 0; i < request->tasks(0).failed_block_ids_size(); ++i)
+                reply->add_per_output_write_back_times(0.404 + i * 0.101);
+        }
         return status;
     }
     void reset(int warmup = 0, int failure = 0)
@@ -1239,6 +1246,24 @@ int main(int argc, char **argv)
         require(nlrc_timed.second.find("Result [NLRC] G0+G1+G2: 0.01 s")
                     != std::string::npos,
                 "NLRC shared global task must keep end-to-end time: " + nlrc_timed.second);
+
+        write_config("NLRC", 9, 128);
+        fixture->reset(2);
+        auto muti = run(argv[1], directory,
+            {"muti", "--stripe-id", "8"}, 128);
+        require(muti.first == 0 && fixture->multi_calls == 2, muti.second);
+        require(muti.second.find("Case G0+G1") != std::string::npos &&
+                muti.second.find("Case G0+G1+G2") != std::string::npos,
+                "muti scenarios missing: " + muti.second);
+        for (const std::string label : {"source read: 0.101 s",
+                 "coefficient solve: 0.202 s", "AVX2 encode: 0.303 s",
+                 "per-output write-back G0: 0.404 s",
+                 "per-output write-back G1: 0.505 s",
+                 "per-output write-back G2: 0.606 s"})
+            require(muti.second.find(label) != std::string::npos,
+                    "missing muti breakdown label " + label + ": " + muti.second);
+        std::cout << "PASS: muti mock breakdown reaches benchmark output" << std::endl;
+
         std::cout << "PASS: HLRC k64/k96/k128 double/triple/quadruple, AzureLRC k64/k96/k128 multi-block timings, OptimalLRC k64/k96/k128 double/triple/quadruple timings, and UniformLRC k64/k96/k128 double/triple/quadruple timings, sums"
                   << ", shared global timing; NLRC k64/k96/k128 multi-block task-time sums"
                   << "; stale replies" << std::endl;

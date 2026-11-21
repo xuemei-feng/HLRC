@@ -382,6 +382,7 @@ PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORIT
 PROTOBUF_CONSTEXPR RecoveryReply::RecoveryReply(
     ::_pbi::ConstantInitialized): _impl_{
     /*decltype(_impl_.custom_task_recovery_times_)*/{}
+  , /*decltype(_impl_.per_output_write_back_times_)*/{}
   , /*decltype(_impl_.maintenance_note_)*/{&::_pbi::fixed_address_empty_string, ::_pbi::ConstantInitialized{}}
   , /*decltype(_impl_.disk_read_time_)*/0
   , /*decltype(_impl_.network_time_)*/0
@@ -389,6 +390,9 @@ PROTOBUF_CONSTEXPR RecoveryReply::RecoveryReply(
   , /*decltype(_impl_.disk_write_time_)*/0
   , /*decltype(_impl_.grpc_start_time_)*/0
   , /*decltype(_impl_.custom_recovery_time_)*/0
+  , /*decltype(_impl_.source_read_time_)*/0
+  , /*decltype(_impl_.coefficient_solve_time_)*/0
+  , /*decltype(_impl_.avx2_encode_time_)*/0
   , /*decltype(_impl_.maintenance_fell_back_)*/false
   , /*decltype(_impl_._cached_size_)*/{}} {}
 struct RecoveryReplyDefaultTypeInternal {
@@ -624,6 +628,10 @@ const uint32_t TableStruct_coordinator_2eproto::offsets[] PROTOBUF_SECTION_VARIA
   PROTOBUF_FIELD_OFFSET(::coordinator_proto::RecoveryReply, _impl_.maintenance_note_),
   PROTOBUF_FIELD_OFFSET(::coordinator_proto::RecoveryReply, _impl_.custom_recovery_time_),
   PROTOBUF_FIELD_OFFSET(::coordinator_proto::RecoveryReply, _impl_.custom_task_recovery_times_),
+  PROTOBUF_FIELD_OFFSET(::coordinator_proto::RecoveryReply, _impl_.source_read_time_),
+  PROTOBUF_FIELD_OFFSET(::coordinator_proto::RecoveryReply, _impl_.coefficient_solve_time_),
+  PROTOBUF_FIELD_OFFSET(::coordinator_proto::RecoveryReply, _impl_.avx2_encode_time_),
+  PROTOBUF_FIELD_OFFSET(::coordinator_proto::RecoveryReply, _impl_.per_output_write_back_times_),
 };
 static const ::_pbi::MigrationSchema schemas[] PROTOBUF_SECTION_VARIABLE(protodesc_cold) = {
   { 0, -1, -1, sizeof(::coordinator_proto::RequestToCoordinator)},
@@ -726,84 +734,87 @@ const char descriptor_table_protodef_coordinator_2eproto[] PROTOBUF_SECTION_VARI
   "\" \n\013RepBlockNum\022\021\n\tblock_num\030\001 \001(\005\"m\n\021De"
   "gradedReadReply\022\024\n\014disk_io_time\030\001 \001(\001\022\024\n"
   "\014network_time\030\002 \001(\001\022\023\n\013decode_time\030\003 \001(\001"
-  "\022\027\n\017grpc_start_time\030\004 \001(\001\"\377\001\n\rRecoveryRe"
+  "\022\027\n\017grpc_start_time\030\004 \001(\001\"\370\002\n\rRecoveryRe"
   "ply\022\026\n\016disk_read_time\030\001 \001(\001\022\024\n\014network_t"
   "ime\030\002 \001(\001\022\023\n\013decode_time\030\003 \001(\001\022\027\n\017disk_w"
   "rite_time\030\004 \001(\001\022\027\n\017grpc_start_time\030\005 \001(\001"
   "\022\035\n\025maintenance_fell_back\030\006 \001(\010\022\030\n\020maint"
   "enance_note\030\007 \001(\t\022\034\n\024custom_recovery_tim"
   "e\030\010 \001(\001\022\"\n\032custom_task_recovery_times\030\t "
-  "\003(\0012\314\024\n\022coordinatorService\022k\n\025sayHelloTo"
-  "Coordinator\022\'.coordinator_proto.RequestT"
-  "oCoordinator\032\'.coordinator_proto.ReplyFr"
-  "omCoordinator\"\000\022`\n\ncheckalive\022\'.coordina"
-  "tor_proto.RequestToCoordinator\032\'.coordin"
-  "ator_proto.ReplyFromCoordinator\"\000\022d\n\024upl"
-  "oadOriginKeyValue\022%.coordinator_proto.Re"
-  "questProxyIPPort\032#.coordinator_proto.Rep"
-  "lyProxyIPPort\"\000\022a\n\021reportCommitAbort\022!.c"
-  "oordinator_proto.CommitAbortKey\032\'.coordi"
-  "nator_proto.ReplyFromCoordinator\"\000\022V\n\020ch"
-  "eckCommitAbort\022\037.coordinator_proto.AskIf"
-  "Success\032\037.coordinator_proto.RepIfSuccess"
-  "\"\000\022`\n\016uploadSetValue\022%.coordinator_proto"
-  ".RequestProxyIPPort\032%.coordinator_proto."
-  "ReplyProxyIPsPorts\"\000\022c\n\021uploadSubsetValu"
-  "e\022%.coordinator_proto.RequestProxyIPPort"
-  "\032%.coordinator_proto.ReplyProxyIPsPorts\""
-  "\000\022c\n\021uploadAppendValue\022%.coordinator_pro"
-  "to.RequestProxyIPPort\032%.coordinator_prot"
-  "o.ReplyProxyIPsPorts\"\000\022S\n\010getValue\022!.coo"
-  "rdinator_proto.KeyAndClientIP\032\".coordina"
-  "tor_proto.RepIfGetSuccess\"\000\022W\n\tgetStripe"
-  "\022!.coordinator_proto.KeyAndClientIP\032%.co"
-  "ordinator_proto.ReplyProxyIPsPorts\"\000\022\\\n\t"
-  "getBlocks\022&.coordinator_proto.BlockIDsAn"
-  "dClientIP\032%.coordinator_proto.ReplyProxy"
-  "IPsPorts\"\000\022h\n\025getDegradedReadBlocks\022&.co"
-  "ordinator_proto.BlockIDsAndClientIP\032%.co"
-  "ordinator_proto.ReplyProxyIPsPorts\"\000\022a\n\024"
-  "getDegradedReadBlock\022!.coordinator_proto"
-  ".KeyAndClientIP\032$.coordinator_proto.Degr"
-  "adedReadReply\"\000\022j\n\035getDegradedReadBlockB"
-  "reakdown\022!.coordinator_proto.KeyAndClien"
+  "\003(\001\022\030\n\020source_read_time\030\n \001(\001\022\036\n\026coeffic"
+  "ient_solve_time\030\013 \001(\001\022\030\n\020avx2_encode_tim"
+  "e\030\014 \001(\001\022#\n\033per_output_write_back_times\030\r"
+  " \003(\0012\314\024\n\022coordinatorService\022k\n\025sayHelloT"
+  "oCoordinator\022\'.coordinator_proto.Request"
+  "ToCoordinator\032\'.coordinator_proto.ReplyF"
+  "romCoordinator\"\000\022`\n\ncheckalive\022\'.coordin"
+  "ator_proto.RequestToCoordinator\032\'.coordi"
+  "nator_proto.ReplyFromCoordinator\"\000\022d\n\024up"
+  "loadOriginKeyValue\022%.coordinator_proto.R"
+  "equestProxyIPPort\032#.coordinator_proto.Re"
+  "plyProxyIPPort\"\000\022a\n\021reportCommitAbort\022!."
+  "coordinator_proto.CommitAbortKey\032\'.coord"
+  "inator_proto.ReplyFromCoordinator\"\000\022V\n\020c"
+  "heckCommitAbort\022\037.coordinator_proto.AskI"
+  "fSuccess\032\037.coordinator_proto.RepIfSucces"
+  "s\"\000\022`\n\016uploadSetValue\022%.coordinator_prot"
+  "o.RequestProxyIPPort\032%.coordinator_proto"
+  ".ReplyProxyIPsPorts\"\000\022c\n\021uploadSubsetVal"
+  "ue\022%.coordinator_proto.RequestProxyIPPor"
+  "t\032%.coordinator_proto.ReplyProxyIPsPorts"
+  "\"\000\022c\n\021uploadAppendValue\022%.coordinator_pr"
+  "oto.RequestProxyIPPort\032%.coordinator_pro"
+  "to.ReplyProxyIPsPorts\"\000\022S\n\010getValue\022!.co"
+  "ordinator_proto.KeyAndClientIP\032\".coordin"
+  "ator_proto.RepIfGetSuccess\"\000\022W\n\tgetStrip"
+  "e\022!.coordinator_proto.KeyAndClientIP\032%.c"
+  "oordinator_proto.ReplyProxyIPsPorts\"\000\022\\\n"
+  "\tgetBlocks\022&.coordinator_proto.BlockIDsA"
+  "ndClientIP\032%.coordinator_proto.ReplyProx"
+  "yIPsPorts\"\000\022h\n\025getDegradedReadBlocks\022&.c"
+  "oordinator_proto.BlockIDsAndClientIP\032%.c"
+  "oordinator_proto.ReplyProxyIPsPorts\"\000\022a\n"
+  "\024getDegradedReadBlock\022!.coordinator_prot"
+  "o.KeyAndClientIP\032$.coordinator_proto.Deg"
+  "radedReadReply\"\000\022j\n\035getDegradedReadBlock"
+  "Breakdown\022!.coordinator_proto.KeyAndClie"
+  "ntIP\032$.coordinator_proto.DegradedReadRep"
+  "ly\"\000\022T\n\013getRecovery\022!.coordinator_proto."
+  "KeyAndClientIP\032 .coordinator_proto.Recov"
+  "eryReply\"\000\022]\n\024getRecoveryBreakdown\022!.coo"
+  "rdinator_proto.KeyAndClientIP\032 .coordina"
+  "tor_proto.RecoveryReply\"\000\022^\n\016customRecov"
+  "ery\022(.coordinator_proto.CustomRecoveryRe"
+  "quest\032 .coordinator_proto.RecoveryReply\""
+  "\000\022j\n\024customDoubleRecovery\022..coordinator_"
+  "proto.CustomDoubleRecoveryRequest\032 .coor"
+  "dinator_proto.RecoveryReply\"\000\022Y\n\020fullNod"
+  "eRecovery\022#.coordinator_proto.NodeIdFrom"
+  "Client\032\036.coordinator_proto.RepBlockNum\"\000"
+  "\022\\\n\017twoNodeRecovery\022\'.coordinator_proto."
+  "TwoNodeIdsFromClient\032\036.coordinator_proto"
+  ".RepBlockNum\"\000\022f\n\016globalRecovery\0220.coord"
+  "inator_proto.StripeIdAndBlockIDsFromClie"
+  "nt\032 .coordinator_proto.RecoveryReply\"\000\022o"
+  "\n\027globalRecoveryBreakdown\0220.coordinator_"
+  "proto.StripeIdAndBlockIDsFromClient\032 .co"
+  "ordinator_proto.RecoveryReply\"\000\022f\n\025maint"
+  "enanceReadStripe\022).coordinator_proto.Mai"
+  "ntenanceReadRequest\032 .coordinator_proto."
+  "RecoveryReply\"\000\022N\n\010delByKey\022 .coordinato"
+  "r_proto.KeyFromClient\032\036.coordinator_prot"
+  "o.RepIfDeling\"\000\022V\n\013delByStripe\022%.coordin"
+  "ator_proto.StripeIdFromClient\032\036.coordina"
+  "tor_proto.RepIfDeling\"\000\022Y\n\013listStripes\022\'"
+  ".coordinator_proto.RequestToCoordinator\032"
+  "\037.coordinator_proto.RepStripeIds\"\000\022W\n\nde"
+  "codeTest\022!.coordinator_proto.KeyAndClien"
   "tIP\032$.coordinator_proto.DegradedReadRepl"
-  "y\"\000\022T\n\013getRecovery\022!.coordinator_proto.K"
-  "eyAndClientIP\032 .coordinator_proto.Recove"
-  "ryReply\"\000\022]\n\024getRecoveryBreakdown\022!.coor"
-  "dinator_proto.KeyAndClientIP\032 .coordinat"
-  "or_proto.RecoveryReply\"\000\022^\n\016customRecove"
-  "ry\022(.coordinator_proto.CustomRecoveryReq"
-  "uest\032 .coordinator_proto.RecoveryReply\"\000"
-  "\022j\n\024customDoubleRecovery\022..coordinator_p"
-  "roto.CustomDoubleRecoveryRequest\032 .coord"
-  "inator_proto.RecoveryReply\"\000\022Y\n\020fullNode"
-  "Recovery\022#.coordinator_proto.NodeIdFromC"
-  "lient\032\036.coordinator_proto.RepBlockNum\"\000\022"
-  "\\\n\017twoNodeRecovery\022\'.coordinator_proto.T"
-  "woNodeIdsFromClient\032\036.coordinator_proto."
-  "RepBlockNum\"\000\022f\n\016globalRecovery\0220.coordi"
-  "nator_proto.StripeIdAndBlockIDsFromClien"
-  "t\032 .coordinator_proto.RecoveryReply\"\000\022o\n"
-  "\027globalRecoveryBreakdown\0220.coordinator_p"
-  "roto.StripeIdAndBlockIDsFromClient\032 .coo"
-  "rdinator_proto.RecoveryReply\"\000\022f\n\025mainte"
-  "nanceReadStripe\022).coordinator_proto.Main"
-  "tenanceReadRequest\032 .coordinator_proto.R"
-  "ecoveryReply\"\000\022N\n\010delByKey\022 .coordinator"
-  "_proto.KeyFromClient\032\036.coordinator_proto"
-  ".RepIfDeling\"\000\022V\n\013delByStripe\022%.coordina"
-  "tor_proto.StripeIdFromClient\032\036.coordinat"
-  "or_proto.RepIfDeling\"\000\022Y\n\013listStripes\022\'."
-  "coordinator_proto.RequestToCoordinator\032\037"
-  ".coordinator_proto.RepStripeIds\"\000\022W\n\ndec"
-  "odeTest\022!.coordinator_proto.KeyAndClient"
-  "IP\032$.coordinator_proto.DegradedReadReply"
-  "\"\000b\006proto3"
+  "y\"\000b\006proto3"
   ;
 static ::_pbi::once_flag descriptor_table_coordinator_2eproto_once;
 const ::_pbi::DescriptorTable descriptor_table_coordinator_2eproto = {
-    false, false, 4690, descriptor_table_protodef_coordinator_2eproto,
+    false, false, 4811, descriptor_table_protodef_coordinator_2eproto,
     "coordinator.proto",
     &descriptor_table_coordinator_2eproto_once, nullptr, 0, 25,
     schemas, file_default_instances, TableStruct_coordinator_2eproto::offsets,
@@ -6631,6 +6642,7 @@ RecoveryReply::RecoveryReply(const RecoveryReply& from)
   RecoveryReply* const _this = this; (void)_this;
   new (&_impl_) Impl_{
       decltype(_impl_.custom_task_recovery_times_){from._impl_.custom_task_recovery_times_}
+    , decltype(_impl_.per_output_write_back_times_){from._impl_.per_output_write_back_times_}
     , decltype(_impl_.maintenance_note_){}
     , decltype(_impl_.disk_read_time_){}
     , decltype(_impl_.network_time_){}
@@ -6638,6 +6650,9 @@ RecoveryReply::RecoveryReply(const RecoveryReply& from)
     , decltype(_impl_.disk_write_time_){}
     , decltype(_impl_.grpc_start_time_){}
     , decltype(_impl_.custom_recovery_time_){}
+    , decltype(_impl_.source_read_time_){}
+    , decltype(_impl_.coefficient_solve_time_){}
+    , decltype(_impl_.avx2_encode_time_){}
     , decltype(_impl_.maintenance_fell_back_){}
     , /*decltype(_impl_._cached_size_)*/{}};
 
@@ -6662,6 +6677,7 @@ inline void RecoveryReply::SharedCtor(
   (void)is_message_owned;
   new (&_impl_) Impl_{
       decltype(_impl_.custom_task_recovery_times_){arena}
+    , decltype(_impl_.per_output_write_back_times_){arena}
     , decltype(_impl_.maintenance_note_){}
     , decltype(_impl_.disk_read_time_){0}
     , decltype(_impl_.network_time_){0}
@@ -6669,6 +6685,9 @@ inline void RecoveryReply::SharedCtor(
     , decltype(_impl_.disk_write_time_){0}
     , decltype(_impl_.grpc_start_time_){0}
     , decltype(_impl_.custom_recovery_time_){0}
+    , decltype(_impl_.source_read_time_){0}
+    , decltype(_impl_.coefficient_solve_time_){0}
+    , decltype(_impl_.avx2_encode_time_){0}
     , decltype(_impl_.maintenance_fell_back_){false}
     , /*decltype(_impl_._cached_size_)*/{}
   };
@@ -6690,6 +6709,7 @@ RecoveryReply::~RecoveryReply() {
 inline void RecoveryReply::SharedDtor() {
   GOOGLE_DCHECK(GetArenaForAllocation() == nullptr);
   _impl_.custom_task_recovery_times_.~RepeatedField();
+  _impl_.per_output_write_back_times_.~RepeatedField();
   _impl_.maintenance_note_.Destroy();
 }
 
@@ -6704,6 +6724,7 @@ void RecoveryReply::Clear() {
   (void) cached_has_bits;
 
   _impl_.custom_task_recovery_times_.Clear();
+  _impl_.per_output_write_back_times_.Clear();
   _impl_.maintenance_note_.ClearToEmpty();
   ::memset(&_impl_.disk_read_time_, 0, static_cast<size_t>(
       reinterpret_cast<char*>(&_impl_.maintenance_fell_back_) -
@@ -6790,6 +6811,41 @@ const char* RecoveryReply::_InternalParse(const char* ptr, ::_pbi::ParseContext*
           CHK_(ptr);
         } else if (static_cast<uint8_t>(tag) == 73) {
           _internal_add_custom_task_recovery_times(::PROTOBUF_NAMESPACE_ID::internal::UnalignedLoad<double>(ptr));
+          ptr += sizeof(double);
+        } else
+          goto handle_unusual;
+        continue;
+      // double source_read_time = 10;
+      case 10:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 81)) {
+          _impl_.source_read_time_ = ::PROTOBUF_NAMESPACE_ID::internal::UnalignedLoad<double>(ptr);
+          ptr += sizeof(double);
+        } else
+          goto handle_unusual;
+        continue;
+      // double coefficient_solve_time = 11;
+      case 11:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 89)) {
+          _impl_.coefficient_solve_time_ = ::PROTOBUF_NAMESPACE_ID::internal::UnalignedLoad<double>(ptr);
+          ptr += sizeof(double);
+        } else
+          goto handle_unusual;
+        continue;
+      // double avx2_encode_time = 12;
+      case 12:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 97)) {
+          _impl_.avx2_encode_time_ = ::PROTOBUF_NAMESPACE_ID::internal::UnalignedLoad<double>(ptr);
+          ptr += sizeof(double);
+        } else
+          goto handle_unusual;
+        continue;
+      // repeated double per_output_write_back_times = 13;
+      case 13:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 106)) {
+          ptr = ::PROTOBUF_NAMESPACE_ID::internal::PackedDoubleParser(_internal_mutable_per_output_write_back_times(), ptr, ctx);
+          CHK_(ptr);
+        } else if (static_cast<uint8_t>(tag) == 105) {
+          _internal_add_per_output_write_back_times(::PROTOBUF_NAMESPACE_ID::internal::UnalignedLoad<double>(ptr));
           ptr += sizeof(double);
         } else
           goto handle_unusual;
@@ -6904,6 +6960,41 @@ uint8_t* RecoveryReply::_InternalSerialize(
     target = stream->WriteFixedPacked(9, _internal_custom_task_recovery_times(), target);
   }
 
+  // double source_read_time = 10;
+  static_assert(sizeof(uint64_t) == sizeof(double), "Code assumes uint64_t and double are the same size.");
+  double tmp_source_read_time = this->_internal_source_read_time();
+  uint64_t raw_source_read_time;
+  memcpy(&raw_source_read_time, &tmp_source_read_time, sizeof(tmp_source_read_time));
+  if (raw_source_read_time != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteDoubleToArray(10, this->_internal_source_read_time(), target);
+  }
+
+  // double coefficient_solve_time = 11;
+  static_assert(sizeof(uint64_t) == sizeof(double), "Code assumes uint64_t and double are the same size.");
+  double tmp_coefficient_solve_time = this->_internal_coefficient_solve_time();
+  uint64_t raw_coefficient_solve_time;
+  memcpy(&raw_coefficient_solve_time, &tmp_coefficient_solve_time, sizeof(tmp_coefficient_solve_time));
+  if (raw_coefficient_solve_time != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteDoubleToArray(11, this->_internal_coefficient_solve_time(), target);
+  }
+
+  // double avx2_encode_time = 12;
+  static_assert(sizeof(uint64_t) == sizeof(double), "Code assumes uint64_t and double are the same size.");
+  double tmp_avx2_encode_time = this->_internal_avx2_encode_time();
+  uint64_t raw_avx2_encode_time;
+  memcpy(&raw_avx2_encode_time, &tmp_avx2_encode_time, sizeof(tmp_avx2_encode_time));
+  if (raw_avx2_encode_time != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteDoubleToArray(12, this->_internal_avx2_encode_time(), target);
+  }
+
+  // repeated double per_output_write_back_times = 13;
+  if (this->_internal_per_output_write_back_times_size() > 0) {
+    target = stream->WriteFixedPacked(13, _internal_per_output_write_back_times(), target);
+  }
+
   if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
     target = ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
         _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
@@ -6923,6 +7014,17 @@ size_t RecoveryReply::ByteSizeLong() const {
   // repeated double custom_task_recovery_times = 9;
   {
     unsigned int count = static_cast<unsigned int>(this->_internal_custom_task_recovery_times_size());
+    size_t data_size = 8UL * count;
+    if (data_size > 0) {
+      total_size += 1 +
+        ::_pbi::WireFormatLite::Int32Size(static_cast<int32_t>(data_size));
+    }
+    total_size += data_size;
+  }
+
+  // repeated double per_output_write_back_times = 13;
+  {
+    unsigned int count = static_cast<unsigned int>(this->_internal_per_output_write_back_times_size());
     size_t data_size = 8UL * count;
     if (data_size > 0) {
       total_size += 1 +
@@ -6992,6 +7094,33 @@ size_t RecoveryReply::ByteSizeLong() const {
     total_size += 1 + 8;
   }
 
+  // double source_read_time = 10;
+  static_assert(sizeof(uint64_t) == sizeof(double), "Code assumes uint64_t and double are the same size.");
+  double tmp_source_read_time = this->_internal_source_read_time();
+  uint64_t raw_source_read_time;
+  memcpy(&raw_source_read_time, &tmp_source_read_time, sizeof(tmp_source_read_time));
+  if (raw_source_read_time != 0) {
+    total_size += 1 + 8;
+  }
+
+  // double coefficient_solve_time = 11;
+  static_assert(sizeof(uint64_t) == sizeof(double), "Code assumes uint64_t and double are the same size.");
+  double tmp_coefficient_solve_time = this->_internal_coefficient_solve_time();
+  uint64_t raw_coefficient_solve_time;
+  memcpy(&raw_coefficient_solve_time, &tmp_coefficient_solve_time, sizeof(tmp_coefficient_solve_time));
+  if (raw_coefficient_solve_time != 0) {
+    total_size += 1 + 8;
+  }
+
+  // double avx2_encode_time = 12;
+  static_assert(sizeof(uint64_t) == sizeof(double), "Code assumes uint64_t and double are the same size.");
+  double tmp_avx2_encode_time = this->_internal_avx2_encode_time();
+  uint64_t raw_avx2_encode_time;
+  memcpy(&raw_avx2_encode_time, &tmp_avx2_encode_time, sizeof(tmp_avx2_encode_time));
+  if (raw_avx2_encode_time != 0) {
+    total_size += 1 + 8;
+  }
+
   // bool maintenance_fell_back = 6;
   if (this->_internal_maintenance_fell_back() != 0) {
     total_size += 1 + 1;
@@ -7016,6 +7145,7 @@ void RecoveryReply::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::
   (void) cached_has_bits;
 
   _this->_impl_.custom_task_recovery_times_.MergeFrom(from._impl_.custom_task_recovery_times_);
+  _this->_impl_.per_output_write_back_times_.MergeFrom(from._impl_.per_output_write_back_times_);
   if (!from._internal_maintenance_note().empty()) {
     _this->_internal_set_maintenance_note(from._internal_maintenance_note());
   }
@@ -7061,6 +7191,27 @@ void RecoveryReply::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::
   if (raw_custom_recovery_time != 0) {
     _this->_internal_set_custom_recovery_time(from._internal_custom_recovery_time());
   }
+  static_assert(sizeof(uint64_t) == sizeof(double), "Code assumes uint64_t and double are the same size.");
+  double tmp_source_read_time = from._internal_source_read_time();
+  uint64_t raw_source_read_time;
+  memcpy(&raw_source_read_time, &tmp_source_read_time, sizeof(tmp_source_read_time));
+  if (raw_source_read_time != 0) {
+    _this->_internal_set_source_read_time(from._internal_source_read_time());
+  }
+  static_assert(sizeof(uint64_t) == sizeof(double), "Code assumes uint64_t and double are the same size.");
+  double tmp_coefficient_solve_time = from._internal_coefficient_solve_time();
+  uint64_t raw_coefficient_solve_time;
+  memcpy(&raw_coefficient_solve_time, &tmp_coefficient_solve_time, sizeof(tmp_coefficient_solve_time));
+  if (raw_coefficient_solve_time != 0) {
+    _this->_internal_set_coefficient_solve_time(from._internal_coefficient_solve_time());
+  }
+  static_assert(sizeof(uint64_t) == sizeof(double), "Code assumes uint64_t and double are the same size.");
+  double tmp_avx2_encode_time = from._internal_avx2_encode_time();
+  uint64_t raw_avx2_encode_time;
+  memcpy(&raw_avx2_encode_time, &tmp_avx2_encode_time, sizeof(tmp_avx2_encode_time));
+  if (raw_avx2_encode_time != 0) {
+    _this->_internal_set_avx2_encode_time(from._internal_avx2_encode_time());
+  }
   if (from._internal_maintenance_fell_back() != 0) {
     _this->_internal_set_maintenance_fell_back(from._internal_maintenance_fell_back());
   }
@@ -7084,6 +7235,7 @@ void RecoveryReply::InternalSwap(RecoveryReply* other) {
   auto* rhs_arena = other->GetArenaForAllocation();
   _internal_metadata_.InternalSwap(&other->_internal_metadata_);
   _impl_.custom_task_recovery_times_.InternalSwap(&other->_impl_.custom_task_recovery_times_);
+  _impl_.per_output_write_back_times_.InternalSwap(&other->_impl_.per_output_write_back_times_);
   ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::InternalSwap(
       &_impl_.maintenance_note_, lhs_arena,
       &other->_impl_.maintenance_note_, rhs_arena

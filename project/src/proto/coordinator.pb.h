@@ -4464,6 +4464,7 @@ class RecoveryReply final :
 
   enum : int {
     kCustomTaskRecoveryTimesFieldNumber = 9,
+    kPerOutputWriteBackTimesFieldNumber = 13,
     kMaintenanceNoteFieldNumber = 7,
     kDiskReadTimeFieldNumber = 1,
     kNetworkTimeFieldNumber = 2,
@@ -4471,6 +4472,9 @@ class RecoveryReply final :
     kDiskWriteTimeFieldNumber = 4,
     kGrpcStartTimeFieldNumber = 5,
     kCustomRecoveryTimeFieldNumber = 8,
+    kSourceReadTimeFieldNumber = 10,
+    kCoefficientSolveTimeFieldNumber = 11,
+    kAvx2EncodeTimeFieldNumber = 12,
     kMaintenanceFellBackFieldNumber = 6,
   };
   // repeated double custom_task_recovery_times = 9;
@@ -4494,6 +4498,28 @@ class RecoveryReply final :
       custom_task_recovery_times() const;
   ::PROTOBUF_NAMESPACE_ID::RepeatedField< double >*
       mutable_custom_task_recovery_times();
+
+  // repeated double per_output_write_back_times = 13;
+  int per_output_write_back_times_size() const;
+  private:
+  int _internal_per_output_write_back_times_size() const;
+  public:
+  void clear_per_output_write_back_times();
+  private:
+  double _internal_per_output_write_back_times(int index) const;
+  const ::PROTOBUF_NAMESPACE_ID::RepeatedField< double >&
+      _internal_per_output_write_back_times() const;
+  void _internal_add_per_output_write_back_times(double value);
+  ::PROTOBUF_NAMESPACE_ID::RepeatedField< double >*
+      _internal_mutable_per_output_write_back_times();
+  public:
+  double per_output_write_back_times(int index) const;
+  void set_per_output_write_back_times(int index, double value);
+  void add_per_output_write_back_times(double value);
+  const ::PROTOBUF_NAMESPACE_ID::RepeatedField< double >&
+      per_output_write_back_times() const;
+  ::PROTOBUF_NAMESPACE_ID::RepeatedField< double >*
+      mutable_per_output_write_back_times();
 
   // string maintenance_note = 7;
   void clear_maintenance_note();
@@ -4563,6 +4589,33 @@ class RecoveryReply final :
   void _internal_set_custom_recovery_time(double value);
   public:
 
+  // double source_read_time = 10;
+  void clear_source_read_time();
+  double source_read_time() const;
+  void set_source_read_time(double value);
+  private:
+  double _internal_source_read_time() const;
+  void _internal_set_source_read_time(double value);
+  public:
+
+  // double coefficient_solve_time = 11;
+  void clear_coefficient_solve_time();
+  double coefficient_solve_time() const;
+  void set_coefficient_solve_time(double value);
+  private:
+  double _internal_coefficient_solve_time() const;
+  void _internal_set_coefficient_solve_time(double value);
+  public:
+
+  // double avx2_encode_time = 12;
+  void clear_avx2_encode_time();
+  double avx2_encode_time() const;
+  void set_avx2_encode_time(double value);
+  private:
+  double _internal_avx2_encode_time() const;
+  void _internal_set_avx2_encode_time(double value);
+  public:
+
   // bool maintenance_fell_back = 6;
   void clear_maintenance_fell_back();
   bool maintenance_fell_back() const;
@@ -4581,6 +4634,7 @@ class RecoveryReply final :
   typedef void DestructorSkippable_;
   struct Impl_ {
     ::PROTOBUF_NAMESPACE_ID::RepeatedField< double > custom_task_recovery_times_;
+    ::PROTOBUF_NAMESPACE_ID::RepeatedField< double > per_output_write_back_times_;
     ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr maintenance_note_;
     double disk_read_time_;
     double network_time_;
@@ -4588,6 +4642,9 @@ class RecoveryReply final :
     double disk_write_time_;
     double grpc_start_time_;
     double custom_recovery_time_;
+    double source_read_time_;
+    double coefficient_solve_time_;
+    double avx2_encode_time_;
     bool maintenance_fell_back_;
     mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
   };
@@ -4616,7 +4673,7 @@ inline const std::string& RequestToCoordinator::name() const {
 template <typename ArgT0, typename... ArgT>
 inline PROTOBUF_ALWAYS_INLINE
 void RequestToCoordinator::set_name(ArgT0&& arg0, ArgT... args) {
- 
+
  _impl_.name_.Set(static_cast<ArgT0 &&>(arg0), args..., GetArenaForAllocation());
   // @@protoc_insertion_point(field_set:coordinator_proto.RequestToCoordinator.name)
 }
@@ -4629,11 +4686,11 @@ inline const std::string& RequestToCoordinator::_internal_name() const {
   return _impl_.name_.Get();
 }
 inline void RequestToCoordinator::_internal_set_name(const std::string& value) {
-  
+
   _impl_.name_.Set(value, GetArenaForAllocation());
 }
 inline std::string* RequestToCoordinator::_internal_mutable_name() {
-  
+
   return _impl_.name_.Mutable(GetArenaForAllocation());
 }
 inline std::string* RequestToCoordinator::release_name() {
@@ -4642,9 +4699,9 @@ inline std::string* RequestToCoordinator::release_name() {
 }
 inline void RequestToCoordinator::set_allocated_name(std::string* name) {
   if (name != nullptr) {
-    
+
   } else {
-    
+
   }
   _impl_.name_.SetAllocated(name, GetArenaForAllocation());
 #ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
@@ -4670,7 +4727,7 @@ inline const std::string& ReplyFromCoordinator::message() const {
 template <typename ArgT0, typename... ArgT>
 inline PROTOBUF_ALWAYS_INLINE
 void ReplyFromCoordinator::set_message(ArgT0&& arg0, ArgT... args) {
- 
+
  _impl_.message_.Set(static_cast<ArgT0 &&>(arg0), args..., GetArenaForAllocation());
   // @@protoc_insertion_point(field_set:coordinator_proto.ReplyFromCoordinator.message)
 }
@@ -4683,11 +4740,11 @@ inline const std::string& ReplyFromCoordinator::_internal_message() const {
   return _impl_.message_.Get();
 }
 inline void ReplyFromCoordinator::_internal_set_message(const std::string& value) {
-  
+
   _impl_.message_.Set(value, GetArenaForAllocation());
 }
 inline std::string* ReplyFromCoordinator::_internal_mutable_message() {
-  
+
   return _impl_.message_.Mutable(GetArenaForAllocation());
 }
 inline std::string* ReplyFromCoordinator::release_message() {
@@ -4696,9 +4753,9 @@ inline std::string* ReplyFromCoordinator::release_message() {
 }
 inline void ReplyFromCoordinator::set_allocated_message(std::string* message) {
   if (message != nullptr) {
-    
+
   } else {
-    
+
   }
   _impl_.message_.SetAllocated(message, GetArenaForAllocation());
 #ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
@@ -4724,7 +4781,7 @@ inline const std::string& RequestProxyIPPort::key() const {
 template <typename ArgT0, typename... ArgT>
 inline PROTOBUF_ALWAYS_INLINE
 void RequestProxyIPPort::set_key(ArgT0&& arg0, ArgT... args) {
- 
+
  _impl_.key_.Set(static_cast<ArgT0 &&>(arg0), args..., GetArenaForAllocation());
   // @@protoc_insertion_point(field_set:coordinator_proto.RequestProxyIPPort.key)
 }
@@ -4737,11 +4794,11 @@ inline const std::string& RequestProxyIPPort::_internal_key() const {
   return _impl_.key_.Get();
 }
 inline void RequestProxyIPPort::_internal_set_key(const std::string& value) {
-  
+
   _impl_.key_.Set(value, GetArenaForAllocation());
 }
 inline std::string* RequestProxyIPPort::_internal_mutable_key() {
-  
+
   return _impl_.key_.Mutable(GetArenaForAllocation());
 }
 inline std::string* RequestProxyIPPort::release_key() {
@@ -4750,9 +4807,9 @@ inline std::string* RequestProxyIPPort::release_key() {
 }
 inline void RequestProxyIPPort::set_allocated_key(std::string* key) {
   if (key != nullptr) {
-    
+
   } else {
-    
+
   }
   _impl_.key_.SetAllocated(key, GetArenaForAllocation());
 #ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
@@ -4775,7 +4832,7 @@ inline uint64_t RequestProxyIPPort::valuesizebytes() const {
   return _internal_valuesizebytes();
 }
 inline void RequestProxyIPPort::_internal_set_valuesizebytes(uint64_t value) {
-  
+
   _impl_.valuesizebytes_ = value;
 }
 inline void RequestProxyIPPort::set_valuesizebytes(uint64_t value) {
@@ -4794,7 +4851,7 @@ inline const std::string& RequestProxyIPPort::append_mode() const {
 template <typename ArgT0, typename... ArgT>
 inline PROTOBUF_ALWAYS_INLINE
 void RequestProxyIPPort::set_append_mode(ArgT0&& arg0, ArgT... args) {
- 
+
  _impl_.append_mode_.Set(static_cast<ArgT0 &&>(arg0), args..., GetArenaForAllocation());
   // @@protoc_insertion_point(field_set:coordinator_proto.RequestProxyIPPort.append_mode)
 }
@@ -4807,11 +4864,11 @@ inline const std::string& RequestProxyIPPort::_internal_append_mode() const {
   return _impl_.append_mode_.Get();
 }
 inline void RequestProxyIPPort::_internal_set_append_mode(const std::string& value) {
-  
+
   _impl_.append_mode_.Set(value, GetArenaForAllocation());
 }
 inline std::string* RequestProxyIPPort::_internal_mutable_append_mode() {
-  
+
   return _impl_.append_mode_.Mutable(GetArenaForAllocation());
 }
 inline std::string* RequestProxyIPPort::release_append_mode() {
@@ -4820,9 +4877,9 @@ inline std::string* RequestProxyIPPort::release_append_mode() {
 }
 inline void RequestProxyIPPort::set_allocated_append_mode(std::string* append_mode) {
   if (append_mode != nullptr) {
-    
+
   } else {
-    
+
   }
   _impl_.append_mode_.SetAllocated(append_mode, GetArenaForAllocation());
 #ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
@@ -4848,7 +4905,7 @@ inline const std::string& ReplyProxyIPPort::proxyip() const {
 template <typename ArgT0, typename... ArgT>
 inline PROTOBUF_ALWAYS_INLINE
 void ReplyProxyIPPort::set_proxyip(ArgT0&& arg0, ArgT... args) {
- 
+
  _impl_.proxyip_.Set(static_cast<ArgT0 &&>(arg0), args..., GetArenaForAllocation());
   // @@protoc_insertion_point(field_set:coordinator_proto.ReplyProxyIPPort.proxyip)
 }
@@ -4861,11 +4918,11 @@ inline const std::string& ReplyProxyIPPort::_internal_proxyip() const {
   return _impl_.proxyip_.Get();
 }
 inline void ReplyProxyIPPort::_internal_set_proxyip(const std::string& value) {
-  
+
   _impl_.proxyip_.Set(value, GetArenaForAllocation());
 }
 inline std::string* ReplyProxyIPPort::_internal_mutable_proxyip() {
-  
+
   return _impl_.proxyip_.Mutable(GetArenaForAllocation());
 }
 inline std::string* ReplyProxyIPPort::release_proxyip() {
@@ -4874,9 +4931,9 @@ inline std::string* ReplyProxyIPPort::release_proxyip() {
 }
 inline void ReplyProxyIPPort::set_allocated_proxyip(std::string* proxyip) {
   if (proxyip != nullptr) {
-    
+
   } else {
-    
+
   }
   _impl_.proxyip_.SetAllocated(proxyip, GetArenaForAllocation());
 #ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
@@ -4899,7 +4956,7 @@ inline int32_t ReplyProxyIPPort::proxyport() const {
   return _internal_proxyport();
 }
 inline void ReplyProxyIPPort::_internal_set_proxyport(int32_t value) {
-  
+
   _impl_.proxyport_ = value;
 }
 inline void ReplyProxyIPPort::set_proxyport(int32_t value) {
@@ -4922,7 +4979,7 @@ inline const std::string& CommitAbortKey::key() const {
 template <typename ArgT0, typename... ArgT>
 inline PROTOBUF_ALWAYS_INLINE
 void CommitAbortKey::set_key(ArgT0&& arg0, ArgT... args) {
- 
+
  _impl_.key_.Set(static_cast<ArgT0 &&>(arg0), args..., GetArenaForAllocation());
   // @@protoc_insertion_point(field_set:coordinator_proto.CommitAbortKey.key)
 }
@@ -4935,11 +4992,11 @@ inline const std::string& CommitAbortKey::_internal_key() const {
   return _impl_.key_.Get();
 }
 inline void CommitAbortKey::_internal_set_key(const std::string& value) {
-  
+
   _impl_.key_.Set(value, GetArenaForAllocation());
 }
 inline std::string* CommitAbortKey::_internal_mutable_key() {
-  
+
   return _impl_.key_.Mutable(GetArenaForAllocation());
 }
 inline std::string* CommitAbortKey::release_key() {
@@ -4948,9 +5005,9 @@ inline std::string* CommitAbortKey::release_key() {
 }
 inline void CommitAbortKey::set_allocated_key(std::string* key) {
   if (key != nullptr) {
-    
+
   } else {
-    
+
   }
   _impl_.key_.SetAllocated(key, GetArenaForAllocation());
 #ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
@@ -4973,7 +5030,7 @@ inline bool CommitAbortKey::ifcommitmetadata() const {
   return _internal_ifcommitmetadata();
 }
 inline void CommitAbortKey::_internal_set_ifcommitmetadata(bool value) {
-  
+
   _impl_.ifcommitmetadata_ = value;
 }
 inline void CommitAbortKey::set_ifcommitmetadata(bool value) {
@@ -4993,7 +5050,7 @@ inline int32_t CommitAbortKey::opp() const {
   return _internal_opp();
 }
 inline void CommitAbortKey::_internal_set_opp(int32_t value) {
-  
+
   _impl_.opp_ = value;
 }
 inline void CommitAbortKey::set_opp(int32_t value) {
@@ -5013,7 +5070,7 @@ inline int32_t CommitAbortKey::stripe_id() const {
   return _internal_stripe_id();
 }
 inline void CommitAbortKey::_internal_set_stripe_id(int32_t value) {
-  
+
   _impl_.stripe_id_ = value;
 }
 inline void CommitAbortKey::set_stripe_id(int32_t value) {
@@ -5037,7 +5094,7 @@ inline uint64_t ReplyProxyIPsPorts::sum_append_size() const {
   return _internal_sum_append_size();
 }
 inline void ReplyProxyIPsPorts::_internal_set_sum_append_size(uint64_t value) {
-  
+
   _impl_.sum_append_size_ = value;
 }
 inline void ReplyProxyIPsPorts::set_sum_append_size(uint64_t value) {
@@ -5351,7 +5408,7 @@ inline const std::string& AskIfSuccess::key() const {
 template <typename ArgT0, typename... ArgT>
 inline PROTOBUF_ALWAYS_INLINE
 void AskIfSuccess::set_key(ArgT0&& arg0, ArgT... args) {
- 
+
  _impl_.key_.Set(static_cast<ArgT0 &&>(arg0), args..., GetArenaForAllocation());
   // @@protoc_insertion_point(field_set:coordinator_proto.AskIfSuccess.key)
 }
@@ -5364,11 +5421,11 @@ inline const std::string& AskIfSuccess::_internal_key() const {
   return _impl_.key_.Get();
 }
 inline void AskIfSuccess::_internal_set_key(const std::string& value) {
-  
+
   _impl_.key_.Set(value, GetArenaForAllocation());
 }
 inline std::string* AskIfSuccess::_internal_mutable_key() {
-  
+
   return _impl_.key_.Mutable(GetArenaForAllocation());
 }
 inline std::string* AskIfSuccess::release_key() {
@@ -5377,9 +5434,9 @@ inline std::string* AskIfSuccess::release_key() {
 }
 inline void AskIfSuccess::set_allocated_key(std::string* key) {
   if (key != nullptr) {
-    
+
   } else {
-    
+
   }
   _impl_.key_.SetAllocated(key, GetArenaForAllocation());
 #ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
@@ -5402,7 +5459,7 @@ inline int32_t AskIfSuccess::opp() const {
   return _internal_opp();
 }
 inline void AskIfSuccess::_internal_set_opp(int32_t value) {
-  
+
   _impl_.opp_ = value;
 }
 inline void AskIfSuccess::set_opp(int32_t value) {
@@ -5422,7 +5479,7 @@ inline int32_t AskIfSuccess::stripe_id() const {
   return _internal_stripe_id();
 }
 inline void AskIfSuccess::_internal_set_stripe_id(int32_t value) {
-  
+
   _impl_.stripe_id_ = value;
 }
 inline void AskIfSuccess::set_stripe_id(int32_t value) {
@@ -5446,7 +5503,7 @@ inline bool RepIfSuccess::ifcommit() const {
   return _internal_ifcommit();
 }
 inline void RepIfSuccess::_internal_set_ifcommit(bool value) {
-  
+
   _impl_.ifcommit_ = value;
 }
 inline void RepIfSuccess::set_ifcommit(bool value) {
@@ -5469,7 +5526,7 @@ inline const std::string& KeyAndClientIP::key() const {
 template <typename ArgT0, typename... ArgT>
 inline PROTOBUF_ALWAYS_INLINE
 void KeyAndClientIP::set_key(ArgT0&& arg0, ArgT... args) {
- 
+
  _impl_.key_.Set(static_cast<ArgT0 &&>(arg0), args..., GetArenaForAllocation());
   // @@protoc_insertion_point(field_set:coordinator_proto.KeyAndClientIP.key)
 }
@@ -5482,11 +5539,11 @@ inline const std::string& KeyAndClientIP::_internal_key() const {
   return _impl_.key_.Get();
 }
 inline void KeyAndClientIP::_internal_set_key(const std::string& value) {
-  
+
   _impl_.key_.Set(value, GetArenaForAllocation());
 }
 inline std::string* KeyAndClientIP::_internal_mutable_key() {
-  
+
   return _impl_.key_.Mutable(GetArenaForAllocation());
 }
 inline std::string* KeyAndClientIP::release_key() {
@@ -5495,9 +5552,9 @@ inline std::string* KeyAndClientIP::release_key() {
 }
 inline void KeyAndClientIP::set_allocated_key(std::string* key) {
   if (key != nullptr) {
-    
+
   } else {
-    
+
   }
   _impl_.key_.SetAllocated(key, GetArenaForAllocation());
 #ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
@@ -5519,7 +5576,7 @@ inline const std::string& KeyAndClientIP::clientip() const {
 template <typename ArgT0, typename... ArgT>
 inline PROTOBUF_ALWAYS_INLINE
 void KeyAndClientIP::set_clientip(ArgT0&& arg0, ArgT... args) {
- 
+
  _impl_.clientip_.Set(static_cast<ArgT0 &&>(arg0), args..., GetArenaForAllocation());
   // @@protoc_insertion_point(field_set:coordinator_proto.KeyAndClientIP.clientip)
 }
@@ -5532,11 +5589,11 @@ inline const std::string& KeyAndClientIP::_internal_clientip() const {
   return _impl_.clientip_.Get();
 }
 inline void KeyAndClientIP::_internal_set_clientip(const std::string& value) {
-  
+
   _impl_.clientip_.Set(value, GetArenaForAllocation());
 }
 inline std::string* KeyAndClientIP::_internal_mutable_clientip() {
-  
+
   return _impl_.clientip_.Mutable(GetArenaForAllocation());
 }
 inline std::string* KeyAndClientIP::release_clientip() {
@@ -5545,9 +5602,9 @@ inline std::string* KeyAndClientIP::release_clientip() {
 }
 inline void KeyAndClientIP::set_allocated_clientip(std::string* clientip) {
   if (clientip != nullptr) {
-    
+
   } else {
-    
+
   }
   _impl_.clientip_.SetAllocated(clientip, GetArenaForAllocation());
 #ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
@@ -5570,7 +5627,7 @@ inline int32_t KeyAndClientIP::clientport() const {
   return _internal_clientport();
 }
 inline void KeyAndClientIP::_internal_set_clientport(int32_t value) {
-  
+
   _impl_.clientport_ = value;
 }
 inline void KeyAndClientIP::set_clientport(int32_t value) {
@@ -5594,7 +5651,7 @@ inline bool RepIfGetSuccess::ifgetsuccess() const {
   return _internal_ifgetsuccess();
 }
 inline void RepIfGetSuccess::_internal_set_ifgetsuccess(bool value) {
-  
+
   _impl_.ifgetsuccess_ = value;
 }
 inline void RepIfGetSuccess::set_ifgetsuccess(bool value) {
@@ -5614,7 +5671,7 @@ inline int32_t RepIfGetSuccess::valuesizebytes() const {
   return _internal_valuesizebytes();
 }
 inline void RepIfGetSuccess::_internal_set_valuesizebytes(int32_t value) {
-  
+
   _impl_.valuesizebytes_ = value;
 }
 inline void RepIfGetSuccess::set_valuesizebytes(int32_t value) {
@@ -5638,7 +5695,7 @@ inline int32_t BlockIDsAndClientIP::start_block_id() const {
   return _internal_start_block_id();
 }
 inline void BlockIDsAndClientIP::_internal_set_start_block_id(int32_t value) {
-  
+
   _impl_.start_block_id_ = value;
 }
 inline void BlockIDsAndClientIP::set_start_block_id(int32_t value) {
@@ -5658,7 +5715,7 @@ inline int32_t BlockIDsAndClientIP::end_block_id() const {
   return _internal_end_block_id();
 }
 inline void BlockIDsAndClientIP::_internal_set_end_block_id(int32_t value) {
-  
+
   _impl_.end_block_id_ = value;
 }
 inline void BlockIDsAndClientIP::set_end_block_id(int32_t value) {
@@ -5677,7 +5734,7 @@ inline const std::string& BlockIDsAndClientIP::clientip() const {
 template <typename ArgT0, typename... ArgT>
 inline PROTOBUF_ALWAYS_INLINE
 void BlockIDsAndClientIP::set_clientip(ArgT0&& arg0, ArgT... args) {
- 
+
  _impl_.clientip_.Set(static_cast<ArgT0 &&>(arg0), args..., GetArenaForAllocation());
   // @@protoc_insertion_point(field_set:coordinator_proto.BlockIDsAndClientIP.clientip)
 }
@@ -5690,11 +5747,11 @@ inline const std::string& BlockIDsAndClientIP::_internal_clientip() const {
   return _impl_.clientip_.Get();
 }
 inline void BlockIDsAndClientIP::_internal_set_clientip(const std::string& value) {
-  
+
   _impl_.clientip_.Set(value, GetArenaForAllocation());
 }
 inline std::string* BlockIDsAndClientIP::_internal_mutable_clientip() {
-  
+
   return _impl_.clientip_.Mutable(GetArenaForAllocation());
 }
 inline std::string* BlockIDsAndClientIP::release_clientip() {
@@ -5703,9 +5760,9 @@ inline std::string* BlockIDsAndClientIP::release_clientip() {
 }
 inline void BlockIDsAndClientIP::set_allocated_clientip(std::string* clientip) {
   if (clientip != nullptr) {
-    
+
   } else {
-    
+
   }
   _impl_.clientip_.SetAllocated(clientip, GetArenaForAllocation());
 #ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
@@ -5728,7 +5785,7 @@ inline int32_t BlockIDsAndClientIP::clientport() const {
   return _internal_clientport();
 }
 inline void BlockIDsAndClientIP::_internal_set_clientport(int32_t value) {
-  
+
   _impl_.clientport_ = value;
 }
 inline void BlockIDsAndClientIP::set_clientport(int32_t value) {
@@ -5748,7 +5805,7 @@ inline int32_t BlockIDsAndClientIP::failed_block_id() const {
   return _internal_failed_block_id();
 }
 inline void BlockIDsAndClientIP::_internal_set_failed_block_id(int32_t value) {
-  
+
   _impl_.failed_block_id_ = value;
 }
 inline void BlockIDsAndClientIP::set_failed_block_id(int32_t value) {
@@ -5771,7 +5828,7 @@ inline const std::string& KeyFromClient::key() const {
 template <typename ArgT0, typename... ArgT>
 inline PROTOBUF_ALWAYS_INLINE
 void KeyFromClient::set_key(ArgT0&& arg0, ArgT... args) {
- 
+
  _impl_.key_.Set(static_cast<ArgT0 &&>(arg0), args..., GetArenaForAllocation());
   // @@protoc_insertion_point(field_set:coordinator_proto.KeyFromClient.key)
 }
@@ -5784,11 +5841,11 @@ inline const std::string& KeyFromClient::_internal_key() const {
   return _impl_.key_.Get();
 }
 inline void KeyFromClient::_internal_set_key(const std::string& value) {
-  
+
   _impl_.key_.Set(value, GetArenaForAllocation());
 }
 inline std::string* KeyFromClient::_internal_mutable_key() {
-  
+
   return _impl_.key_.Mutable(GetArenaForAllocation());
 }
 inline std::string* KeyFromClient::release_key() {
@@ -5797,9 +5854,9 @@ inline std::string* KeyFromClient::release_key() {
 }
 inline void KeyFromClient::set_allocated_key(std::string* key) {
   if (key != nullptr) {
-    
+
   } else {
-    
+
   }
   _impl_.key_.SetAllocated(key, GetArenaForAllocation());
 #ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
@@ -5826,7 +5883,7 @@ inline int32_t StripeIdFromClient::stripe_id() const {
   return _internal_stripe_id();
 }
 inline void StripeIdFromClient::_internal_set_stripe_id(int32_t value) {
-  
+
   _impl_.stripe_id_ = value;
 }
 inline void StripeIdFromClient::set_stripe_id(int32_t value) {
@@ -5850,7 +5907,7 @@ inline int32_t StripeIdAndBlockIDsFromClient::stripe_id() const {
   return _internal_stripe_id();
 }
 inline void StripeIdAndBlockIDsFromClient::_internal_set_stripe_id(int32_t value) {
-  
+
   _impl_.stripe_id_ = value;
 }
 inline void StripeIdAndBlockIDsFromClient::set_stripe_id(int32_t value) {
@@ -5968,7 +6025,7 @@ inline int32_t MaintenanceReadRequest::stripe_id() const {
   return _internal_stripe_id();
 }
 inline void MaintenanceReadRequest::_internal_set_stripe_id(int32_t value) {
-  
+
   _impl_.stripe_id_ = value;
 }
 inline void MaintenanceReadRequest::set_stripe_id(int32_t value) {
@@ -6081,7 +6138,7 @@ inline const std::string& MaintenanceReadRequest::clientip() const {
 template <typename ArgT0, typename... ArgT>
 inline PROTOBUF_ALWAYS_INLINE
 void MaintenanceReadRequest::set_clientip(ArgT0&& arg0, ArgT... args) {
- 
+
  _impl_.clientip_.Set(static_cast<ArgT0 &&>(arg0), args..., GetArenaForAllocation());
   // @@protoc_insertion_point(field_set:coordinator_proto.MaintenanceReadRequest.clientip)
 }
@@ -6094,11 +6151,11 @@ inline const std::string& MaintenanceReadRequest::_internal_clientip() const {
   return _impl_.clientip_.Get();
 }
 inline void MaintenanceReadRequest::_internal_set_clientip(const std::string& value) {
-  
+
   _impl_.clientip_.Set(value, GetArenaForAllocation());
 }
 inline std::string* MaintenanceReadRequest::_internal_mutable_clientip() {
-  
+
   return _impl_.clientip_.Mutable(GetArenaForAllocation());
 }
 inline std::string* MaintenanceReadRequest::release_clientip() {
@@ -6107,9 +6164,9 @@ inline std::string* MaintenanceReadRequest::release_clientip() {
 }
 inline void MaintenanceReadRequest::set_allocated_clientip(std::string* clientip) {
   if (clientip != nullptr) {
-    
+
   } else {
-    
+
   }
   _impl_.clientip_.SetAllocated(clientip, GetArenaForAllocation());
 #ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
@@ -6132,7 +6189,7 @@ inline int32_t MaintenanceReadRequest::clientport() const {
   return _internal_clientport();
 }
 inline void MaintenanceReadRequest::_internal_set_clientport(int32_t value) {
-  
+
   _impl_.clientport_ = value;
 }
 inline void MaintenanceReadRequest::set_clientport(int32_t value) {
@@ -6156,7 +6213,7 @@ inline int32_t CustomRecoveryRequest::stripe_id() const {
   return _internal_stripe_id();
 }
 inline void CustomRecoveryRequest::_internal_set_stripe_id(int32_t value) {
-  
+
   _impl_.stripe_id_ = value;
 }
 inline void CustomRecoveryRequest::set_stripe_id(int32_t value) {
@@ -6176,7 +6233,7 @@ inline int32_t CustomRecoveryRequest::failed_block_id() const {
   return _internal_failed_block_id();
 }
 inline void CustomRecoveryRequest::_internal_set_failed_block_id(int32_t value) {
-  
+
   _impl_.failed_block_id_ = value;
 }
 inline void CustomRecoveryRequest::set_failed_block_id(int32_t value) {
@@ -6345,7 +6402,7 @@ inline int32_t CustomDoubleRecoveryRequest::stripe_id() const {
   return _internal_stripe_id();
 }
 inline void CustomDoubleRecoveryRequest::_internal_set_stripe_id(int32_t value) {
-  
+
   _impl_.stripe_id_ = value;
 }
 inline void CustomDoubleRecoveryRequest::set_stripe_id(int32_t value) {
@@ -6405,7 +6462,7 @@ inline bool CustomDoubleRecoveryRequest::optimal_g0_d0_chain() const {
   return _internal_optimal_g0_d0_chain();
 }
 inline void CustomDoubleRecoveryRequest::_internal_set_optimal_g0_d0_chain(bool value) {
-  
+
   _impl_.optimal_g0_d0_chain_ = value;
 }
 inline void CustomDoubleRecoveryRequest::set_optimal_g0_d0_chain(bool value) {
@@ -6429,7 +6486,7 @@ inline int32_t NodeIdFromClient::node_id() const {
   return _internal_node_id();
 }
 inline void NodeIdFromClient::_internal_set_node_id(int32_t value) {
-  
+
   _impl_.node_id_ = value;
 }
 inline void NodeIdFromClient::set_node_id(int32_t value) {
@@ -6453,7 +6510,7 @@ inline int32_t TwoNodeIdsFromClient::node_id_0() const {
   return _internal_node_id_0();
 }
 inline void TwoNodeIdsFromClient::_internal_set_node_id_0(int32_t value) {
-  
+
   _impl_.node_id_0_ = value;
 }
 inline void TwoNodeIdsFromClient::set_node_id_0(int32_t value) {
@@ -6473,7 +6530,7 @@ inline int32_t TwoNodeIdsFromClient::node_id_1() const {
   return _internal_node_id_1();
 }
 inline void TwoNodeIdsFromClient::_internal_set_node_id_1(int32_t value) {
-  
+
   _impl_.node_id_1_ = value;
 }
 inline void TwoNodeIdsFromClient::set_node_id_1(int32_t value) {
@@ -6497,7 +6554,7 @@ inline bool RepIfDeling::ifdeling() const {
   return _internal_ifdeling();
 }
 inline void RepIfDeling::_internal_set_ifdeling(bool value) {
-  
+
   _impl_.ifdeling_ = value;
 }
 inline void RepIfDeling::set_ifdeling(bool value) {
@@ -6572,7 +6629,7 @@ inline int32_t RepBlockNum::block_num() const {
   return _internal_block_num();
 }
 inline void RepBlockNum::_internal_set_block_num(int32_t value) {
-  
+
   _impl_.block_num_ = value;
 }
 inline void RepBlockNum::set_block_num(int32_t value) {
@@ -6596,7 +6653,7 @@ inline double DegradedReadReply::disk_io_time() const {
   return _internal_disk_io_time();
 }
 inline void DegradedReadReply::_internal_set_disk_io_time(double value) {
-  
+
   _impl_.disk_io_time_ = value;
 }
 inline void DegradedReadReply::set_disk_io_time(double value) {
@@ -6616,7 +6673,7 @@ inline double DegradedReadReply::network_time() const {
   return _internal_network_time();
 }
 inline void DegradedReadReply::_internal_set_network_time(double value) {
-  
+
   _impl_.network_time_ = value;
 }
 inline void DegradedReadReply::set_network_time(double value) {
@@ -6636,7 +6693,7 @@ inline double DegradedReadReply::decode_time() const {
   return _internal_decode_time();
 }
 inline void DegradedReadReply::_internal_set_decode_time(double value) {
-  
+
   _impl_.decode_time_ = value;
 }
 inline void DegradedReadReply::set_decode_time(double value) {
@@ -6656,7 +6713,7 @@ inline double DegradedReadReply::grpc_start_time() const {
   return _internal_grpc_start_time();
 }
 inline void DegradedReadReply::_internal_set_grpc_start_time(double value) {
-  
+
   _impl_.grpc_start_time_ = value;
 }
 inline void DegradedReadReply::set_grpc_start_time(double value) {
@@ -6680,7 +6737,7 @@ inline double RecoveryReply::disk_read_time() const {
   return _internal_disk_read_time();
 }
 inline void RecoveryReply::_internal_set_disk_read_time(double value) {
-  
+
   _impl_.disk_read_time_ = value;
 }
 inline void RecoveryReply::set_disk_read_time(double value) {
@@ -6700,7 +6757,7 @@ inline double RecoveryReply::network_time() const {
   return _internal_network_time();
 }
 inline void RecoveryReply::_internal_set_network_time(double value) {
-  
+
   _impl_.network_time_ = value;
 }
 inline void RecoveryReply::set_network_time(double value) {
@@ -6720,7 +6777,7 @@ inline double RecoveryReply::decode_time() const {
   return _internal_decode_time();
 }
 inline void RecoveryReply::_internal_set_decode_time(double value) {
-  
+
   _impl_.decode_time_ = value;
 }
 inline void RecoveryReply::set_decode_time(double value) {
@@ -6740,7 +6797,7 @@ inline double RecoveryReply::disk_write_time() const {
   return _internal_disk_write_time();
 }
 inline void RecoveryReply::_internal_set_disk_write_time(double value) {
-  
+
   _impl_.disk_write_time_ = value;
 }
 inline void RecoveryReply::set_disk_write_time(double value) {
@@ -6760,7 +6817,7 @@ inline double RecoveryReply::grpc_start_time() const {
   return _internal_grpc_start_time();
 }
 inline void RecoveryReply::_internal_set_grpc_start_time(double value) {
-  
+
   _impl_.grpc_start_time_ = value;
 }
 inline void RecoveryReply::set_grpc_start_time(double value) {
@@ -6780,7 +6837,7 @@ inline bool RecoveryReply::maintenance_fell_back() const {
   return _internal_maintenance_fell_back();
 }
 inline void RecoveryReply::_internal_set_maintenance_fell_back(bool value) {
-  
+
   _impl_.maintenance_fell_back_ = value;
 }
 inline void RecoveryReply::set_maintenance_fell_back(bool value) {
@@ -6799,7 +6856,7 @@ inline const std::string& RecoveryReply::maintenance_note() const {
 template <typename ArgT0, typename... ArgT>
 inline PROTOBUF_ALWAYS_INLINE
 void RecoveryReply::set_maintenance_note(ArgT0&& arg0, ArgT... args) {
- 
+
  _impl_.maintenance_note_.Set(static_cast<ArgT0 &&>(arg0), args..., GetArenaForAllocation());
   // @@protoc_insertion_point(field_set:coordinator_proto.RecoveryReply.maintenance_note)
 }
@@ -6812,11 +6869,11 @@ inline const std::string& RecoveryReply::_internal_maintenance_note() const {
   return _impl_.maintenance_note_.Get();
 }
 inline void RecoveryReply::_internal_set_maintenance_note(const std::string& value) {
-  
+
   _impl_.maintenance_note_.Set(value, GetArenaForAllocation());
 }
 inline std::string* RecoveryReply::_internal_mutable_maintenance_note() {
-  
+
   return _impl_.maintenance_note_.Mutable(GetArenaForAllocation());
 }
 inline std::string* RecoveryReply::release_maintenance_note() {
@@ -6825,9 +6882,9 @@ inline std::string* RecoveryReply::release_maintenance_note() {
 }
 inline void RecoveryReply::set_allocated_maintenance_note(std::string* maintenance_note) {
   if (maintenance_note != nullptr) {
-    
+
   } else {
-    
+
   }
   _impl_.maintenance_note_.SetAllocated(maintenance_note, GetArenaForAllocation());
 #ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
@@ -6850,7 +6907,7 @@ inline double RecoveryReply::custom_recovery_time() const {
   return _internal_custom_recovery_time();
 }
 inline void RecoveryReply::_internal_set_custom_recovery_time(double value) {
-  
+
   _impl_.custom_recovery_time_ = value;
 }
 inline void RecoveryReply::set_custom_recovery_time(double value) {
@@ -6903,6 +6960,113 @@ inline ::PROTOBUF_NAMESPACE_ID::RepeatedField< double >*
 RecoveryReply::mutable_custom_task_recovery_times() {
   // @@protoc_insertion_point(field_mutable_list:coordinator_proto.RecoveryReply.custom_task_recovery_times)
   return _internal_mutable_custom_task_recovery_times();
+}
+
+// double source_read_time = 10;
+inline void RecoveryReply::clear_source_read_time() {
+  _impl_.source_read_time_ = 0;
+}
+inline double RecoveryReply::_internal_source_read_time() const {
+  return _impl_.source_read_time_;
+}
+inline double RecoveryReply::source_read_time() const {
+  // @@protoc_insertion_point(field_get:coordinator_proto.RecoveryReply.source_read_time)
+  return _internal_source_read_time();
+}
+inline void RecoveryReply::_internal_set_source_read_time(double value) {
+
+  _impl_.source_read_time_ = value;
+}
+inline void RecoveryReply::set_source_read_time(double value) {
+  _internal_set_source_read_time(value);
+  // @@protoc_insertion_point(field_set:coordinator_proto.RecoveryReply.source_read_time)
+}
+
+// double coefficient_solve_time = 11;
+inline void RecoveryReply::clear_coefficient_solve_time() {
+  _impl_.coefficient_solve_time_ = 0;
+}
+inline double RecoveryReply::_internal_coefficient_solve_time() const {
+  return _impl_.coefficient_solve_time_;
+}
+inline double RecoveryReply::coefficient_solve_time() const {
+  // @@protoc_insertion_point(field_get:coordinator_proto.RecoveryReply.coefficient_solve_time)
+  return _internal_coefficient_solve_time();
+}
+inline void RecoveryReply::_internal_set_coefficient_solve_time(double value) {
+
+  _impl_.coefficient_solve_time_ = value;
+}
+inline void RecoveryReply::set_coefficient_solve_time(double value) {
+  _internal_set_coefficient_solve_time(value);
+  // @@protoc_insertion_point(field_set:coordinator_proto.RecoveryReply.coefficient_solve_time)
+}
+
+// double avx2_encode_time = 12;
+inline void RecoveryReply::clear_avx2_encode_time() {
+  _impl_.avx2_encode_time_ = 0;
+}
+inline double RecoveryReply::_internal_avx2_encode_time() const {
+  return _impl_.avx2_encode_time_;
+}
+inline double RecoveryReply::avx2_encode_time() const {
+  // @@protoc_insertion_point(field_get:coordinator_proto.RecoveryReply.avx2_encode_time)
+  return _internal_avx2_encode_time();
+}
+inline void RecoveryReply::_internal_set_avx2_encode_time(double value) {
+
+  _impl_.avx2_encode_time_ = value;
+}
+inline void RecoveryReply::set_avx2_encode_time(double value) {
+  _internal_set_avx2_encode_time(value);
+  // @@protoc_insertion_point(field_set:coordinator_proto.RecoveryReply.avx2_encode_time)
+}
+
+// repeated double per_output_write_back_times = 13;
+inline int RecoveryReply::_internal_per_output_write_back_times_size() const {
+  return _impl_.per_output_write_back_times_.size();
+}
+inline int RecoveryReply::per_output_write_back_times_size() const {
+  return _internal_per_output_write_back_times_size();
+}
+inline void RecoveryReply::clear_per_output_write_back_times() {
+  _impl_.per_output_write_back_times_.Clear();
+}
+inline double RecoveryReply::_internal_per_output_write_back_times(int index) const {
+  return _impl_.per_output_write_back_times_.Get(index);
+}
+inline double RecoveryReply::per_output_write_back_times(int index) const {
+  // @@protoc_insertion_point(field_get:coordinator_proto.RecoveryReply.per_output_write_back_times)
+  return _internal_per_output_write_back_times(index);
+}
+inline void RecoveryReply::set_per_output_write_back_times(int index, double value) {
+  _impl_.per_output_write_back_times_.Set(index, value);
+  // @@protoc_insertion_point(field_set:coordinator_proto.RecoveryReply.per_output_write_back_times)
+}
+inline void RecoveryReply::_internal_add_per_output_write_back_times(double value) {
+  _impl_.per_output_write_back_times_.Add(value);
+}
+inline void RecoveryReply::add_per_output_write_back_times(double value) {
+  _internal_add_per_output_write_back_times(value);
+  // @@protoc_insertion_point(field_add:coordinator_proto.RecoveryReply.per_output_write_back_times)
+}
+inline const ::PROTOBUF_NAMESPACE_ID::RepeatedField< double >&
+RecoveryReply::_internal_per_output_write_back_times() const {
+  return _impl_.per_output_write_back_times_;
+}
+inline const ::PROTOBUF_NAMESPACE_ID::RepeatedField< double >&
+RecoveryReply::per_output_write_back_times() const {
+  // @@protoc_insertion_point(field_list:coordinator_proto.RecoveryReply.per_output_write_back_times)
+  return _internal_per_output_write_back_times();
+}
+inline ::PROTOBUF_NAMESPACE_ID::RepeatedField< double >*
+RecoveryReply::_internal_mutable_per_output_write_back_times() {
+  return &_impl_.per_output_write_back_times_;
+}
+inline ::PROTOBUF_NAMESPACE_ID::RepeatedField< double >*
+RecoveryReply::mutable_per_output_write_back_times() {
+  // @@protoc_insertion_point(field_mutable_list:coordinator_proto.RecoveryReply.per_output_write_back_times)
+  return _internal_mutable_per_output_write_back_times();
 }
 
 #ifdef __GNUC__

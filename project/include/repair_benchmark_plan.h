@@ -38,7 +38,8 @@ using QuadrupleRepairCase = RepairGroupCase;
 inline bool is_supported_failure_type(const std::string &failure_type)
 {
     return failure_type == "single" || failure_type == "double" ||
-           failure_type == "triple" || failure_type == "quadruple";
+           failure_type == "triple" || failure_type == "quadruple" ||
+           failure_type == "muti";
 }
 
 inline std::vector<int> inclusive_range(int first, int last)
@@ -47,6 +48,14 @@ inline std::vector<int> inclusive_range(int first, int last)
     for (int id = first; id <= last; ++id)
         ids.push_back(id);
     return ids;
+}
+
+inline std::vector<RepairGroupCase> make_nlrc_k128_muti_block_cases()
+{
+    return {
+        {"G0+G1", {{{128, 129}, inclusive_range(0, 127)}}},
+        {"G0+G1+G2", {{{128, 129, 130}, inclusive_range(0, 127)}}},
+    };
 }
 
 inline std::vector<RepairCase> make_azure_uneven_single_block_cases(int k, int r, int z)

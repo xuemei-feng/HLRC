@@ -16,6 +16,14 @@
 #include <set>
 namespace ECProject
 {
+  struct MultiRecoveryBreakdown
+  {
+    double source_read_time = 0.0;
+    double coefficient_solve_time = 0.0;
+    double avx2_encode_time = 0.0;
+    std::vector<double> per_output_write_back_times;
+  };
+
   class Client
   {
   public:
@@ -86,7 +94,8 @@ namespace ECProject
         int stripe_id, const std::vector<std::vector<int>> &failed_block_ids,
         const std::vector<std::vector<int>> &source_block_ids, double &recovery_time,
         bool optimal_g0_d0_chain = false,
-        std::vector<double> *task_recovery_times = nullptr);
+        std::vector<double> *task_recovery_times = nullptr,
+        MultiRecoveryBreakdown *breakdown = nullptr);
     bool double_recovery_with_sources(
         int stripe_id, const std::vector<std::vector<int>> &failed_block_ids,
         const std::vector<std::vector<int>> &source_block_ids, double &recovery_time,

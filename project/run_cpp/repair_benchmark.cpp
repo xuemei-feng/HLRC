@@ -22,6 +22,7 @@ using ECProject::RepairBenchmark::DoubleRepairCase;
 using ECProject::RepairBenchmark::TripleRepairCase;
 using ECProject::RepairBenchmark::QuadrupleRepairCase;
 using ECProject::RepairBenchmark::RepairCase;
+using ECProject::RepairBenchmark::RepairGroupCase;
 using ECProject::RepairBenchmark::RepairTask;
 
 struct RepairPlan
@@ -34,6 +35,7 @@ struct RepairPlan
   std::vector<DoubleRepairCase> double_cases;
   std::vector<TripleRepairCase> triple_cases;
   std::vector<QuadrupleRepairCase> quadruple_cases;
+  std::vector<RepairGroupCase> muti_cases;
 };
 
 void append_range(std::vector<int> &ids, int first, int last)
@@ -849,6 +851,19 @@ bool make_repair_plan(const std::string &code_type, int k,
     return false;
   }
 
+  if (failure_type == "muti")
+  {
+    if (code_type != "NLRC" || k != 128 || configured_r != 3)
+    {
+      error = "muti requires CodeType=NLRC, k=128, r=3, z=9";
+      return false;
+    }
+    plan.required_r = 3;
+    plan.required_z = 9;
+    plan.muti_cases = ECProject::RepairBenchmark::make_nlrc_k128_muti_block_cases();
+    return true;
+  }
+
   if (code_type == "NLRC")
   {
     const bool k64_supported = k == 64 && (failure_type == "single" ||
@@ -1067,7 +1082,7 @@ void print_repair_plan(const RepairPlan &plan, const std::string &failure_type)
     std::cout << "Case " << test_case.failed_name << std::endl;
     print_task({{test_case.failed_block_id}, test_case.source_block_ids});
   }
-  for (const auto *cases : {&plan.double_cases, &plan.triple_cases, &plan.quadruple_cases})
+  for (const auto *cases : {&plan.double_cases, &plan.triple_cases, &plan.quadruple_cases, &plan.muti_cases})
     for (const auto &test_case : *cases)
     {
       std::cout << "Case " << test_case.failed_name << std::endl;
@@ -1138,7 +1153,7 @@ int main(int argc, char **argv)
   if (argc < 3)
   {
     std::cerr << "Usage: " << argv[0]
-              << " <24|48|64|72|96|128> <single|double|triple|quadruple>"
+              << " <24|48|64|72|96|128> <single|double|triple|quadruple|muti>"
               << " [--repeat N] [--warmup N] [--stripe-id ID]"
               << " [--config config.xml] [--check-plan [config.xml]]" << std::endl;
     return 2;
@@ -1176,7 +1191,7 @@ int main(int argc, char **argv)
   if (!ECProject::RepairBenchmark::is_supported_failure_type(failure_type))
   {
     std::cerr << "Error: unsupported failure type '" << failure_type
-              << "'; expected single, double, triple, or quadruple." << std::endl;
+              << "'; expected single, double, triple, quadruple, or muti." << std::endl;
     return 2;
   }
 
@@ -1282,7 +1297,8 @@ int main(int argc, char **argv)
       cases.push_back({test.failed_name, {{{test.failed_block_id}, test.source_block_ids}}, false});
   else if (failure_type == "double") cases = repair_plan.double_cases;
   else if (failure_type == "triple") cases = repair_plan.triple_cases;
-  else cases = repair_plan.quadruple_cases;
+  else if (failure_type == "quadruple") cases = repair_plan.quadruple_cases;
+  else cases = repair_plan.muti_cases;
 
   bool all_succeeded = true;
   std::map<std::string, std::vector<double>> samples;
@@ -1318,12 +1334,32 @@ int main(int argc, char **argv)
       }
       double recovery_time = 0.0;
       std::vector<double> task_times;
+      ECProject::MultiRecoveryBreakdown breakdown;
       bool succeeded = failure_type == "single"
           ? client.recovery_with_sources(stripe_id, failed_ids[0][0], source_ids[0], recovery_time)
           : client.multi_recovery_with_sources(stripe_id, failed_ids, source_ids, recovery_time,
                                                test_case.optimal_g0_d0_chain,
-                                               test_case.sum_task_times ? &task_times : nullptr);
+                                               test_case.sum_task_times ? &task_times : nullptr,
+                                               failure_type == "muti" ? &breakdown : nullptr);
       const double wall_time = recovery_time;
+      if (succeeded && failure_type == "muti")
+      {
+        if (breakdown.per_output_write_back_times.size() != failed_ids[0].size())
+        {
+          std::cerr << "Missing per-output write-back breakdown; rebuild and restart proxies and coordinator."
+                    << std::endl;
+          succeeded = false;
+        }
+        else
+        {
+          std::cout << "  source read: " << breakdown.source_read_time << " s" << std::endl;
+          std::cout << "  coefficient solve: " << breakdown.coefficient_solve_time << " s" << std::endl;
+          std::cout << "  AVX2 encode: " << breakdown.avx2_encode_time << " s" << std::endl;
+          for (size_t i = 0; i < breakdown.per_output_write_back_times.size(); ++i)
+            std::cout << "  per-output write-back G" << (failed_ids[0][i] - config->k)
+                      << ": " << breakdown.per_output_write_back_times[i] << " s" << std::endl;
+        }
+      }
       if (succeeded && test_case.sum_task_times)
       {
         if (task_times.size() != test_case.tasks.size() ||

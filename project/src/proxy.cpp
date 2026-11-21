@@ -2748,7 +2748,10 @@ namespace ECProject
                                            m_sys_config->BlockSize);
           });
         }
+        const auto source_read_start = std::chrono::steady_clock::now();
         const bool all_read = run_recovery_jobs(read_jobs);
+        response->set_source_read_time(std::chrono::duration<double>(
+            std::chrono::steady_clock::now() - source_read_start).count());
         if (!all_read)
         {
           for (char *buffer : source_bufs)
@@ -2777,6 +2780,7 @@ namespace ECProject
 
         std::vector<unsigned char> coefficients;
         std::vector<unsigned char *> source_ptrs = convertToUnsignedCharArray(source_bufs);
+        const auto coefficient_solve_start = std::chrono::steady_clock::now();
         int decode_source_num = source_num;
         std::vector<unsigned char> intermediate;
         if (recovery_request->optimal_recover_data_with_sum())
@@ -2836,15 +2840,21 @@ namespace ECProject
                               "custom source blocks cannot recover the failed blocks");
         }
 
+        response->set_coefficient_solve_time(std::chrono::duration<double>(
+            std::chrono::steady_clock::now() - coefficient_solve_start).count());
+
         std::vector<unsigned char *> output_ptrs(static_cast<size_t>(output_num));
         for (int i = 0; i < output_num; ++i)
           output_ptrs[static_cast<size_t>(i)] = reinterpret_cast<unsigned char *>(
               recovered + static_cast<size_t>(i) * m_sys_config->BlockSize);
         std::vector<unsigned char> tables(
             static_cast<size_t>(decode_source_num) * output_num * 32);
+        const auto avx2_encode_start = std::chrono::steady_clock::now();
         ec_init_tables(decode_source_num, output_num, coefficients.data(), tables.data());
         ec_encode_data_avx2(m_sys_config->BlockSize, decode_source_num, output_num,
                             tables.data(), source_ptrs.data(), output_ptrs.data());
+        response->set_avx2_encode_time(std::chrono::duration<double>(
+            std::chrono::steady_clock::now() - avx2_encode_start).count());
 
         if (recovery_request->optimal_return_global_sum())
         {
@@ -2885,6 +2895,7 @@ namespace ECProject
 
         std::vector<std::function<bool()>> write_jobs;
         write_jobs.reserve(static_cast<size_t>(output_num));
+        std::vector<double> write_back_times(static_cast<size_t>(output_num), 0.0);
         for (int i = 0; i < output_num; ++i)
         {
           const int failed_id = failed_ids[static_cast<size_t>(i)];
@@ -2898,14 +2909,20 @@ namespace ECProject
               ? recovery_request->custom_target_proxy_ports(i)
               : std::stoi(proxy_ip_port.substr(proxy_ip_port.rfind(':') + 1));
           write_jobs.emplace_back([this, recovered, i, failed_id,
-                                      key, target_ip, target_port]() {
-            return RecoveryToDatanode(
+                                      key, target_ip, target_port, &write_back_times]() {
+            const auto write_start = std::chrono::steady_clock::now();
+            const bool result = RecoveryToDatanode(
                 key.c_str(), failed_id,
                 recovered + static_cast<size_t>(i) * m_sys_config->BlockSize,
                 target_ip.c_str(), target_port);
+            write_back_times[static_cast<size_t>(i)] = std::chrono::duration<double>(
+                std::chrono::steady_clock::now() - write_start).count();
+            return result;
           });
         }
         const bool all_written = run_recovery_jobs(write_jobs);
+        for (double elapsed : write_back_times)
+          response->add_per_output_write_back_times(elapsed);
         std::free(recovered);
         if (!all_written)
           return grpc::Status(grpc::StatusCode::INTERNAL,

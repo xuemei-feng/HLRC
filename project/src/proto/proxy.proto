@@ -333,6 +333,10 @@ message RecoveryReply {
   double dest_data_node_network_time = 12;
   double dest_data_node_disk_io_time = 13;
   bytes custom_intermediate_data = 14;
+  double source_read_time = 15;
+  double coefficient_solve_time = 16;
+  double avx2_encode_time = 17;
+  repeated double per_output_write_back_times = 18;
 }
 
 // append

@@ -296,6 +296,7 @@ apply_bandwidth_limits() {
 sync_limit_runtime_to_proxies() {
     local script_dir="$1" config_file hosts_file
     local user port remote_root rsync_ssh host
+    local parallel retries pid host_status=0
     local -a sync_files
 
     config_file="${script_dir}/project/config/cluster.ini"
@@ -314,6 +315,16 @@ sync_limit_runtime_to_proxies() {
     port="${port:-22}"
     remote_root="${remote_root:-$script_dir}"
     rsync_ssh="ssh -p $port -o BatchMode=yes -o ConnectTimeout=8 -o StrictHostKeyChecking=accept-new"
+    parallel="${LIMIT_SYNC_PARALLEL:-8}"
+    retries="${LIMIT_SYNC_RETRIES:-3}"
+    if ! [[ "$parallel" =~ ^[1-9][0-9]*$ ]]; then
+        echo "Invalid LIMIT_SYNC_PARALLEL: expected a positive integer" >&2
+        return 1
+    fi
+    if ! [[ "$retries" =~ ^[1-9][0-9]*$ ]]; then
+        echo "Invalid LIMIT_SYNC_RETRIES: expected a positive integer" >&2
+        return 1
+    fi
 
     sync_files=(
         "$script_dir/limit.sh"
@@ -327,19 +338,37 @@ sync_limit_runtime_to_proxies() {
     )
 
     echo ">> sync limit runtime to ${#PROXY_IPS[@]} proxy hosts under $remote_root ..."
-    local pids=() host_status=0
+    local pids=()
     for host in "${PROXY_IPS[@]}"; do
         (
-            ssh -p "$port" -o BatchMode=yes -o ConnectTimeout=8 -o StrictHostKeyChecking=accept-new \
-                "$user@$host" "mkdir -p '$remote_root/project/config'" || exit 1
-            rsync -a -e "$rsync_ssh" "${sync_files[@]}" "$user@$host:$remote_root/" || exit 1
-            rsync -a -e "$rsync_ssh" \
-                "$script_dir/project/config/cluster.ini" \
-                "$script_dir/project/config/ip_layout.py" \
-                "$script_dir/project/config/storage_nodes" \
-                "$user@$host:$remote_root/project/config/" || exit 1
+            local attempt=1
+            while [ "$attempt" -le "$retries" ]; do
+                if ssh -p "$port" -o BatchMode=yes -o ConnectTimeout=8 -o StrictHostKeyChecking=accept-new \
+                    "$user@$host" "mkdir -p '$remote_root/project/config'" &&
+                    rsync -a -e "$rsync_ssh" "${sync_files[@]}" "$user@$host:$remote_root/" &&
+                    rsync -a -e "$rsync_ssh" \
+                        "$script_dir/project/config/cluster.ini" \
+                        "$script_dir/project/config/ip_layout.py" \
+                        "$script_dir/project/config/storage_nodes" \
+                        "$user@$host:$remote_root/project/config/"; then
+                    exit 0
+                fi
+                if [ "$attempt" -lt "$retries" ]; then
+                    echo ">> sync failed for $host (attempt $attempt/$retries); retrying in ${attempt}s ..." >&2
+                    sleep "$attempt"
+                fi
+                attempt=$((attempt + 1))
+            done
+            echo ">> sync failed for $host after $retries attempts" >&2
+            exit 1
         ) &
         pids+=("$!")
+        if [ "${#pids[@]}" -ge "$parallel" ]; then
+            for pid in "${pids[@]}"; do
+                wait "$pid" || host_status=1
+            done
+            pids=()
+        fi
     done
     for pid in "${pids[@]}"; do
         wait "$pid" || host_status=1

@@ -720,10 +720,12 @@ namespace ECProject
   bool Client::multi_recovery_with_sources(
       int stripe_id, const std::vector<std::vector<int>> &failed_block_ids,
       const std::vector<std::vector<int>> &source_block_ids, double &recovery_time,
-      bool optimal_g0_d0_chain, std::vector<double> *task_recovery_times)
+      bool optimal_g0_d0_chain, std::vector<double> *task_recovery_times,
+      MultiRecoveryBreakdown *breakdown)
   {
     recovery_time = 0.0;
     if (task_recovery_times != nullptr) task_recovery_times->clear();
+    if (breakdown != nullptr) *breakdown = MultiRecoveryBreakdown{};
     if (failed_block_ids.size() != source_block_ids.size() || failed_block_ids.empty())
       return false;
 
@@ -752,6 +754,15 @@ namespace ECProject
     if (task_recovery_times != nullptr)
       task_recovery_times->assign(reply.custom_task_recovery_times().begin(),
                                   reply.custom_task_recovery_times().end());
+    if (breakdown != nullptr)
+    {
+      breakdown->source_read_time = reply.source_read_time();
+      breakdown->coefficient_solve_time = reply.coefficient_solve_time();
+      breakdown->avx2_encode_time = reply.avx2_encode_time();
+      breakdown->per_output_write_back_times.assign(
+          reply.per_output_write_back_times().begin(),
+          reply.per_output_write_back_times().end());
+    }
     return true;
   }
 

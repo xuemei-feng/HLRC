@@ -84,6 +84,36 @@ class DispatchVerification(unittest.TestCase):
                 self.assertTrue(all(0 <= block < k + r + z for block in blocks + sources), name)
         return cases
 
+    def test_nlrc_k128_muti_exact_shared_scenarios(self):
+        result = self.run_plan("NLRC", 128, "muti")
+        output = result.stdout + result.stderr
+        self.assertEqual(result.returncode, 0, output)
+        self.assertIn("failure=muti", output)
+        cases = {}
+        current = None
+        for line in result.stdout.splitlines():
+            if line.startswith("Case "):
+                current = line[5:]
+                cases[current] = []
+            elif line.startswith("  task "):
+                match = TASK.fullmatch(line)
+                self.assertIsNotNone(match, line)
+                cases[current].append((int(match[1]),
+                    [int(value) for value in match[2].split(",")],
+                    [int(value) for value in match[3].split(",")]))
+        self.assertEqual(list(cases), ["G0+G1", "G0+G1+G2"])
+        self.assertEqual(cases["G0+G1"], [(128, [128, 129], list(range(128)))])
+        self.assertEqual(cases["G0+G1+G2"],
+                         [(128, [128, 129, 130], list(range(128)))])
+        for code, k, overrides in (("HLRC", 128, {}), ("NLRC", 96, {}),
+                                   ("NLRC", 128, {"r": 2}),
+                                   ("NLRC", 128, {"z": 8})):
+            rejected = self.run_plan(code, k, "muti", **overrides)
+            self.assertNotEqual(rejected.returncode, 0)
+            message = rejected.stdout + rejected.stderr
+            self.assertTrue("muti requires CodeType=NLRC, k=128, r=3, z=9" in message or
+                            "Invalid NLRC parameters" in message, message)
+
     def test_all_nlrc_hlrc_entry_points(self):
         for code, sizes in CASE_COUNTS.items():
             for k, counts in sizes.items():
