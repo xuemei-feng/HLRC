@@ -783,6 +783,64 @@ add_test(NAME uniform_k64_double_proxy_integration
     COMMAND optimal_k64_quadruple_proxy_integration uniform-double)
 set_tests_properties(uniform_k64_double_proxy_integration PROPERTIES TIMEOUT 60)
 
+# Real four-proxy/datanode OptimalLRC k=128 shared double repairs.
+add_executable(optimal_k128_double_proxy_integration
+    ${cn_proto_srcs} ${cn_grpc_srcs} ${pn_proto_srcs} ${pn_grpc_srcs} ${dn_proto_srcs} ${dn_grpc_srcs}
+    ${ASM_SOURCES}
+    ${CMAKE_CURRENT_SOURCE_DIR}/tests/optimal_k128_double_proxy_integration.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/proxy.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/datanode.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/config.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/toolbox.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/tinyxml2.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/lrc.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/encoder.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/encoder_layout.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/recovery_strategy.cpp)
+target_link_libraries(optimal_k128_double_proxy_integration
+    ${_REFLECTION} ${_GRPC_GRPCPP} ${_PROTOBUF_LIBPROTOBUF} -lpthread -lJerasure -lgf_complete)
+add_test(NAME optimal_k128_double_proxy_integration COMMAND optimal_k128_double_proxy_integration)
+set_tests_properties(optimal_k128_double_proxy_integration PROPERTIES TIMEOUT 120 RUN_SERIAL TRUE)
+
+# Real four-proxy/datanode OptimalLRC k=128 shared triple repairs.
+add_executable(optimal_k128_triple_proxy_integration
+    ${cn_proto_srcs} ${cn_grpc_srcs} ${pn_proto_srcs} ${pn_grpc_srcs} ${dn_proto_srcs} ${dn_grpc_srcs}
+    ${ASM_SOURCES}
+    ${CMAKE_CURRENT_SOURCE_DIR}/tests/optimal_k128_triple_proxy_integration.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/proxy.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/datanode.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/config.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/toolbox.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/tinyxml2.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/lrc.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/encoder.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/encoder_layout.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/recovery_strategy.cpp)
+target_link_libraries(optimal_k128_triple_proxy_integration
+    ${_REFLECTION} ${_GRPC_GRPCPP} ${_PROTOBUF_LIBPROTOBUF} -lpthread -lJerasure -lgf_complete)
+add_test(NAME optimal_k128_triple_proxy_integration COMMAND optimal_k128_triple_proxy_integration)
+set_tests_properties(optimal_k128_triple_proxy_integration PROPERTIES TIMEOUT 120 RUN_SERIAL TRUE)
+
+
+# Real four-proxy/datanode OptimalLRC k=128 shared quadruple repairs.
+add_executable(optimal_k128_quadruple_proxy_integration
+    ${cn_proto_srcs} ${cn_grpc_srcs} ${pn_proto_srcs} ${pn_grpc_srcs} ${dn_proto_srcs} ${dn_grpc_srcs}
+    ${ASM_SOURCES}
+    ${CMAKE_CURRENT_SOURCE_DIR}/tests/optimal_k128_quadruple_proxy_integration.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/proxy.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/datanode.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/config.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/toolbox.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/tinyxml2.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/lrc.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/encoder.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/encoder_layout.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/recovery_strategy.cpp)
+target_link_libraries(optimal_k128_quadruple_proxy_integration
+    ${_REFLECTION} ${_GRPC_GRPCPP} ${_PROTOBUF_LIBPROTOBUF} -lpthread -lJerasure -lgf_complete)
+add_test(NAME optimal_k128_quadruple_proxy_integration COMMAND optimal_k128_quadruple_proxy_integration)
+set_tests_properties(optimal_k128_quadruple_proxy_integration PROPERTIES TIMEOUT 120 RUN_SERIAL TRUE)
+
 add_test(NAME layout_test COMMAND layout_test)
 set_tests_properties(layout_test
     PROPERTIES TIMEOUT 30)

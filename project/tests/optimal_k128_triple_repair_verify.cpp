@@ -9,26 +9,111 @@
 #include <vector>
 
 namespace {
-using ECProject::RepairBenchmark::TripleRepairCase;using ECProject::RepairBenchmark::RepairTask;
-void require(bool c,const std::string&m){if(!c)throw std::runtime_error(m);}
-std::vector<int> range(int a,int b){return ECProject::RepairBenchmark::inclusive_range(a,b);}
-std::vector<int> globals(std::vector<int>s){s.insert(s.end(),{128,129,130});return s;}
-void task(const RepairTask&t,const std::vector<int>&f,const std::vector<int>&s,const std::string&n){require(t.failed_block_ids==f,n+" failed IDs");require(t.source_block_ids==s,n+" sources");}
-void verify(const std::vector<TripleRepairCase>&c){
- require(c.size()==4,"case count");
- const std::vector<std::string> names={"L0+L1+L2","L1+L2+L3","L2+L3+L4"};
- const std::vector<std::vector<int>> ids={{131,132,133},{132,133,134},{133,134,135}};
- const std::vector<std::vector<std::vector<int>>> sources={
-  {globals(range(0,24)),globals(range(25,49)),globals(range(50,75))},
-  {globals(range(25,49)),globals(range(50,75)),globals(range(76,101))},
-  {globals(range(50,75)),globals(range(76,101)),globals(range(102,127))}};
- for(size_t x=0;x<3;++x){require(c[x].failed_name==names[x]&&c[x].tasks.size()==3,names[x]);for(size_t y=0;y<3;++y)task(c[x].tasks[y],{ids[x][y]},sources[x][y],names[x]);require(c[x].sum_task_times,"local triple timing sum");}
- require(c[3].failed_name=="G0+G1+G2"&&c[3].tasks.size()==1,"globals");task(c[3].tasks[0],{128,129,130},range(0,127),"globals");require(c[3].tasks[0].failed_block_ids.front()==128,"G0 owner");require(!c[3].sum_task_times,"global shared timing");
+using ECProject::RepairBenchmark::RepairTask;
+using ECProject::RepairBenchmark::TripleRepairCase;
+
+void require(bool condition, const std::string &message)
+{
+    if (!condition) throw std::runtime_error(message);
+}
+
+std::vector<int> range(int first, int last)
+{
+    return ECProject::RepairBenchmark::inclusive_range(first, last);
+}
+
+std::vector<int> with_globals(std::vector<int> sources)
+{
+    sources.insert(sources.end(), {128, 129, 130});
+    return sources;
+}
+
+void verify_task(const RepairTask &task, const std::vector<int> &failed,
+                 const std::vector<int> &sources, int owner,
+                 const std::string &name)
+{
+    require(task.failed_block_ids == failed, name + " failed IDs");
+    require(task.source_block_ids == sources, name + " sources");
+    require(task.failed_block_ids.front() == owner, name + " request owner");
+}
+
+void verify_cases(const std::vector<TripleRepairCase> &cases)
+{
+    require(cases.size() == 4, "case count");
+    const std::vector<std::string> names = {
+        "L0+L1+L2", "L1+L2+L3", "L2+L3+L4", "G0+G1+G2"};
+    const std::vector<std::vector<int>> failed = {
+        {131, 132, 133}, {132, 133, 134}, {133, 134, 135}, {128, 129, 130}};
+    const std::vector<std::vector<int>> sources = {
+        with_globals(range(0, 75)), with_globals(range(25, 101)),
+        with_globals(range(50, 127)), range(0, 127)};
+    const std::vector<int> owners = {131, 132, 133, 128};
+    for (size_t index = 0; index < cases.size(); ++index) {
+        require(cases[index].failed_name == names[index], names[index] + " name");
+        require(cases[index].tasks.size() == 1, names[index] + " shared task count");
+        require(!cases[index].sum_task_times, names[index] + " wall timing");
+        verify_task(cases[index].tasks[0], failed[index], sources[index], owners[index],
+                    names[index]);
+    }
 }
 } // namespace
-int main(){try{
- constexpr int k=128,r=3,z=5,bs=4096;const auto cases=ECProject::RepairBenchmark::make_optimal_triple_block_cases(k);verify(cases);
- std::vector<std::vector<unsigned char>> b(k+r+z,std::vector<unsigned char>(bs));std::mt19937 g(0x4f503854u);std::uniform_int_distribution<int>d(0,255);for(int i=0;i<k;++i)for(auto&v:b[i])v=static_cast<unsigned char>(d(g));
- std::vector<unsigned char*>data(k),parity(r+z);for(int i=0;i<k;++i)data[i]=b[i].data();for(int i=0;i<r+z;++i)parity[i]=b[k+i].data();ECProject::encode_optimal_lrc(k,r,z,data.data(),parity.data(),bs);
- for(const auto&c:cases){std::unordered_set<int>failed;for(const auto&t:c.tasks)failed.insert(t.failed_block_ids.begin(),t.failed_block_ids.end());require(failed.size()==3,c.failed_name+" failures");for(const auto&t:c.tasks){for(int s:t.source_block_ids)require(!failed.count(s),c.failed_name+" reads failure");std::vector<unsigned char>coef;require(ECProject::get_local_fill_plan(k,r,z,"OptimalLRC",t.failed_block_ids,t.source_block_ids,coef),c.failed_name+" solve");size_t rows=t.failed_block_ids.size(),cols=t.source_block_ids.size();require(coef.size()==rows*cols,"matrix size");std::vector<std::vector<unsigned char>>out(rows,std::vector<unsigned char>(bs));for(size_t x=0;x<rows;++x){for(size_t y=0;y<cols;++y)for(int q=0;q<bs;++q)out[x][q]^=ECProject::gf_mul(coef[x*cols+y],b[t.source_block_ids[y]][q]);require(out[x]==b[t.failed_block_ids[x]],c.failed_name+" bytes");}if(c.failed_name=="G0+G1+G2"){require(out[0]==b[128],"G0 local");require(out[1]==b[129],"G1 forward");require(out[2]==b[130],"G2 forward");}}}
- std::cout<<"OptimalLRC k128 triple repair verification passed"<<std::endl;return 0;}catch(const std::exception&e){std::cerr<<"OptimalLRC k128 triple repair verification failed: "<<e.what()<<std::endl;return 1;}}
+
+int main()
+{
+    try {
+        constexpr int k = 128, r = 3, z = 5, block_size = 4096;
+        const auto cases = ECProject::RepairBenchmark::make_optimal_triple_block_cases(k);
+        verify_cases(cases);
+
+        std::vector<std::vector<unsigned char>> blocks(
+            k + r + z, std::vector<unsigned char>(block_size));
+        std::mt19937 generator(0x4f503854u);
+        std::uniform_int_distribution<int> distribution(0, 255);
+        for (int id = 0; id < k; ++id)
+            for (auto &byte : blocks[id])
+                byte = static_cast<unsigned char>(distribution(generator));
+        std::vector<unsigned char *> data(k), parity(r + z);
+        for (int id = 0; id < k; ++id) data[id] = blocks[id].data();
+        for (int id = 0; id < r + z; ++id) parity[id] = blocks[k + id].data();
+        ECProject::encode_optimal_lrc(k, r, z, data.data(), parity.data(), block_size);
+
+        for (const auto &test_case : cases) {
+            const auto &task = test_case.tasks[0];
+            std::unordered_set<int> failed(task.failed_block_ids.begin(),
+                                           task.failed_block_ids.end());
+            for (int source : task.source_block_ids)
+                require(!failed.count(source), test_case.failed_name + " reads failure");
+            std::vector<unsigned char> coefficients;
+            require(ECProject::get_local_fill_plan(k, r, z, "OptimalLRC",
+                        task.failed_block_ids, task.source_block_ids, coefficients),
+                    test_case.failed_name + " solve");
+            const size_t rows = task.failed_block_ids.size();
+            const size_t columns = task.source_block_ids.size();
+            require(rows == 3 && coefficients.size() == rows * columns,
+                    test_case.failed_name + " matrix size");
+            std::vector<std::vector<unsigned char>> outputs(
+                rows, std::vector<unsigned char>(block_size));
+            for (size_t output = 0; output < rows; ++output) {
+                for (size_t source = 0; source < columns; ++source)
+                    for (int byte = 0; byte < block_size; ++byte)
+                        outputs[output][byte] ^= ECProject::gf_mul(
+                            coefficients[output * columns + source],
+                            blocks[task.source_block_ids[source]][byte]);
+                require(outputs[output] == blocks[task.failed_block_ids[output]],
+                        test_case.failed_name + " output bytes");
+            }
+            require(outputs[0] == blocks[task.failed_block_ids[0]],
+                    test_case.failed_name + " outputs[0] local owner result");
+            require(outputs[1] == blocks[task.failed_block_ids[1]],
+                    test_case.failed_name + " outputs[1] first remote forward result");
+            require(outputs[2] == blocks[task.failed_block_ids[2]],
+                    test_case.failed_name + " outputs[2] second remote forward result");
+        }
+        std::cout << "OptimalLRC k128 shared triple repair verification passed" << std::endl;
+        return 0;
+    } catch (const std::exception &error) {
+        std::cerr << "OptimalLRC k128 triple repair verification failed: "
+                  << error.what() << std::endl;
+        return 1;
+    }
+}

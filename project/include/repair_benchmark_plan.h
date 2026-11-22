@@ -803,13 +803,16 @@ inline std::vector<DoubleRepairCase> make_optimal_uneven_double_block_cases(int 
             sources.insert(sources.end(), {128, 129, 130});
             return sources;
         };
+        auto l0_l1_sources = inclusive_range(0, 49);
+        auto l0_l2_sources = inclusive_range(0, 24);
+        const auto l2_data_sources = inclusive_range(50, 75);
+        l0_l2_sources.insert(l0_l2_sources.end(), l2_data_sources.begin(),
+                             l2_data_sources.end());
         return {
-            {"L0+L1", {{{131}, with_globals(inclusive_range(0, 24))},
-                         {{132}, with_globals(inclusive_range(25, 49))}}, false, true},
-            {"L0+L2", {{{131}, with_globals(inclusive_range(0, 24))},
-                         {{133}, with_globals(inclusive_range(50, 75))}}, false, true},
-            {"L2+L3", {{{133}, with_globals(inclusive_range(50, 75))},
-                         {{134}, with_globals(inclusive_range(76, 101))}}, false, true},
+            {"L0+L1", {{{131, 132}, with_globals(std::move(l0_l1_sources))}}},
+            {"L0+L2", {{{131, 133}, with_globals(std::move(l0_l2_sources))}}},
+            {"L2+L3", {{{133, 134},
+                          with_globals(inclusive_range(50, 101))}}},
             {"G0+G1", {{{128, 129}, inclusive_range(0, 127)}}},
         };
     }
@@ -1036,15 +1039,12 @@ inline std::vector<TripleRepairCase> make_optimal_triple_block_cases(int k)
             return sources;
         };
         return {
-            {"L0+L1+L2", {{{131}, with_globals(inclusive_range(0, 24))},
-                            {{132}, with_globals(inclusive_range(25, 49))},
-                            {{133}, with_globals(inclusive_range(50, 75))}}, false, true},
-            {"L1+L2+L3", {{{132}, with_globals(inclusive_range(25, 49))},
-                            {{133}, with_globals(inclusive_range(50, 75))},
-                            {{134}, with_globals(inclusive_range(76, 101))}}, false, true},
-            {"L2+L3+L4", {{{133}, with_globals(inclusive_range(50, 75))},
-                            {{134}, with_globals(inclusive_range(76, 101))},
-                            {{135}, with_globals(inclusive_range(102, 127))}}, false, true},
+            {"L0+L1+L2", {{{131, 132, 133},
+                               with_globals(inclusive_range(0, 75))}}},
+            {"L1+L2+L3", {{{132, 133, 134},
+                               with_globals(inclusive_range(25, 101))}}},
+            {"L2+L3+L4", {{{133, 134, 135},
+                               with_globals(inclusive_range(50, 127))}}},
             {"G0+G1+G2", {{{128, 129, 130}, inclusive_range(0, 127)}}},
         };
     }
@@ -1073,14 +1073,10 @@ inline std::vector<QuadrupleRepairCase> make_optimal_quadruple_block_cases(int k
             return sources;
         };
         return {
-            {"L0+L1+L2+L3", {{{131}, with_globals(inclusive_range(0, 24))},
-                               {{132}, with_globals(inclusive_range(25, 49))},
-                               {{133}, with_globals(inclusive_range(50, 75))},
-                               {{134}, with_globals(inclusive_range(76, 101))}}, false, true},
-            {"L1+L2+L3+L4", {{{132}, with_globals(inclusive_range(25, 49))},
-                               {{133}, with_globals(inclusive_range(50, 75))},
-                               {{134}, with_globals(inclusive_range(76, 101))},
-                               {{135}, with_globals(inclusive_range(102, 127))}}, false, true},
+            {"L0+L1+L2+L3", {{{131, 132, 133, 134},
+                                  with_globals(inclusive_range(0, 101))}}},
+            {"L1+L2+L3+L4", {{{132, 133, 134, 135},
+                                  with_globals(inclusive_range(25, 127))}}},
             {"G0+G1+G2+L0",
              {{{128, 129, 130, 131}, inclusive_range(0, 127)}}},
         };

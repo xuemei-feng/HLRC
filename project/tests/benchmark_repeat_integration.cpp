@@ -671,100 +671,71 @@ int main(int argc, char **argv)
             {"double", "--stripe-id", "8", "--repeat", "2", "--warmup", "1"}, 128);
         require(optimal_k128_timed.first == 0 && fixture->multi_calls == 12,
                 optimal_k128_timed.second);
-        const std::vector<std::pair<std::string, std::pair<std::string, std::string>>>
-            optimal_k128_cases = {
-                {"L0+L1", {"L0", "L1"}}, {"L0+L2", {"L0", "L2"}},
-                {"L2+L3", {"L2", "L3"}},
-            };
-        for (const auto &[case_name, tasks] : optimal_k128_cases) {
-            require(optimal_k128_timed.second.find("Task result [OptimalLRC] " + case_name +
-                        "/" + tasks.first + ": 0.012 s") != std::string::npos,
-                    "missing OptimalLRC k128 first task timing: " + optimal_k128_timed.second);
-            require(optimal_k128_timed.second.find("Task result [OptimalLRC] " + case_name +
-                        "/" + tasks.second + ": 0.023 s") != std::string::npos,
-                    "missing OptimalLRC k128 second task timing: " + optimal_k128_timed.second);
+        for (const std::string case_name : {"L0+L1", "L0+L2", "L2+L3", "G0+G1"}) {
             require(optimal_k128_timed.second.find("Result [OptimalLRC] " + case_name +
-                        ": 0.035 s (sum; wall=0.01 s)") != std::string::npos,
-                    "OptimalLRC k128 case must report sum and wall time: " +
+                        ": 0.01 s") != std::string::npos,
+                    "OptimalLRC k128 shared task must report wall time: " +
+                        optimal_k128_timed.second);
+            require(optimal_k128_timed.second.find("Result [OptimalLRC] " + case_name +
+                        ": 0.012 s (sum;") == std::string::npos,
+                    "OptimalLRC k128 shared task must not sum per-task time: " +
                         optimal_k128_timed.second);
             require(optimal_k128_timed.second.find("Summary [OptimalLRC] " + case_name +
-                        ": success=2/2 min=0.035 median=0.035 p95=0.035 max=0.035 s")
+                        ": success=2/2 min=0.01 median=0.01 p95=0.01 max=0.01 s")
                         != std::string::npos,
-                    "OptimalLRC k128 sum statistics are wrong: " + optimal_k128_timed.second);
+                    "OptimalLRC k128 wall-time statistics are wrong: " +
+                        optimal_k128_timed.second);
         }
-        require(optimal_k128_timed.second.find("Result [OptimalLRC] G0+G1: 0.01 s")
-                    != std::string::npos,
-                "OptimalLRC k128 G0+G1 must keep end-to-end time: " +
-                    optimal_k128_timed.second);
 
         fixture->reset(4);
         auto optimal_k128_triple_timed = run(argv[1], directory,
             {"triple", "--stripe-id", "8", "--repeat", "2", "--warmup", "1"}, 128);
         require(optimal_k128_triple_timed.first == 0 && fixture->multi_calls == 12,
                 optimal_k128_triple_timed.second);
-        const std::vector<std::pair<std::string, std::vector<std::string>>>
-            optimal_k128_triple_cases = {
-                {"L0+L1+L2", {"L0", "L1", "L2"}},
-                {"L1+L2+L3", {"L1", "L2", "L3"}},
-                {"L2+L3+L4", {"L2", "L3", "L4"}},
-            };
-        for (const auto &[case_name, tasks] : optimal_k128_triple_cases) {
-            for (size_t i = 0; i < tasks.size(); ++i) {
-                const std::string task_time = i == 0 ? "0.012" : "0.023";
-                require(optimal_k128_triple_timed.second.find("Task result [OptimalLRC] " +
-                            case_name + "/" + tasks[i] + ": " + task_time + " s")
-                            != std::string::npos,
-                        "missing OptimalLRC k128 triple task timing: " +
-                            optimal_k128_triple_timed.second);
-            }
-            require(optimal_k128_triple_timed.second.find("Result [OptimalLRC] " + case_name +
-                        ": 0.058 s (sum; wall=0.01 s)") != std::string::npos,
-                    "OptimalLRC k128 triple must report sum and wall time: " +
-                        optimal_k128_triple_timed.second);
-            require(optimal_k128_triple_timed.second.find("Summary [OptimalLRC] " + case_name +
-                        ": success=2/2 min=0.058 median=0.058 p95=0.058 max=0.058 s")
+        for (const std::string case_name :
+             {"L0+L1+L2", "L1+L2+L3", "L2+L3+L4", "G0+G1+G2"}) {
+            require(optimal_k128_triple_timed.second.find(
+                        "Result [OptimalLRC] " + case_name + ": 0.01 s")
                         != std::string::npos,
-                    "OptimalLRC k128 triple sum statistics are wrong: " +
+                    "OptimalLRC k128 shared triple task must report wall time: " +
+                        optimal_k128_triple_timed.second);
+            require(optimal_k128_triple_timed.second.find(
+                        "Result [OptimalLRC] " + case_name + ": 0.012 s (sum;")
+                        == std::string::npos,
+                    "OptimalLRC k128 shared triple task must not sum per-task time: " +
+                        optimal_k128_triple_timed.second);
+            require(optimal_k128_triple_timed.second.find(
+                        "Summary [OptimalLRC] " + case_name +
+                        ": success=2/2 min=0.01 median=0.01 p95=0.01 max=0.01 s")
+                        != std::string::npos,
+                    "OptimalLRC k128 triple wall-time statistics are wrong: " +
                         optimal_k128_triple_timed.second);
         }
-        require(optimal_k128_triple_timed.second.find(
-                    "Result [OptimalLRC] G0+G1+G2: 0.01 s") != std::string::npos,
-                "OptimalLRC k128 global triple must keep end-to-end time: " +
-                    optimal_k128_triple_timed.second);
 
         fixture->reset(3);
         auto optimal_k128_quadruple_timed = run(argv[1], directory,
             {"quadruple", "--stripe-id", "8", "--repeat", "2", "--warmup", "1"}, 128);
         require(optimal_k128_quadruple_timed.first == 0 && fixture->multi_calls == 9,
                 optimal_k128_quadruple_timed.second);
-        const std::vector<std::pair<std::string, std::vector<std::string>>>
-            optimal_k128_quadruple_cases = {
-                {"L0+L1+L2+L3", {"L0", "L1", "L2", "L3"}},
-                {"L1+L2+L3+L4", {"L1", "L2", "L3", "L4"}},
-            };
-        for (const auto &[case_name, tasks] : optimal_k128_quadruple_cases) {
-            for (size_t i = 0; i < tasks.size(); ++i) {
-                const std::string task_time = i == 0 ? "0.012" : "0.023";
-                require(optimal_k128_quadruple_timed.second.find("Task result [OptimalLRC] " +
-                            case_name + "/" + tasks[i] + ": " + task_time + " s")
-                            != std::string::npos,
-                        "missing OptimalLRC k128 quadruple task timing: " +
-                            optimal_k128_quadruple_timed.second);
-            }
-            require(optimal_k128_quadruple_timed.second.find("Result [OptimalLRC] " + case_name +
-                        ": 0.081 s (sum; wall=0.01 s)") != std::string::npos,
-                    "OptimalLRC k128 quadruple must report sum and wall time: " +
-                        optimal_k128_quadruple_timed.second);
-            require(optimal_k128_quadruple_timed.second.find("Summary [OptimalLRC] " + case_name +
-                        ": success=2/2 min=0.081 median=0.081 p95=0.081 max=0.081 s")
+        for (const std::string case_name :
+             {"L0+L1+L2+L3", "L1+L2+L3+L4", "G0+G1+G2+L0"}) {
+            require(optimal_k128_quadruple_timed.second.find(
+                        "Result [OptimalLRC] " + case_name + ": 0.01 s")
                         != std::string::npos,
-                    "OptimalLRC k128 quadruple sum statistics are wrong: " +
+                    "OptimalLRC k128 shared quadruple task must report wall time: " +
+                        optimal_k128_quadruple_timed.second);
+            require(optimal_k128_quadruple_timed.second.find(
+                        "Result [OptimalLRC] " + case_name + ": 0.012 s (sum;")
+                        == std::string::npos,
+                    "OptimalLRC k128 shared quadruple task must not sum per-task time: " +
+                        optimal_k128_quadruple_timed.second);
+            require(optimal_k128_quadruple_timed.second.find(
+                        "Summary [OptimalLRC] " + case_name +
+                        ": success=2/2 min=0.01 median=0.01 p95=0.01 max=0.01 s")
+                        != std::string::npos,
+                    "OptimalLRC k128 quadruple wall-time statistics are wrong: " +
                         optimal_k128_quadruple_timed.second);
         }
-        require(optimal_k128_quadruple_timed.second.find(
-                    "Result [OptimalLRC] G0+G1+G2+L0: 0.01 s") != std::string::npos,
-                "OptimalLRC k128 global quadruple must keep end-to-end time: " +
-                    optimal_k128_quadruple_timed.second);
 
         write_config("NLRC", 7, 96);
         fixture->reset(5);

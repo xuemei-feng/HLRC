@@ -683,16 +683,10 @@ class DispatchVerification(unittest.TestCase):
             "L0+L1+L2+L3", "L1+L2+L3+L4", "G0+G1+G2+L0",
         ])
         self.assertEqual(cases["L0+L1+L2+L3"], [
-            (131, [131], list(range(25)) + globals_),
-            (132, [132], list(range(25, 50)) + globals_),
-            (133, [133], list(range(50, 76)) + globals_),
-            (134, [134], list(range(76, 102)) + globals_),
+            (131, [131, 132, 133, 134], list(range(102)) + globals_),
         ])
         self.assertEqual(cases["L1+L2+L3+L4"], [
-            (132, [132], list(range(25, 50)) + globals_),
-            (133, [133], list(range(50, 76)) + globals_),
-            (134, [134], list(range(76, 102)) + globals_),
-            (135, [135], list(range(102, 128)) + globals_),
+            (132, [132, 133, 134, 135], list(range(25, 128)) + globals_),
         ])
         self.assertEqual(cases["G0+G1+G2+L0"],
                          [(128, [128, 129, 130, 131], list(range(128)))])
@@ -708,19 +702,13 @@ class DispatchVerification(unittest.TestCase):
             "L0+L1+L2", "L1+L2+L3", "L2+L3+L4", "G0+G1+G2",
         ])
         self.assertEqual(cases["L0+L1+L2"], [
-            (131, [131], list(range(25)) + globals_),
-            (132, [132], list(range(25, 50)) + globals_),
-            (133, [133], list(range(50, 76)) + globals_),
+            (131, [131, 132, 133], list(range(76)) + globals_),
         ])
         self.assertEqual(cases["L1+L2+L3"], [
-            (132, [132], list(range(25, 50)) + globals_),
-            (133, [133], list(range(50, 76)) + globals_),
-            (134, [134], list(range(76, 102)) + globals_),
+            (132, [132, 133, 134], list(range(25, 102)) + globals_),
         ])
         self.assertEqual(cases["L2+L3+L4"], [
-            (133, [133], list(range(50, 76)) + globals_),
-            (134, [134], list(range(76, 102)) + globals_),
-            (135, [135], list(range(102, 128)) + globals_),
+            (133, [133, 134, 135], list(range(50, 128)) + globals_),
         ])
         self.assertEqual(cases["G0+G1+G2"],
                          [(128, [128, 129, 130], list(range(128)))])
@@ -734,16 +722,13 @@ class DispatchVerification(unittest.TestCase):
         globals_ = [128, 129, 130]
         self.assertEqual(list(cases), ["L0+L1", "L0+L2", "L2+L3", "G0+G1"])
         self.assertEqual(cases["L0+L1"], [
-            (131, [131], list(range(25)) + globals_),
-            (132, [132], list(range(25, 50)) + globals_),
+            (131, [131, 132], list(range(50)) + globals_),
         ])
         self.assertEqual(cases["L0+L2"], [
-            (131, [131], list(range(25)) + globals_),
-            (133, [133], list(range(50, 76)) + globals_),
+            (131, [131, 133], list(range(25)) + list(range(50, 76)) + globals_),
         ])
         self.assertEqual(cases["L2+L3"], [
-            (133, [133], list(range(50, 76)) + globals_),
-            (134, [134], list(range(76, 102)) + globals_),
+            (133, [133, 134], list(range(50, 102)) + globals_),
         ])
         self.assertEqual(cases["G0+G1"],
                          [(128, [128, 129], list(range(128)))])
