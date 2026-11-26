@@ -52,9 +52,9 @@ static void run_encode(const ECProject::Config *cfg,
   {
     ECProject::encode_nlrc(k, r, z, data_ptrs, parity_ptrs, block_size);
   }
-  else if (code_type == "ARLC")
+  else if (code_type == "ALRC")
   {
-    ECProject::encode_arlc(k, r, z, data_ptrs, parity_ptrs, block_size);
+    ECProject::encode_alrc(k, r, z, data_ptrs, parity_ptrs, block_size);
   }
   else if (code_type == "OLRC")
   {

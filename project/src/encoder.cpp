@@ -227,15 +227,15 @@ std::vector<std::pair<int, int>> olrc_data_bounds(int k)
     return {{0, 25}, {25, 50}, {50, 76}, {76, 102}, {102, 128}};
 }
 
-void validate_arlc_parameters(int k, int r, int z)
+void validate_alrc_parameters(int k, int r, int z)
 {
     if (!((k == 64 && r == 3 && z == 5) ||
           (k == 96 && r == 3 && z == 7) ||
           (k == 128 && r == 3 && z == 9)))
-        throw std::invalid_argument("ARLC requires (k=64,r=3,z=5), (k=96,r=3,z=7), or (k=128,r=3,z=9)");
+        throw std::invalid_argument("ALRC requires (k=64,r=3,z=5), (k=96,r=3,z=7), or (k=128,r=3,z=9)");
 }
 
-std::vector<std::pair<int, int>> arlc_data_bounds(int k)
+std::vector<std::pair<int, int>> alrc_data_bounds(int k)
 {
     if (k == 64) return {{0, 21}, {21, 42}, {42, 64}};
     if (k == 96) return {{0, 24}, {24, 48}, {48, 72}, {72, 96}};
@@ -317,17 +317,17 @@ void ECProject::partial_encode_olrc(int k, int r, int z, int data_block_num,
     ec_encode_data_avx2(block_size, data_block_num, r + z, tables.data(), data_ptrs, parity_ptrs);
 }
 
-void ECProject::gen_arlc_matrix(unsigned char *encode_matrix, int k, int r, int z)
+void ECProject::gen_alrc_matrix(unsigned char *encode_matrix, int k, int r, int z)
 {
-    validate_arlc_parameters(k, r, z);
+    validate_alrc_parameters(k, r, z);
     if (encode_matrix == nullptr)
-        throw std::invalid_argument("ARLC encode matrix must not be null");
+        throw std::invalid_argument("ALRC encode matrix must not be null");
 
     const int n = k + r + z;
     memset(encode_matrix, 0, static_cast<size_t>(n) * k);
     gf_gen_rs_matrix1(encode_matrix, k + r, k);
 
-    const auto bounds = arlc_data_bounds(k);
+    const auto bounds = alrc_data_bounds(k);
     int local_row = k + r;
     for (size_t group = 0; group + 1 < bounds.size(); ++group) {
         const int begin = bounds[group].first;
@@ -349,31 +349,31 @@ void ECProject::gen_arlc_matrix(unsigned char *encode_matrix, int k, int r, int 
            static_cast<size_t>(tail_count));
 }
 
-void ECProject::encode_arlc(int k, int r, int z, unsigned char **data_ptrs,
+void ECProject::encode_alrc(int k, int r, int z, unsigned char **data_ptrs,
                             unsigned char **parity_ptrs, int block_size)
 {
-    validate_arlc_parameters(k, r, z);
+    validate_alrc_parameters(k, r, z);
     if (data_ptrs == nullptr || parity_ptrs == nullptr || block_size <= 0)
-        throw std::invalid_argument("ARLC requires non-null buffers and a positive block size");
+        throw std::invalid_argument("ALRC requires non-null buffers and a positive block size");
     std::vector<unsigned char> matrix(static_cast<size_t>(k + r + z) * k);
     std::vector<unsigned char> tables(static_cast<size_t>(k) * (r + z) * 32);
-    gen_arlc_matrix(matrix.data(), k, r, z);
+    gen_alrc_matrix(matrix.data(), k, r, z);
     ec_init_tables(k, r + z, matrix.data() + static_cast<size_t>(k) * k, tables.data());
     ec_encode_data_avx2(block_size, k, r + z, tables.data(), data_ptrs, parity_ptrs);
 }
 
-void ECProject::partial_encode_arlc(int k, int r, int z, int data_block_num,
+void ECProject::partial_encode_alrc(int k, int r, int z, int data_block_num,
                                     unsigned char **data_ptrs, unsigned char **parity_ptrs,
                                     int block_size)
 {
-    validate_arlc_parameters(k, r, z);
+    validate_alrc_parameters(k, r, z);
     if (data_block_num <= 0 || data_block_num > k || data_ptrs == nullptr ||
         parity_ptrs == nullptr || block_size <= 0)
-        throw std::invalid_argument("ARLC partial encode arguments are invalid");
+        throw std::invalid_argument("ALRC partial encode arguments are invalid");
     std::vector<unsigned char> matrix(static_cast<size_t>(k + r + z) * k);
     std::vector<unsigned char> sub_matrix(static_cast<size_t>(r + z) * data_block_num);
     std::vector<unsigned char> tables(static_cast<size_t>(data_block_num) * (r + z) * 32);
-    gen_arlc_matrix(matrix.data(), k, r, z);
+    gen_alrc_matrix(matrix.data(), k, r, z);
     for (int row = 0; row < r + z; ++row)
         memcpy(sub_matrix.data() + static_cast<size_t>(row) * data_block_num,
                matrix.data() + static_cast<size_t>(k + row) * k,
@@ -967,6 +967,13 @@ void ECProject::decode_nlrc(const int k, const int r, const int z, const int blo
                             unsigned char *res_ptr, int block_size, int failed_block_id)
 {
     decode_block_via_generator("NLRC", k, r, z, block_num, block_indexes, block_ptrs,
+                               res_ptr, block_size, failed_block_id);
+}
+void ECProject::decode_alrc(const int k, const int r, const int z, const int block_num,
+                            const std::vector<int> *block_indexes, unsigned char **block_ptrs,
+                            unsigned char *res_ptr, int block_size, int failed_block_id)
+{
+    decode_block_via_generator("ALRC", k, r, z, block_num, block_indexes, block_ptrs,
                                res_ptr, block_size, failed_block_id);
 }
 

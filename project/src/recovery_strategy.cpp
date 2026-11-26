@@ -202,6 +202,10 @@ bool build_generator_matrix(const std::string &code_type, int k, int r, int z,
         gen_hlrc_matrix(gen.data(), k, r, z);
     else if (code_type == "NLRC")
         gen_nlrc_matrix(gen.data(), k, r, z);
+    else if (code_type == "ALRC")
+        gen_alrc_matrix(gen.data(), k, r, z);
+    else if (code_type == "OLRC")
+        gen_olrc_matrix(gen.data(), k, r, z);
     else
         return false;
     return true;
@@ -342,6 +346,12 @@ bool get_global_decode_plan(int k, int r, int z, const std::string &code_type,
     }
     else if(code_type == "NLRC"){
         gen_nlrc_matrix(gen_matrix, k, r, z);
+    }
+    else if(code_type == "ALRC"){
+        gen_alrc_matrix(gen_matrix, k, r, z);
+    }
+    else if(code_type == "OLRC"){
+        gen_olrc_matrix(gen_matrix, k, r, z);
     }
     else{
         std::cerr << "Error: Unsupported code type " << code_type << std::endl;
@@ -535,6 +545,91 @@ std::vector<std::pair<int, std::vector<int>>> get_recovery_group_and_block_ids(c
     return get_recovery_group_and_block_ids_lotuslrc(k, r, z, failed_block_id);
   else if (code_type == "HLRC")
     return get_recovery_group_and_block_ids_hlrc(k, r, z, failed_block_id);
+  else if (code_type == "OLRC")
+  {
+    std::vector<int> sources;
+    if (k == 64 && r == 3 && z == 5)
+    {
+      if (failed_block_id == 67)
+      {
+        for (int id = 0; id <= 20; ++id) sources.push_back(id);
+        sources.insert(sources.end(), {64, 65, 66});
+      }
+      else if (failed_block_id == 71)
+      {
+        for (int id = 42; id <= 63; ++id) sources.push_back(id);
+        sources.insert(sources.end(), {64, 65, 66});
+      }
+      else
+        return {};
+    }
+    else if (k == 96 && r == 3 && z == 7)
+    {
+      if (failed_block_id != 99)
+        return {};
+      for (int id = 0; id <= 23; ++id) sources.push_back(id);
+      sources.insert(sources.end(), {96, 97, 98});
+    }
+    else if (k == 128 && r == 3 && z == 9)
+    {
+      if (failed_block_id == 131)
+      {
+        for (int id = 0; id <= 24; ++id) sources.push_back(id);
+        sources.insert(sources.end(), {128, 129, 130});
+      }
+      else if (failed_block_id == 135)
+      {
+        for (int id = 50; id <= 75; ++id) sources.push_back(id);
+        sources.insert(sources.end(), {128, 129, 130});
+      }
+      else
+        return {};
+    }
+    else
+      return {};
+    return {{0, std::move(sources)}};
+  }
+  else if (code_type == "ALRC")
+  {
+    std::vector<int> sources;
+    if (k == 64 && r == 3 && z == 5)
+    {
+      if (failed_block_id == 67)
+        for (int id = 0; id <= 20; ++id) sources.push_back(id);
+      else if (failed_block_id == 71)
+        for (int id = 42; id <= 63; ++id) sources.push_back(id);
+      else if (failed_block_id == 64)
+        for (int id = 0; id <= 63; ++id) sources.push_back(id);
+      else
+        return {};
+    }
+    else if (k == 96 && r == 3 && z == 7)
+    {
+      if (failed_block_id == 99)
+        for (int id = 0; id <= 23; ++id) sources.push_back(id);
+      else if (failed_block_id == 96)
+        for (int id = 0; id <= 95; ++id) sources.push_back(id);
+      else
+        return {};
+    }
+    else if (k == 128 && r == 3 && z == 9)
+    {
+      if (failed_block_id == 131)
+        for (int id = 0; id <= 24; ++id) sources.push_back(id);
+      else if (failed_block_id == 135)
+        for (int id = 50; id <= 75; ++id) sources.push_back(id);
+      else if (failed_block_id == 128)
+        for (int id = 0; id <= 127; ++id) sources.push_back(id);
+      else
+        return {};
+    }
+    else
+      return {};
+
+    // ALRC placement is not part of the encoding-only implementation yet. Keep
+    // the exact ordered read set in one logical recovery group.
+    return {{0, std::move(sources)}};
+  }
   else if (code_type == "NLRC")
   {
     std::vector<int> sources;

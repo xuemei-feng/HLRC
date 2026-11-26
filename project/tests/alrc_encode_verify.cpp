@@ -66,7 +66,7 @@ void verify_case(int k, int r, int z, const std::vector<std::pair<int, int>> &bo
 {
     const int n = k + r + z;
     std::vector<unsigned char> matrix(static_cast<size_t>(n) * k);
-    ECProject::gen_arlc_matrix(matrix.data(), k, r, z);
+    ECProject::gen_alrc_matrix(matrix.data(), k, r, z);
 
     for (int row = 0; row < k; ++row)
         for (int column = 0; column < k; ++column)
@@ -104,7 +104,7 @@ void verify_case(int k, int r, int z, const std::vector<std::pair<int, int>> &bo
     for (int data = 0; data < k; ++data) data_ptrs[data] = blocks[data].data();
     for (int parity = 0; parity < r + z; ++parity)
         parity_ptrs[parity] = blocks[k + parity].data();
-    ECProject::encode_arlc(k, r, z, data_ptrs.data(), parity_ptrs.data(), block_size);
+    ECProject::encode_alrc(k, r, z, data_ptrs.data(), parity_ptrs.data(), block_size);
     for (int row = k; row < n; ++row)
         for (int position = 0; position < block_size; ++position) {
             unsigned char expected = 0;
@@ -125,13 +125,13 @@ int main()
 
         std::vector<unsigned char> matrix(140 * 128);
         bool rejected = false;
-        try { ECProject::gen_arlc_matrix(matrix.data(), 96, 3, 5); }
+        try { ECProject::gen_alrc_matrix(matrix.data(), 96, 3, 5); }
         catch (const std::invalid_argument &) { rejected = true; }
-        require(rejected, "invalid ARLC parameters were accepted");
-        std::cout << "ARLC encoding verification passed" << std::endl;
+        require(rejected, "invalid ALRC parameters were accepted");
+        std::cout << "ALRC encoding verification passed" << std::endl;
         return 0;
     } catch (const std::exception &error) {
-        std::cerr << "ARLC encoding verification failed: " << error.what() << std::endl;
+        std::cerr << "ALRC encoding verification failed: " << error.what() << std::endl;
         return 1;
     }
 }

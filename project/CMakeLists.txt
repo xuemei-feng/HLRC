@@ -1266,18 +1266,18 @@ add_test(NAME benchmark_repeat_integration
     COMMAND benchmark_repeat_integration $<TARGET_FILE:repair_benchmark>)
 set_tests_properties(benchmark_repeat_integration PROPERTIES TIMEOUT 45 RUN_SERIAL TRUE)
 
-# ARLC k=64 matrix, encoding, and same-group double-erasure verification.
-add_executable(arlc_encode_verify
-    ${CMAKE_CURRENT_SOURCE_DIR}/tests/arlc_encode_verify.cpp
+# ALRC k=64 matrix, encoding, and same-group double-erasure verification.
+add_executable(alrc_encode_verify
+    ${CMAKE_CURRENT_SOURCE_DIR}/tests/alrc_encode_verify.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/encoder.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/encoder_layout.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/recovery_strategy.cpp
     ${ASM_SOURCES}
 )
-target_include_directories(arlc_encode_verify PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
-target_link_libraries(arlc_encode_verify -lpthread -lJerasure -lgf_complete)
-add_test(NAME arlc_encode_verify COMMAND arlc_encode_verify)
-set_tests_properties(arlc_encode_verify PROPERTIES TIMEOUT 30)
+target_include_directories(alrc_encode_verify PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_link_libraries(alrc_encode_verify -lpthread -lJerasure -lgf_complete)
+add_test(NAME alrc_encode_verify COMMAND alrc_encode_verify)
+set_tests_properties(alrc_encode_verify PROPERTIES TIMEOUT 30)
 
 # OLRC k=64 matrix, encoding, and local-MDS verification.
 add_executable(olrc_encode_verify
@@ -1291,3 +1291,315 @@ target_include_directories(olrc_encode_verify PRIVATE ${CMAKE_CURRENT_SOURCE_DIR
 target_link_libraries(olrc_encode_verify -lpthread -lJerasure -lgf_complete)
 add_test(NAME olrc_encode_verify COMMAND olrc_encode_verify)
 set_tests_properties(olrc_encode_verify PROPERTIES TIMEOUT 30)
+
+# ALRC k=64 exact L0/L4/G0 single-block recovery verification.
+add_executable(alrc_k64_single_repair_verify
+    ${CMAKE_CURRENT_SOURCE_DIR}/tests/alrc_k64_single_repair_verify.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/encoder.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/encoder_layout.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/recovery_strategy.cpp
+    ${ASM_SOURCES}
+)
+target_include_directories(alrc_k64_single_repair_verify PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_link_libraries(alrc_k64_single_repair_verify -lpthread -lJerasure -lgf_complete)
+add_test(NAME alrc_k64_single_repair_verify COMMAND alrc_k64_single_repair_verify)
+set_tests_properties(alrc_k64_single_repair_verify PROPERTIES TIMEOUT 30)
+
+# ALRC k=64 exact shared/independent double-block recovery verification.
+add_executable(alrc_k64_double_repair_verify
+    ${CMAKE_CURRENT_SOURCE_DIR}/tests/alrc_k64_double_repair_verify.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/encoder.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/encoder_layout.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/recovery_strategy.cpp
+    ${ASM_SOURCES}
+)
+target_include_directories(alrc_k64_double_repair_verify PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_link_libraries(alrc_k64_double_repair_verify -lpthread -lJerasure -lgf_complete)
+add_test(NAME alrc_k64_double_repair_verify COMMAND alrc_k64_double_repair_verify)
+set_tests_properties(alrc_k64_double_repair_verify PROPERTIES TIMEOUT 30)
+
+# ALRC k=64 exact shared/independent triple-block recovery verification.
+add_executable(alrc_k64_triple_repair_verify
+    ${CMAKE_CURRENT_SOURCE_DIR}/tests/alrc_k64_triple_repair_verify.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/encoder.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/encoder_layout.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/recovery_strategy.cpp
+    ${ASM_SOURCES}
+)
+target_include_directories(alrc_k64_triple_repair_verify PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_link_libraries(alrc_k64_triple_repair_verify -lpthread -lJerasure -lgf_complete)
+add_test(NAME alrc_k64_triple_repair_verify COMMAND alrc_k64_triple_repair_verify)
+set_tests_properties(alrc_k64_triple_repair_verify PROPERTIES TIMEOUT 30)
+
+# ALRC k=64 exact shared/independent quadruple-block recovery verification.
+add_executable(alrc_k64_quadruple_repair_verify
+    ${CMAKE_CURRENT_SOURCE_DIR}/tests/alrc_k64_quadruple_repair_verify.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/encoder.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/encoder_layout.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/recovery_strategy.cpp
+    ${ASM_SOURCES}
+)
+target_include_directories(alrc_k64_quadruple_repair_verify PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_link_libraries(alrc_k64_quadruple_repair_verify -lpthread -lJerasure -lgf_complete)
+add_test(NAME alrc_k64_quadruple_repair_verify COMMAND alrc_k64_quadruple_repair_verify)
+set_tests_properties(alrc_k64_quadruple_repair_verify PROPERTIES TIMEOUT 30)
+
+# ALRC k=96 exact L0/G0 single-block recovery verification.
+add_executable(alrc_k96_single_repair_verify
+    ${CMAKE_CURRENT_SOURCE_DIR}/tests/alrc_k96_single_repair_verify.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/encoder.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/encoder_layout.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/recovery_strategy.cpp
+    ${ASM_SOURCES}
+)
+target_include_directories(alrc_k96_single_repair_verify PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_link_libraries(alrc_k96_single_repair_verify -lpthread -lJerasure -lgf_complete)
+add_test(NAME alrc_k96_single_repair_verify COMMAND alrc_k96_single_repair_verify)
+set_tests_properties(alrc_k96_single_repair_verify PROPERTIES TIMEOUT 30)
+
+# ALRC k=96 exact shared/independent double-block recovery verification.
+add_executable(alrc_k96_double_repair_verify
+    ${CMAKE_CURRENT_SOURCE_DIR}/tests/alrc_k96_double_repair_verify.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/encoder.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/encoder_layout.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/recovery_strategy.cpp
+    ${ASM_SOURCES}
+)
+target_include_directories(alrc_k96_double_repair_verify PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_link_libraries(alrc_k96_double_repair_verify -lpthread -lJerasure -lgf_complete)
+add_test(NAME alrc_k96_double_repair_verify COMMAND alrc_k96_double_repair_verify)
+set_tests_properties(alrc_k96_double_repair_verify PROPERTIES TIMEOUT 30)
+
+# ALRC k=96 exact shared/independent triple-block recovery verification.
+add_executable(alrc_k96_triple_repair_verify
+    ${CMAKE_CURRENT_SOURCE_DIR}/tests/alrc_k96_triple_repair_verify.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/encoder.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/encoder_layout.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/recovery_strategy.cpp
+    ${ASM_SOURCES}
+)
+target_include_directories(alrc_k96_triple_repair_verify PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_link_libraries(alrc_k96_triple_repair_verify -lpthread -lJerasure -lgf_complete)
+add_test(NAME alrc_k96_triple_repair_verify COMMAND alrc_k96_triple_repair_verify)
+set_tests_properties(alrc_k96_triple_repair_verify PROPERTIES TIMEOUT 30)
+
+# ALRC k=96 exact shared/independent quadruple-block recovery verification.
+add_executable(alrc_k96_quadruple_repair_verify
+    ${CMAKE_CURRENT_SOURCE_DIR}/tests/alrc_k96_quadruple_repair_verify.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/encoder.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/encoder_layout.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/recovery_strategy.cpp
+    ${ASM_SOURCES}
+)
+target_include_directories(alrc_k96_quadruple_repair_verify PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_link_libraries(alrc_k96_quadruple_repair_verify -lpthread -lJerasure -lgf_complete)
+add_test(NAME alrc_k96_quadruple_repair_verify COMMAND alrc_k96_quadruple_repair_verify)
+set_tests_properties(alrc_k96_quadruple_repair_verify PROPERTIES TIMEOUT 30)
+
+# ALRC k=128 exact L0/L4/G0 single-block recovery verification.
+add_executable(alrc_k128_single_repair_verify
+    ${CMAKE_CURRENT_SOURCE_DIR}/tests/alrc_k128_single_repair_verify.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/encoder.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/encoder_layout.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/recovery_strategy.cpp
+    ${ASM_SOURCES}
+)
+target_include_directories(alrc_k128_single_repair_verify PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_link_libraries(alrc_k128_single_repair_verify -lpthread -lJerasure -lgf_complete)
+add_test(NAME alrc_k128_single_repair_verify COMMAND alrc_k128_single_repair_verify)
+set_tests_properties(alrc_k128_single_repair_verify PROPERTIES TIMEOUT 30)
+
+# ALRC k=128 exact shared/independent double-block recovery verification.
+add_executable(alrc_k128_double_repair_verify
+    ${CMAKE_CURRENT_SOURCE_DIR}/tests/alrc_k128_double_repair_verify.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/encoder.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/encoder_layout.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/recovery_strategy.cpp
+    ${ASM_SOURCES}
+)
+target_include_directories(alrc_k128_double_repair_verify PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_link_libraries(alrc_k128_double_repair_verify -lpthread -lJerasure -lgf_complete)
+add_test(NAME alrc_k128_double_repair_verify COMMAND alrc_k128_double_repair_verify)
+set_tests_properties(alrc_k128_double_repair_verify PROPERTIES TIMEOUT 30)
+
+# ALRC k=128 exact shared/independent triple-block recovery verification.
+add_executable(alrc_k128_triple_repair_verify
+    ${CMAKE_CURRENT_SOURCE_DIR}/tests/alrc_k128_triple_repair_verify.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/encoder.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/encoder_layout.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/recovery_strategy.cpp
+    ${ASM_SOURCES}
+)
+target_include_directories(alrc_k128_triple_repair_verify PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_link_libraries(alrc_k128_triple_repair_verify -lpthread -lJerasure -lgf_complete)
+add_test(NAME alrc_k128_triple_repair_verify COMMAND alrc_k128_triple_repair_verify)
+set_tests_properties(alrc_k128_triple_repair_verify PROPERTIES TIMEOUT 30)
+
+# ALRC k=128 exact shared/independent quadruple-block recovery verification.
+add_executable(alrc_k128_quadruple_repair_verify
+    ${CMAKE_CURRENT_SOURCE_DIR}/tests/alrc_k128_quadruple_repair_verify.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/encoder.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/encoder_layout.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/recovery_strategy.cpp
+    ${ASM_SOURCES}
+)
+target_include_directories(alrc_k128_quadruple_repair_verify PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_link_libraries(alrc_k128_quadruple_repair_verify -lpthread -lJerasure -lgf_complete)
+add_test(NAME alrc_k128_quadruple_repair_verify COMMAND alrc_k128_quadruple_repair_verify)
+set_tests_properties(alrc_k128_quadruple_repair_verify PROPERTIES TIMEOUT 30)
+
+# OLRC k=64 exact L0/L4 single-block recovery verification.
+add_executable(olrc_k64_single_repair_verify
+    ${CMAKE_CURRENT_SOURCE_DIR}/tests/olrc_k64_single_repair_verify.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/encoder.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/encoder_layout.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/recovery_strategy.cpp
+    ${ASM_SOURCES}
+)
+target_include_directories(olrc_k64_single_repair_verify PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_link_libraries(olrc_k64_single_repair_verify -lpthread -lJerasure -lgf_complete)
+add_test(NAME olrc_k64_single_repair_verify COMMAND olrc_k64_single_repair_verify)
+set_tests_properties(olrc_k64_single_repair_verify PROPERTIES TIMEOUT 30)
+
+# OLRC k=64 exact shared double-block recovery verification.
+add_executable(olrc_k64_double_repair_verify
+    ${CMAKE_CURRENT_SOURCE_DIR}/tests/olrc_k64_double_repair_verify.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/encoder.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/encoder_layout.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/recovery_strategy.cpp
+    ${ASM_SOURCES}
+)
+target_include_directories(olrc_k64_double_repair_verify PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_link_libraries(olrc_k64_double_repair_verify -lpthread -lJerasure -lgf_complete)
+add_test(NAME olrc_k64_double_repair_verify COMMAND olrc_k64_double_repair_verify)
+set_tests_properties(olrc_k64_double_repair_verify PROPERTIES TIMEOUT 30)
+
+# OLRC k=64 exact shared triple-block recovery verification.
+add_executable(olrc_k64_triple_repair_verify
+    ${CMAKE_CURRENT_SOURCE_DIR}/tests/olrc_k64_triple_repair_verify.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/encoder.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/encoder_layout.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/recovery_strategy.cpp
+    ${ASM_SOURCES}
+)
+target_include_directories(olrc_k64_triple_repair_verify PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_link_libraries(olrc_k64_triple_repair_verify -lpthread -lJerasure -lgf_complete)
+add_test(NAME olrc_k64_triple_repair_verify COMMAND olrc_k64_triple_repair_verify)
+set_tests_properties(olrc_k64_triple_repair_verify PROPERTIES TIMEOUT 30)
+
+# OLRC k=64 exact shared quadruple-block recovery verification.
+add_executable(olrc_k64_quadruple_repair_verify
+    ${CMAKE_CURRENT_SOURCE_DIR}/tests/olrc_k64_quadruple_repair_verify.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/encoder.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/encoder_layout.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/recovery_strategy.cpp
+    ${ASM_SOURCES}
+)
+target_include_directories(olrc_k64_quadruple_repair_verify PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_link_libraries(olrc_k64_quadruple_repair_verify -lpthread -lJerasure -lgf_complete)
+add_test(NAME olrc_k64_quadruple_repair_verify COMMAND olrc_k64_quadruple_repair_verify)
+set_tests_properties(olrc_k64_quadruple_repair_verify PROPERTIES TIMEOUT 30)
+
+# OLRC k=96 exact L0 single-block recovery verification.
+add_executable(olrc_k96_single_repair_verify
+    ${CMAKE_CURRENT_SOURCE_DIR}/tests/olrc_k96_single_repair_verify.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/encoder.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/encoder_layout.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/recovery_strategy.cpp
+    ${ASM_SOURCES}
+)
+target_include_directories(olrc_k96_single_repair_verify PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_link_libraries(olrc_k96_single_repair_verify -lpthread -lJerasure -lgf_complete)
+add_test(NAME olrc_k96_single_repair_verify COMMAND olrc_k96_single_repair_verify)
+set_tests_properties(olrc_k96_single_repair_verify PROPERTIES TIMEOUT 30)
+
+# OLRC k=96 exact shared double-block recovery verification.
+add_executable(olrc_k96_double_repair_verify
+    ${CMAKE_CURRENT_SOURCE_DIR}/tests/olrc_k96_double_repair_verify.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/encoder.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/encoder_layout.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/recovery_strategy.cpp
+    ${ASM_SOURCES}
+)
+target_include_directories(olrc_k96_double_repair_verify PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_link_libraries(olrc_k96_double_repair_verify -lpthread -lJerasure -lgf_complete)
+add_test(NAME olrc_k96_double_repair_verify COMMAND olrc_k96_double_repair_verify)
+set_tests_properties(olrc_k96_double_repair_verify PROPERTIES TIMEOUT 30)
+
+# OLRC k=96 exact shared triple-block recovery verification.
+add_executable(olrc_k96_triple_repair_verify
+    ${CMAKE_CURRENT_SOURCE_DIR}/tests/olrc_k96_triple_repair_verify.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/encoder.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/encoder_layout.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/recovery_strategy.cpp
+    ${ASM_SOURCES}
+)
+target_include_directories(olrc_k96_triple_repair_verify PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_link_libraries(olrc_k96_triple_repair_verify -lpthread -lJerasure -lgf_complete)
+add_test(NAME olrc_k96_triple_repair_verify COMMAND olrc_k96_triple_repair_verify)
+set_tests_properties(olrc_k96_triple_repair_verify PROPERTIES TIMEOUT 30)
+
+# OLRC k=96 exact shared quadruple-block recovery verification.
+add_executable(olrc_k96_quadruple_repair_verify
+    ${CMAKE_CURRENT_SOURCE_DIR}/tests/olrc_k96_quadruple_repair_verify.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/encoder.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/encoder_layout.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/recovery_strategy.cpp
+    ${ASM_SOURCES}
+)
+target_include_directories(olrc_k96_quadruple_repair_verify PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_link_libraries(olrc_k96_quadruple_repair_verify -lpthread -lJerasure -lgf_complete)
+add_test(NAME olrc_k96_quadruple_repair_verify COMMAND olrc_k96_quadruple_repair_verify)
+set_tests_properties(olrc_k96_quadruple_repair_verify PROPERTIES TIMEOUT 30)
+
+# OLRC k=128 exact L0/L4 single-block recovery verification.
+add_executable(olrc_k128_single_repair_verify
+    ${CMAKE_CURRENT_SOURCE_DIR}/tests/olrc_k128_single_repair_verify.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/encoder.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/encoder_layout.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/recovery_strategy.cpp
+    ${ASM_SOURCES}
+)
+target_include_directories(olrc_k128_single_repair_verify PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_link_libraries(olrc_k128_single_repair_verify -lpthread -lJerasure -lgf_complete)
+add_test(NAME olrc_k128_single_repair_verify COMMAND olrc_k128_single_repair_verify)
+set_tests_properties(olrc_k128_single_repair_verify PROPERTIES TIMEOUT 30)
+
+# OLRC k=128 exact shared double-block recovery verification.
+add_executable(olrc_k128_double_repair_verify
+    ${CMAKE_CURRENT_SOURCE_DIR}/tests/olrc_k128_double_repair_verify.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/encoder.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/encoder_layout.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/recovery_strategy.cpp
+    ${ASM_SOURCES}
+)
+target_include_directories(olrc_k128_double_repair_verify PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_link_libraries(olrc_k128_double_repair_verify -lpthread -lJerasure -lgf_complete)
+add_test(NAME olrc_k128_double_repair_verify COMMAND olrc_k128_double_repair_verify)
+set_tests_properties(olrc_k128_double_repair_verify PROPERTIES TIMEOUT 30)
+
+# OLRC k=128 exact shared triple-block recovery verification.
+add_executable(olrc_k128_triple_repair_verify
+    ${CMAKE_CURRENT_SOURCE_DIR}/tests/olrc_k128_triple_repair_verify.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/encoder.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/encoder_layout.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/recovery_strategy.cpp
+    ${ASM_SOURCES}
+)
+target_include_directories(olrc_k128_triple_repair_verify PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_link_libraries(olrc_k128_triple_repair_verify -lpthread -lJerasure -lgf_complete)
+add_test(NAME olrc_k128_triple_repair_verify COMMAND olrc_k128_triple_repair_verify)
+set_tests_properties(olrc_k128_triple_repair_verify PROPERTIES TIMEOUT 30)
+
+# OLRC k=128 exact shared quadruple-block recovery verification.
+add_executable(olrc_k128_quadruple_repair_verify
+    ${CMAKE_CURRENT_SOURCE_DIR}/tests/olrc_k128_quadruple_repair_verify.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/encoder.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/encoder_layout.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/recovery_strategy.cpp
+    ${ASM_SOURCES}
+)
+target_include_directories(olrc_k128_quadruple_repair_verify PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_link_libraries(olrc_k128_quadruple_repair_verify -lpthread -lJerasure -lgf_complete)
+add_test(NAME olrc_k128_quadruple_repair_verify COMMAND olrc_k128_quadruple_repair_verify)
+set_tests_properties(olrc_k128_quadruple_repair_verify PROPERTIES TIMEOUT 30)

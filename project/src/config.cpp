@@ -43,7 +43,7 @@ namespace ECProject
   void Config::validateConfig() const
   {
     static const std::set<std::string> supported = {
-        "AzureLRC", "OptimalLRC", "UniformLRC", "LotusLRC", "UniLRC", "HLRC", "NLRC", "ARLC", "OLRC"};
+        "AzureLRC", "OptimalLRC", "UniformLRC", "LotusLRC", "UniLRC", "HLRC", "NLRC", "ALRC", "OLRC"};
     if (supported.count(CodeType) == 0)
       throw std::runtime_error("Unsupported CodeType: actual=" + CodeType);
     if (AlignedSize <= 0 || UnitSize <= 0 || BlockSize == 0 || CoordinatorPort <= 0 ||
@@ -70,10 +70,10 @@ namespace ECProject
                                ", r=" + std::to_string(r) + ", z=" + std::to_string(z) +
                                ", n=" + std::to_string(n) +
                                ", required=(64,3,5,72), (96,3,7,106), or (128,3,9,140)");
-    if (CodeType == "ARLC" && !((k == 64 && r == 3 && z == 5 && n == 72) ||
+    if (CodeType == "ALRC" && !((k == 64 && r == 3 && z == 5 && n == 72) ||
                                 (k == 96 && r == 3 && z == 7 && n == 106) ||
                                 (k == 128 && r == 3 && z == 9 && n == 140)))
-      throw std::runtime_error("Invalid ARLC parameters: k=" + std::to_string(k) +
+      throw std::runtime_error("Invalid ALRC parameters: k=" + std::to_string(k) +
                                ", r=" + std::to_string(r) + ", z=" + std::to_string(z) +
                                ", n=" + std::to_string(n) +
                                ", required=(64,3,5,72), (96,3,7,106), or (128,3,9,140)");

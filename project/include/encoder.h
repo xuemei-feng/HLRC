@@ -53,13 +53,13 @@ namespace ECProject
 
     void encode_nlrc(int k, int r, int z, unsigned char **data_ptrs, unsigned char **parity_ptrs, int block_size);
 
-    void encode_arlc(int k, int r, int z, unsigned char **data_ptrs, unsigned char **parity_ptrs, int block_size);
+    void encode_alrc(int k, int r, int z, unsigned char **data_ptrs, unsigned char **parity_ptrs, int block_size);
 
     void encode_olrc(int k, int r, int z, unsigned char **data_ptrs, unsigned char **parity_ptrs, int block_size);
 
     void partial_encode_nlrc(int k, int r, int z, int data_block_num, unsigned char **data_ptrs, unsigned char **parity_ptrs, int block_size);
 
-    void partial_encode_arlc(int k, int r, int z, int data_block_num, unsigned char **data_ptrs, unsigned char **parity_ptrs, int block_size);
+    void partial_encode_alrc(int k, int r, int z, int data_block_num, unsigned char **data_ptrs, unsigned char **parity_ptrs, int block_size);
 
     void partial_encode_olrc(int k, int r, int z, int data_block_num, unsigned char **data_ptrs, unsigned char **parity_ptrs, int block_size);
 
@@ -67,7 +67,7 @@ namespace ECProject
 
     void gen_nlrc_matrix(unsigned char *encode_matrix, int k, int r, int z);
 
-    void gen_arlc_matrix(unsigned char *encode_matrix, int k, int r, int z);
+    void gen_alrc_matrix(unsigned char *encode_matrix, int k, int r, int z);
 
     void gen_olrc_matrix(unsigned char *encode_matrix, int k, int r, int z);
 
@@ -111,6 +111,10 @@ namespace ECProject
                             int failed_block_id);
 
     void decode_nlrc(const int k, const int r, const int z, const int block_num,
+                     const std::vector<int> *block_indexes, unsigned char **block_ptrs,
+                     unsigned char *res_ptr, int block_size, int failed_block_id);
+
+    void decode_alrc(const int k, const int r, const int z, const int block_num,
                      const std::vector<int> *block_indexes, unsigned char **block_ptrs,
                      unsigned char *res_ptr, int block_size, int failed_block_id);
 

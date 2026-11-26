@@ -864,6 +864,105 @@ bool make_repair_plan(const std::string &code_type, int k,
     return true;
   }
 
+  if (code_type == "OLRC")
+  {
+    const bool k64_supported = k == 64 &&
+        (failure_type == "single" || failure_type == "double" ||
+         failure_type == "triple" || failure_type == "quadruple");
+    const bool k96_supported = k == 96 &&
+        (failure_type == "single" || failure_type == "double" || failure_type == "triple" ||
+         failure_type == "quadruple");
+    const bool k128_supported = k == 128 &&
+        (failure_type == "single" || failure_type == "double" || failure_type == "triple" ||
+         failure_type == "quadruple");
+    if (!k64_supported && !k96_supported && !k128_supported)
+    {
+      error = "no repair plan is registered for CodeType=OLRC, k=" +
+              std::to_string(k) + ", failure=" + failure_type;
+      return false;
+    }
+    plan.required_r = 3;
+    plan.required_z = k == 128 ? 9 : (k == 96 ? 7 : 5);
+    if (configured_r != plan.required_r)
+    {
+      error = "OLRC k=" + std::to_string(k) + " " + failure_type + " requires r=3";
+      return false;
+    }
+    if (failure_type == "single")
+      plan.single_cases = k == 128
+          ? ECProject::RepairBenchmark::make_olrc_k128_single_block_cases()
+          : (k == 96
+              ? ECProject::RepairBenchmark::make_olrc_k96_single_block_cases()
+              : ECProject::RepairBenchmark::make_olrc_k64_single_block_cases());
+    else if (failure_type == "double")
+      plan.double_cases = k == 128
+          ? ECProject::RepairBenchmark::make_olrc_k128_double_block_cases()
+          : (k == 96
+              ? ECProject::RepairBenchmark::make_olrc_k96_double_block_cases()
+              : ECProject::RepairBenchmark::make_olrc_k64_double_block_cases());
+    else if (failure_type == "triple")
+      plan.triple_cases = k == 128
+          ? ECProject::RepairBenchmark::make_olrc_k128_triple_block_cases()
+          : (k == 96
+              ? ECProject::RepairBenchmark::make_olrc_k96_triple_block_cases()
+              : ECProject::RepairBenchmark::make_olrc_k64_triple_block_cases());
+    else
+      plan.quadruple_cases = k == 128
+          ? ECProject::RepairBenchmark::make_olrc_k128_quadruple_block_cases()
+          : (k == 96
+              ? ECProject::RepairBenchmark::make_olrc_k96_quadruple_block_cases()
+              : ECProject::RepairBenchmark::make_olrc_k64_quadruple_block_cases());
+    return true;
+  }
+
+  if (code_type == "ALRC")
+  {
+    const bool supported_k64 = k == 64 &&
+        (failure_type == "double" || failure_type == "triple" || failure_type == "quadruple");
+    const bool supported_k96 = k == 96 &&
+        (failure_type == "single" || failure_type == "double" || failure_type == "triple" ||
+         failure_type == "quadruple");
+    const bool supported_k128 = k == 128 &&
+        (failure_type == "single" || failure_type == "double" || failure_type == "triple" ||
+         failure_type == "quadruple");
+    if (!supported_k64 && !supported_k96 && !supported_k128)
+    {
+      error = "no repair plan is registered for CodeType=ALRC, k=" +
+              std::to_string(k) + ", failure=" + failure_type;
+      return false;
+    }
+    plan.required_r = 3;
+    plan.required_z = k == 128 ? 9 : (k == 96 ? 7 : 5);
+    if (configured_r != plan.required_r)
+    {
+      error = "ALRC k=64 " + failure_type + " requires r=3";
+      return false;
+    }
+    if (failure_type == "single")
+      plan.single_cases = k == 128
+          ? ECProject::RepairBenchmark::make_alrc_k128_single_block_cases()
+          : ECProject::RepairBenchmark::make_alrc_k96_single_block_cases();
+    else if (failure_type == "double")
+      plan.double_cases = k == 128
+          ? ECProject::RepairBenchmark::make_alrc_k128_double_block_cases()
+          : (k == 96
+              ? ECProject::RepairBenchmark::make_alrc_k96_double_block_cases()
+              : ECProject::RepairBenchmark::make_alrc_k64_double_block_cases());
+    else if (failure_type == "triple")
+      plan.triple_cases = k == 128
+          ? ECProject::RepairBenchmark::make_alrc_k128_triple_block_cases()
+          : (k == 96
+              ? ECProject::RepairBenchmark::make_alrc_k96_triple_block_cases()
+              : ECProject::RepairBenchmark::make_alrc_k64_triple_block_cases());
+    else
+      plan.quadruple_cases = k == 128
+          ? ECProject::RepairBenchmark::make_alrc_k128_quadruple_block_cases()
+          : (k == 96
+              ? ECProject::RepairBenchmark::make_alrc_k96_quadruple_block_cases()
+              : ECProject::RepairBenchmark::make_alrc_k64_quadruple_block_cases());
+    return true;
+  }
+
   if (code_type == "NLRC")
   {
     const bool k64_supported = k == 64 && (failure_type == "single" ||
