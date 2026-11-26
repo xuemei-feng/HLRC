@@ -21,6 +21,8 @@ SUPPORTED_CODE_TYPES = {
     "UniLRC",
     "HLRC",
     "NLRC",
+    "ARLC",
+    "OLRC",
 }
 
 
@@ -63,6 +65,16 @@ def parse_code_parameters(xml_path: Path) -> Tuple[str, int, int, int, int]:
             raise ValueError(
                 f"invalid LotusLRC parameters for k=24: actual r={r}, z={z}, required r=1, z=4"
             )
+    if code_type == "ARLC" and (k, r, z) not in {(64, 3, 5), (96, 3, 7), (128, 3, 9)}:
+        raise ValueError(
+            f"invalid ARLC parameters: actual k={k}, r={r}, z={z}, "
+            "required (k=64,r=3,z=5), (k=96,r=3,z=7), or (k=128,r=3,z=9)"
+        )
+    if code_type == "OLRC" and (k, r, z) not in {(64, 3, 5), (96, 3, 7), (128, 3, 9)}:
+        raise ValueError(
+            f"invalid OLRC parameters: actual k={k}, r={r}, z={z}, "
+            "required (k=64,r=3,z=5), (k=96,r=3,z=7), or (k=128,r=3,z=9)"
+        )
     return code_type, k, r, z, k + r + z
 
 

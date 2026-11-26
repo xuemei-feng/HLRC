@@ -212,6 +212,36 @@ void validate_nlrc_parameters(int k, int r, int z)
         throw std::invalid_argument("NLRC requires (k=64,r=3,z=5), (k=96,r=3,z=7), or (k=128,r=3,z=9)");
 }
 
+void validate_olrc_parameters(int k, int r, int z)
+{
+    if (!((k == 64 && r == 3 && z == 5) ||
+          (k == 96 && r == 3 && z == 7) ||
+          (k == 128 && r == 3 && z == 9)))
+        throw std::invalid_argument("OLRC requires (k=64,r=3,z=5), (k=96,r=3,z=7), or (k=128,r=3,z=9)");
+}
+
+std::vector<std::pair<int, int>> olrc_data_bounds(int k)
+{
+    if (k == 64) return {{0, 21}, {21, 42}, {42, 64}};
+    if (k == 96) return {{0, 24}, {24, 48}, {48, 72}, {72, 96}};
+    return {{0, 25}, {25, 50}, {50, 76}, {76, 102}, {102, 128}};
+}
+
+void validate_arlc_parameters(int k, int r, int z)
+{
+    if (!((k == 64 && r == 3 && z == 5) ||
+          (k == 96 && r == 3 && z == 7) ||
+          (k == 128 && r == 3 && z == 9)))
+        throw std::invalid_argument("ARLC requires (k=64,r=3,z=5), (k=96,r=3,z=7), or (k=128,r=3,z=9)");
+}
+
+std::vector<std::pair<int, int>> arlc_data_bounds(int k)
+{
+    if (k == 64) return {{0, 21}, {21, 42}, {42, 64}};
+    if (k == 96) return {{0, 24}, {24, 48}, {48, 72}, {72, 96}};
+    return {{0, 25}, {25, 50}, {50, 76}, {76, 102}, {102, 128}};
+}
+
 std::vector<std::pair<int, int>> nlrc_data_bounds(int k)
 {
     if (k == 64) return {{0, 22}, {22, 44}, {44, 64}};
@@ -219,6 +249,138 @@ std::vector<std::pair<int, int>> nlrc_data_bounds(int k)
     return {{0, 26}, {26, 52}, {52, 78}, {78, 104}, {104, 128}};
 }
 } // namespace
+
+void ECProject::gen_olrc_matrix(unsigned char *encode_matrix, int k, int r, int z)
+{
+    validate_olrc_parameters(k, r, z);
+    if (encode_matrix == nullptr)
+        throw std::invalid_argument("OLRC encode matrix must not be null");
+
+    const int n = k + r + z;
+    memset(encode_matrix, 0, static_cast<size_t>(n) * k);
+    gf_gen_cauchy_matrix1(encode_matrix, k + r, k);
+
+    const auto bounds = olrc_data_bounds(k);
+    int local_row = k + r;
+    for (size_t group = 0; group < bounds.size(); ++group) {
+        const int begin = bounds[group].first;
+        const int data_count = bounds[group].second - begin;
+        const int member_count = data_count + r;
+        const int parity_count = group + 1 < bounds.size() ? 2 : 1;
+        std::vector<unsigned char> local_matrix(
+            static_cast<size_t>(member_count + parity_count) * member_count);
+        gf_gen_cauchy_matrix1(local_matrix.data(), member_count + parity_count, member_count);
+        for (int parity = 0; parity < parity_count; ++parity) {
+            const unsigned char *coeff = local_matrix.data() +
+                static_cast<size_t>(member_count + parity) * member_count;
+            unsigned char *row = encode_matrix + static_cast<size_t>(local_row++) * k;
+            for (int data = 0; data < data_count; ++data)
+                row[begin + data] = coeff[data];
+            for (int global = 0; global < r; ++global)
+                for (int data = 0; data < k; ++data)
+                    row[data] ^= gf_mul(coeff[data_count + global],
+                                        encode_matrix[static_cast<size_t>(k + global) * k + data]);
+        }
+    }
+}
+
+void ECProject::encode_olrc(int k, int r, int z, unsigned char **data_ptrs,
+                            unsigned char **parity_ptrs, int block_size)
+{
+    validate_olrc_parameters(k, r, z);
+    if (data_ptrs == nullptr || parity_ptrs == nullptr || block_size <= 0)
+        throw std::invalid_argument("OLRC requires non-null buffers and a positive block size");
+    std::vector<unsigned char> matrix(static_cast<size_t>(k + r + z) * k);
+    std::vector<unsigned char> tables(static_cast<size_t>(k) * (r + z) * 32);
+    gen_olrc_matrix(matrix.data(), k, r, z);
+    ec_init_tables(k, r + z, matrix.data() + static_cast<size_t>(k) * k, tables.data());
+    ec_encode_data_avx2(block_size, k, r + z, tables.data(), data_ptrs, parity_ptrs);
+}
+
+void ECProject::partial_encode_olrc(int k, int r, int z, int data_block_num,
+                                    unsigned char **data_ptrs, unsigned char **parity_ptrs,
+                                    int block_size)
+{
+    validate_olrc_parameters(k, r, z);
+    if (data_block_num <= 0 || data_block_num > k || data_ptrs == nullptr ||
+        parity_ptrs == nullptr || block_size <= 0)
+        throw std::invalid_argument("OLRC partial encode arguments are invalid");
+    std::vector<unsigned char> matrix(static_cast<size_t>(k + r + z) * k);
+    std::vector<unsigned char> sub_matrix(static_cast<size_t>(r + z) * data_block_num);
+    std::vector<unsigned char> tables(static_cast<size_t>(data_block_num) * (r + z) * 32);
+    gen_olrc_matrix(matrix.data(), k, r, z);
+    for (int row = 0; row < r + z; ++row)
+        memcpy(sub_matrix.data() + static_cast<size_t>(row) * data_block_num,
+               matrix.data() + static_cast<size_t>(k + row) * k,
+               static_cast<size_t>(data_block_num));
+    ec_init_tables(data_block_num, r + z, sub_matrix.data(), tables.data());
+    ec_encode_data_avx2(block_size, data_block_num, r + z, tables.data(), data_ptrs, parity_ptrs);
+}
+
+void ECProject::gen_arlc_matrix(unsigned char *encode_matrix, int k, int r, int z)
+{
+    validate_arlc_parameters(k, r, z);
+    if (encode_matrix == nullptr)
+        throw std::invalid_argument("ARLC encode matrix must not be null");
+
+    const int n = k + r + z;
+    memset(encode_matrix, 0, static_cast<size_t>(n) * k);
+    gf_gen_rs_matrix1(encode_matrix, k + r, k);
+
+    const auto bounds = arlc_data_bounds(k);
+    int local_row = k + r;
+    for (size_t group = 0; group + 1 < bounds.size(); ++group) {
+        const int begin = bounds[group].first;
+        const int count = bounds[group].second - begin;
+        std::vector<unsigned char> local_matrix(static_cast<size_t>(count + 2) * count);
+        gf_gen_cauchy_matrix1(local_matrix.data(), count + 2, count);
+        for (int parity = 0; parity < 2; ++parity)
+            memcpy(encode_matrix + static_cast<size_t>(local_row++) * k + begin,
+                   local_matrix.data() + static_cast<size_t>(count + parity) * count,
+                   static_cast<size_t>(count));
+    }
+
+    const int tail_begin = bounds.back().first;
+    const int tail_count = bounds.back().second - tail_begin;
+    std::vector<unsigned char> tail_matrix(static_cast<size_t>(tail_count + 1) * tail_count);
+    gf_gen_cauchy_matrix1(tail_matrix.data(), tail_count + 1, tail_count);
+    memcpy(encode_matrix + static_cast<size_t>(local_row) * k + tail_begin,
+           tail_matrix.data() + static_cast<size_t>(tail_count) * tail_count,
+           static_cast<size_t>(tail_count));
+}
+
+void ECProject::encode_arlc(int k, int r, int z, unsigned char **data_ptrs,
+                            unsigned char **parity_ptrs, int block_size)
+{
+    validate_arlc_parameters(k, r, z);
+    if (data_ptrs == nullptr || parity_ptrs == nullptr || block_size <= 0)
+        throw std::invalid_argument("ARLC requires non-null buffers and a positive block size");
+    std::vector<unsigned char> matrix(static_cast<size_t>(k + r + z) * k);
+    std::vector<unsigned char> tables(static_cast<size_t>(k) * (r + z) * 32);
+    gen_arlc_matrix(matrix.data(), k, r, z);
+    ec_init_tables(k, r + z, matrix.data() + static_cast<size_t>(k) * k, tables.data());
+    ec_encode_data_avx2(block_size, k, r + z, tables.data(), data_ptrs, parity_ptrs);
+}
+
+void ECProject::partial_encode_arlc(int k, int r, int z, int data_block_num,
+                                    unsigned char **data_ptrs, unsigned char **parity_ptrs,
+                                    int block_size)
+{
+    validate_arlc_parameters(k, r, z);
+    if (data_block_num <= 0 || data_block_num > k || data_ptrs == nullptr ||
+        parity_ptrs == nullptr || block_size <= 0)
+        throw std::invalid_argument("ARLC partial encode arguments are invalid");
+    std::vector<unsigned char> matrix(static_cast<size_t>(k + r + z) * k);
+    std::vector<unsigned char> sub_matrix(static_cast<size_t>(r + z) * data_block_num);
+    std::vector<unsigned char> tables(static_cast<size_t>(data_block_num) * (r + z) * 32);
+    gen_arlc_matrix(matrix.data(), k, r, z);
+    for (int row = 0; row < r + z; ++row)
+        memcpy(sub_matrix.data() + static_cast<size_t>(row) * data_block_num,
+               matrix.data() + static_cast<size_t>(k + row) * k,
+               static_cast<size_t>(data_block_num));
+    ec_init_tables(data_block_num, r + z, sub_matrix.data(), tables.data());
+    ec_encode_data_avx2(block_size, data_block_num, r + z, tables.data(), data_ptrs, parity_ptrs);
+}
 
 void ECProject::gen_nlrc_matrix(unsigned char *encode_matrix, int k, int r, int z)
 {

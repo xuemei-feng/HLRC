@@ -1265,3 +1265,29 @@ add_dependencies(benchmark_repeat_integration repair_benchmark)
 add_test(NAME benchmark_repeat_integration
     COMMAND benchmark_repeat_integration $<TARGET_FILE:repair_benchmark>)
 set_tests_properties(benchmark_repeat_integration PROPERTIES TIMEOUT 45 RUN_SERIAL TRUE)
+
+# ARLC k=64 matrix, encoding, and same-group double-erasure verification.
+add_executable(arlc_encode_verify
+    ${CMAKE_CURRENT_SOURCE_DIR}/tests/arlc_encode_verify.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/encoder.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/encoder_layout.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/recovery_strategy.cpp
+    ${ASM_SOURCES}
+)
+target_include_directories(arlc_encode_verify PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_link_libraries(arlc_encode_verify -lpthread -lJerasure -lgf_complete)
+add_test(NAME arlc_encode_verify COMMAND arlc_encode_verify)
+set_tests_properties(arlc_encode_verify PROPERTIES TIMEOUT 30)
+
+# OLRC k=64 matrix, encoding, and local-MDS verification.
+add_executable(olrc_encode_verify
+    ${CMAKE_CURRENT_SOURCE_DIR}/tests/olrc_encode_verify.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/encoder.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/encoder_layout.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/recovery_strategy.cpp
+    ${ASM_SOURCES}
+)
+target_include_directories(olrc_encode_verify PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_link_libraries(olrc_encode_verify -lpthread -lJerasure -lgf_complete)
+add_test(NAME olrc_encode_verify COMMAND olrc_encode_verify)
+set_tests_properties(olrc_encode_verify PROPERTIES TIMEOUT 30)

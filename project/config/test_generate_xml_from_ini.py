@@ -39,6 +39,22 @@ class ParameterConfigurationTest(unittest.TestCase):
                          ("HLRC", 64, 2, 6, 72))
         self.assertEqual(self.parse("<CodeType>NLRC</CodeType><k>64</k><r>3</r><z>5</z>"),
                          ("NLRC", 64, 3, 5, 72))
+        self.assertEqual(self.parse("<CodeType>ARLC</CodeType><k>64</k><r>3</r><z>5</z>"),
+                         ("ARLC", 64, 3, 5, 72))
+        self.assertEqual(self.parse("<CodeType>ARLC</CodeType><k>96</k><r>3</r><z>7</z>"),
+                         ("ARLC", 96, 3, 7, 106))
+        self.assertEqual(self.parse("<CodeType>ARLC</CodeType><k>128</k><r>3</r><z>9</z>"),
+                         ("ARLC", 128, 3, 9, 140))
+        self.assertEqual(self.parse("<CodeType>OLRC</CodeType><k>64</k><r>3</r><z>5</z>"),
+                         ("OLRC", 64, 3, 5, 72))
+        self.assertEqual(self.parse("<CodeType>OLRC</CodeType><k>96</k><r>3</r><z>7</z>"),
+                         ("OLRC", 96, 3, 7, 106))
+        self.assertEqual(self.parse("<CodeType>OLRC</CodeType><k>128</k><r>3</r><z>9</z>"),
+                         ("OLRC", 128, 3, 9, 140))
+
+    def test_arlc_rejects_other_parameters(self):
+        with self.assertRaisesRegex(ValueError, r"required .*64.*96.*or .*128"):
+            self.parse("<CodeType>ARLC</CodeType><k>64</k><r>2</r><z>5</z>")
 
     def test_uni_derivation(self):
         self.assertEqual(self.parse("<CodeType>UniLRC</CodeType><alpha>2</alpha><z>4</z>"),

@@ -53,11 +53,23 @@ namespace ECProject
 
     void encode_nlrc(int k, int r, int z, unsigned char **data_ptrs, unsigned char **parity_ptrs, int block_size);
 
+    void encode_arlc(int k, int r, int z, unsigned char **data_ptrs, unsigned char **parity_ptrs, int block_size);
+
+    void encode_olrc(int k, int r, int z, unsigned char **data_ptrs, unsigned char **parity_ptrs, int block_size);
+
     void partial_encode_nlrc(int k, int r, int z, int data_block_num, unsigned char **data_ptrs, unsigned char **parity_ptrs, int block_size);
+
+    void partial_encode_arlc(int k, int r, int z, int data_block_num, unsigned char **data_ptrs, unsigned char **parity_ptrs, int block_size);
+
+    void partial_encode_olrc(int k, int r, int z, int data_block_num, unsigned char **data_ptrs, unsigned char **parity_ptrs, int block_size);
 
     void gen_hlrc_matrix(unsigned char *encode_matrix, int k, int r, int z);
 
     void gen_nlrc_matrix(unsigned char *encode_matrix, int k, int r, int z);
+
+    void gen_arlc_matrix(unsigned char *encode_matrix, int k, int r, int z);
+
+    void gen_olrc_matrix(unsigned char *encode_matrix, int k, int r, int z);
 
     void encode_lotuslrc(int k, int r, int z, unsigned char **data_ptrs, unsigned char **parity_ptrs, int block_size);
 
