@@ -1610,3 +1610,10 @@ add_executable(alrc_layout_verify
 target_include_directories(alrc_layout_verify PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
 add_test(NAME alrc_layout_verify COMMAND alrc_layout_verify)
 set_tests_properties(alrc_layout_verify PROPERTIES TIMEOUT 30)
+
+add_executable(olrc_layout_verify
+    ${CMAKE_CURRENT_SOURCE_DIR}/tests/olrc_layout_verify.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/encoder_layout.cpp)
+target_include_directories(olrc_layout_verify PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+add_test(NAME olrc_layout_verify COMMAND olrc_layout_verify)
+set_tests_properties(olrc_layout_verify PROPERTIES TIMEOUT 30)

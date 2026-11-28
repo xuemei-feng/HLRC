@@ -19,7 +19,7 @@ TASK = re.compile(r"  task owner=(\d+) failed=\[([\d,]+)\], sources=\[([\d,]+)\]
 
 
 def coding_parameters(code, k):
-    if code == "NLRC":
+    if code in ("NLRC", "OLRC"):
         return 3, {64: 5, 96: 7, 128: 9}[k]
     if code == "HLRC":
         return 2, {64: 6, 96: 8, 128: 10}[k]
@@ -113,6 +113,11 @@ class DispatchVerification(unittest.TestCase):
             message = rejected.stdout + rejected.stderr
             self.assertTrue("muti requires CodeType=NLRC, k=128, r=3, z=9" in message or
                             "Invalid NLRC parameters" in message, message)
+
+    def test_olrc_single_check_plan_all_sizes(self):
+        for k in (64, 96, 128):
+            with self.subTest(k=k):
+                self.parse_plan(self.run_plan("OLRC", k, "single"), "OLRC", k, "single")
 
     def test_all_nlrc_hlrc_entry_points(self):
         for code, sizes in CASE_COUNTS.items():

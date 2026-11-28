@@ -55,6 +55,8 @@ namespace ECProject
       return get_data_block_num_per_group_nlrc(k, r, z);
     if (code_type == "ALRC")
       return get_data_block_num_per_group_alrc(k, r, z);
+    if (code_type == "OLRC")
+      return get_data_block_num_per_group_olrc(k, r, z);
     return {};
   }
 
@@ -76,6 +78,8 @@ namespace ECProject
       return get_global_parity_block_num_per_group_nlrc(k, r, z);
     if (code_type == "ALRC")
       return get_global_parity_block_num_per_group_alrc(k, r, z);
+    if (code_type == "OLRC")
+      return get_global_parity_block_num_per_group_olrc(k, r, z);
     return {};
   }
 
@@ -97,6 +101,8 @@ namespace ECProject
       return get_local_parity_block_num_per_group_nlrc(k, r, z);
     if (code_type == "ALRC")
       return get_local_parity_block_num_per_group_alrc(k, r, z);
+    if (code_type == "OLRC")
+      return get_local_parity_block_num_per_group_olrc(k, r, z);
     return {};
   }
 
@@ -108,6 +114,14 @@ namespace ECProject
             (k == 96 && r == 3 && z == 7) ||
             (k == 128 && r == 3 && z == 9)))
         throw std::invalid_argument("NLRC requires (k=64,r=3,z=5), (k=96,r=3,z=7), or (k=128,r=3,z=9)");
+    }
+
+    void validate_olrc_layout_parameters(int k, int r, int z)
+    {
+      if (!((k == 64 && r == 3 && z == 5) ||
+            (k == 96 && r == 3 && z == 7) ||
+            (k == 128 && r == 3 && z == 9)))
+        throw std::invalid_argument("OLRC requires (k=64,r=3,z=5), (k=96,r=3,z=7), or (k=128,r=3,z=9)");
     }
 
     void validate_alrc_layout_parameters(int k, int r, int z)
@@ -308,6 +322,90 @@ namespace ECProject
   { return count_alrc_blocks(k, r, z, 1); }
   std::vector<int> get_local_parity_block_num_per_group_alrc(int k, int r, int z)
   { return count_alrc_blocks(k, r, z, 2); }
+
+  std::vector<std::vector<int>> get_olrc_local_group_block_ids(int k, int r, int z)
+  {
+    validate_olrc_layout_parameters(k, r, z);
+    std::vector<std::pair<int, int>> bounds;
+    if (k == 64) bounds = {{0,21},{21,42},{42,64}};
+    else if (k == 96) bounds = {{0,24},{24,48},{48,72},{72,96}};
+    else bounds = {{0,25},{25,50},{50,76},{76,102},{102,128}};
+    std::vector<std::vector<int>> groups(bounds.size());
+    int local = k + r;
+    for (size_t group = 0; group < bounds.size(); ++group) {
+      for (int id = bounds[group].first; id < bounds[group].second; ++id)
+        groups[group].push_back(id);
+      for (int global = 0; global < r; ++global)
+        groups[group].push_back(k + global);
+      const int count = group + 1 == bounds.size() ? 1 : 2;
+      for (int i = 0; i < count; ++i) groups[group].push_back(local++);
+    }
+    return groups;
+  }
+
+  int get_olrc_block_id_to_local_group_id(int k, int r, int z, int block_id)
+  {
+    validate_olrc_layout_parameters(k, r, z);
+    if (block_id >= k && block_id < k + r) return -1;
+    const auto logical = get_olrc_local_group_block_ids(k, r, z);
+    for (size_t group = 0; group < logical.size(); ++group)
+      if (std::find(logical[group].begin(), logical[group].end(), block_id) != logical[group].end())
+        return static_cast<int>(group);
+    throw std::runtime_error("OLRC block id is out of range");
+  }
+
+  std::unordered_map<int, std::vector<int>> get_olrc_group_id_to_block_ids(int k, int r, int z)
+  {
+    validate_olrc_layout_parameters(k, r, z);
+    const auto logical = get_olrc_local_group_block_ids(k, r, z);
+    std::unordered_map<int, std::vector<int>> physical;
+    int physical_id = 0;
+    for (const auto &logical_members : logical) {
+      std::vector<int> members;
+      for (int id : logical_members)
+        if (id < k || id >= k + r) members.push_back(id);
+      const int count = (static_cast<int>(members.size()) + r) / (r + 1);
+      const int base = static_cast<int>(members.size()) / count;
+      const int extra = static_cast<int>(members.size()) % count;
+      size_t offset = 0;
+      for (int part = 0; part < count; ++part) {
+        const int size = base + (part < extra ? 1 : 0);
+        physical[physical_id++] = std::vector<int>(members.begin() + offset,
+                                                   members.begin() + offset + size);
+        offset += size;
+      }
+    }
+    for (int global = 0; global < r; ++global)
+      physical[physical_id].push_back(k + global);
+    return physical;
+  }
+
+  std::unordered_map<int, int> get_olrc_block_id_to_group_id(int k, int r, int z)
+  {
+    std::unordered_map<int, int> result;
+    for (const auto &entry : get_olrc_group_id_to_block_ids(k, r, z))
+      for (int id : entry.second) result[id] = entry.first;
+    return result;
+  }
+
+  namespace {
+    std::vector<int> count_olrc_blocks(int k, int r, int z, int kind)
+    {
+      std::vector<int> result;
+      const auto groups = get_olrc_group_id_to_block_ids(k, r, z);
+      for (size_t group = 0; group < groups.size(); ++group)
+        result.push_back(std::count_if(groups.at(group).begin(), groups.at(group).end(),
+          [k,r,kind](int id) { return kind == 0 ? id < k : (kind == 1 ? id >= k && id < k+r : id >= k+r); }));
+      return result;
+    }
+  }
+
+  std::vector<int> get_data_block_num_per_group_olrc(int k, int r, int z)
+  { return count_olrc_blocks(k, r, z, 0); }
+  std::vector<int> get_global_parity_block_num_per_group_olrc(int k, int r, int z)
+  { return count_olrc_blocks(k, r, z, 1); }
+  std::vector<int> get_local_parity_block_num_per_group_olrc(int k, int r, int z)
+  { return count_olrc_blocks(k, r, z, 2); }
 
   std::unordered_map<int, std::vector<int>> get_hlrc_group_id_to_block_ids(int k, int r, int z)
   {

@@ -977,6 +977,14 @@ void ECProject::decode_alrc(const int k, const int r, const int z, const int blo
                                res_ptr, block_size, failed_block_id);
 }
 
+void ECProject::decode_olrc(const int k, const int r, const int z, const int block_num,
+                            const std::vector<int> *block_indexes, unsigned char **block_ptrs,
+                            unsigned char *res_ptr, int block_size, int failed_block_id)
+{
+    decode_block_via_generator("OLRC", k, r, z, block_num, block_indexes, block_ptrs,
+                               res_ptr, block_size, failed_block_id);
+}
+
 void ECProject::decode_hlrc(const int k, const int r, const int z, const int block_num,
                             const std::vector<int> *block_indexes, unsigned char **block_ptrs,
                             unsigned char *res_ptr, int block_size, int failed_block_id)

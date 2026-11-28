@@ -1797,6 +1797,10 @@ namespace ECProject
         {
           decode_alrc(m_sys_config->k, m_sys_config->r, m_sys_config->z, request_copy->datanodeip_size(), &block_idxs, block_ptrs.data(), reinterpret_cast<unsigned char *>(res_buf), m_sys_config->BlockSize, request_copy->failed_block_id());
         }
+        else if (code_type == "OLRC")
+        {
+          decode_olrc(m_sys_config->k, m_sys_config->r, m_sys_config->z, request_copy->datanodeip_size(), &block_idxs, block_ptrs.data(), reinterpret_cast<unsigned char *>(res_buf), m_sys_config->BlockSize, request_copy->failed_block_id());
+        }
         else if (code_type == "OptimalLRC")
         {
           std::cout << "[Proxy" << m_self_node_id << "][Degrade read] decode_optimal_lrc" << std::endl;
@@ -2058,6 +2062,10 @@ namespace ECProject
         {
           decode_alrc(m_sys_config->k, m_sys_config->r, m_sys_config->z, request_copy->datanodeip_size(), &block_idxs, block_ptrs.data(), reinterpret_cast<unsigned char *>(res_buf), m_sys_config->BlockSize, request_copy->failed_block_id());
         }
+        else if (code_type == "OLRC")
+        {
+          decode_olrc(m_sys_config->k, m_sys_config->r, m_sys_config->z, request_copy->datanodeip_size(), &block_idxs, block_ptrs.data(), reinterpret_cast<unsigned char *>(res_buf), m_sys_config->BlockSize, request_copy->failed_block_id());
+        }
         else if (code_type == "OptimalLRC")
         {
           std::cout << "[Proxy" << m_self_node_id << "][Degrade read] decode_optimal_lrc" << std::endl;
@@ -2211,6 +2219,10 @@ namespace ECProject
       {
         decode_alrc(m_sys_config->k, m_sys_config->r, m_sys_config->z, request_copy->datanodeip_size(), &block_idxs, block_ptrs.data(), reinterpret_cast<unsigned char *>(res_buf), m_sys_config->BlockSize, request_copy->failed_block_id());
       }
+      else if (code_type == "OLRC")
+      {
+        decode_olrc(m_sys_config->k, m_sys_config->r, m_sys_config->z, request_copy->datanodeip_size(), &block_idxs, block_ptrs.data(), reinterpret_cast<unsigned char *>(res_buf), m_sys_config->BlockSize, request_copy->failed_block_id());
+      }
       else if (code_type == "OptimalLRC")
       {
         std::cout << "[Proxy" << m_self_node_id << "][Degrade read] decode_optimal_lrc" << std::endl;
@@ -2360,6 +2372,10 @@ namespace ECProject
       else if (code_type == "ALRC")
       {
         decode_alrc(m_sys_config->k, m_sys_config->r, m_sys_config->z, recovery_request->datanodeip_size(), &block_idxs, block_ptrs.data(), reinterpret_cast<unsigned char *>(res_buf), m_sys_config->BlockSize, failed_block_id);
+      }
+      else if (code_type == "OLRC")
+      {
+        decode_olrc(m_sys_config->k, m_sys_config->r, m_sys_config->z, recovery_request->datanodeip_size(), &block_idxs, block_ptrs.data(), reinterpret_cast<unsigned char *>(res_buf), m_sys_config->BlockSize, failed_block_id);
       }
       else if (code_type == "OptimalLRC")
       {
@@ -2577,6 +2593,10 @@ namespace ECProject
       else if (code_type == "ALRC")
       {
         decode_alrc(m_sys_config->k, m_sys_config->r, m_sys_config->z, recovery_request->datanodeip_size(), &block_idxs, block_ptrs.data(), reinterpret_cast<unsigned char *>(res_buf), m_sys_config->BlockSize, failed_block_id);
+      }
+      else if (code_type == "OLRC")
+      {
+        decode_olrc(m_sys_config->k, m_sys_config->r, m_sys_config->z, recovery_request->datanodeip_size(), &block_idxs, block_ptrs.data(), reinterpret_cast<unsigned char *>(res_buf), m_sys_config->BlockSize, failed_block_id);
       }
       else if (code_type == "OptimalLRC")
       {
@@ -3408,6 +3428,10 @@ namespace ECProject
         {
           decode_alrc(m_sys_config->k, m_sys_config->r, m_sys_config->z, recovery_request->datanodeip_size(), &block_idxs, block_ptrs.data(), reinterpret_cast<unsigned char *>(res_buf), m_sys_config->BlockSize, failed_block_id);
         }
+        else if (code_type == "OLRC")
+        {
+          decode_olrc(m_sys_config->k, m_sys_config->r, m_sys_config->z, recovery_request->datanodeip_size(), &block_idxs, block_ptrs.data(), reinterpret_cast<unsigned char *>(res_buf), m_sys_config->BlockSize, failed_block_id);
+        }
         else if (code_type == "OptimalLRC")
         {
           decode_optimal_lrc(m_sys_config->k, m_sys_config->r, m_sys_config->z, recovery_request->datanodeip_size(), &block_idxs, block_ptrs.data(), reinterpret_cast<unsigned char *>(res_buf), m_sys_config->BlockSize, failed_block_id);
@@ -3769,6 +3793,10 @@ namespace ECProject
         else if (code_type == "ALRC")
         {
           decode_alrc(m_sys_config->k, m_sys_config->r, m_sys_config->z, recovery_request->datanodeip_size(), &block_idxs, block_ptrs.data(), reinterpret_cast<unsigned char *>(res_buf), m_sys_config->BlockSize, failed_block_id);
+        }
+        else if (code_type == "OLRC")
+        {
+          decode_olrc(m_sys_config->k, m_sys_config->r, m_sys_config->z, recovery_request->datanodeip_size(), &block_idxs, block_ptrs.data(), reinterpret_cast<unsigned char *>(res_buf), m_sys_config->BlockSize, failed_block_id);
         }
         else if (code_type == "OptimalLRC")
         {

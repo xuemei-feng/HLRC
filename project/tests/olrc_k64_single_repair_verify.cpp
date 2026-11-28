@@ -78,11 +78,27 @@ int main()
                                                       blocks[sources[source]][byte]);
             require(scalar == blocks[test_case.failed_block_id],
                     test_case.failed_name + " scalar recovery mismatch");
+
+            std::vector<unsigned char> distributed(block_size, 0);
+            const auto physical_plan = ECProject::get_recovery_group_and_block_ids(
+                "OLRC", k, r, z, test_case.failed_block_id);
+            for (const auto &entry : physical_plan) {
+                std::vector<unsigned char *> group_ptrs;
+                for (int source : entry.second) group_ptrs.push_back(blocks[source].data());
+                std::vector<unsigned char> partial(block_size, 0);
+                ECProject::decode_olrc(k, r, z, static_cast<int>(entry.second.size()),
+                                      &entry.second, group_ptrs.data(), partial.data(), block_size,
+                                      test_case.failed_block_id);
+                for (int byte = 0; byte < block_size; ++byte)
+                    distributed[byte] ^= partial[byte];
+            }
+            require(distributed == blocks[test_case.failed_block_id],
+                    test_case.failed_name + " distributed decode mismatch");
         }
 
         require(ECProject::get_recovery_group_and_block_ids("OLRC", k, r, z, 68).empty(),
                 "unsupported failure produced a plan");
-        require(ECProject::get_recovery_group_and_block_ids("OLRC", 96, 3, 7, 99).empty(),
+        require(ECProject::get_recovery_group_and_block_ids("OLRC", 96, 2, 7, 99).empty(),
                 "unsupported parameters produced a plan");
         std::cout << "OLRC k64 L0/L4 single repair verification passed\n";
         return 0;
