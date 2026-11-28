@@ -278,6 +278,15 @@ namespace ECProject
     std::unordered_map<int, int> get_nlrc_block_id_to_group_id(int k, int r, int z);
     std::unordered_map<int, std::vector<int>> get_nlrc_group_id_to_block_ids(int k, int r, int z);
 
+    /* ALRC encoding placement layouts. */
+    std::vector<std::vector<int>> get_alrc_local_group_block_ids(int k, int r, int z);
+    int get_alrc_block_id_to_local_group_id(int k, int r, int z, int block_id);
+    std::vector<int> get_data_block_num_per_group_alrc(int k, int r, int z);
+    std::vector<int> get_global_parity_block_num_per_group_alrc(int k, int r, int z);
+    std::vector<int> get_local_parity_block_num_per_group_alrc(int k, int r, int z);
+    std::unordered_map<int, int> get_alrc_block_id_to_group_id(int k, int r, int z);
+    std::unordered_map<int, std::vector<int>> get_alrc_group_id_to_block_ids(int k, int r, int z);
+
     /* HLRC encoding placement layouts. */
     std::vector<int> get_data_block_num_per_group_hlrc(int k, int r, int z);
     std::vector<int> get_global_parity_block_num_per_group_hlrc(int k, int r, int z);

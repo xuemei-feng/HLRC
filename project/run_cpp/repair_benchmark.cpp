@@ -493,6 +493,21 @@ std::vector<DoubleRepairCase> make_lotus_k96_double_block_cases(int r)
   return cases;
 }
 
+std::vector<RepairCase> make_alrc_k64_single_block_cases()
+{
+  std::vector<RepairCase> cases;
+  RepairCase l0{"L0", 67, {}};
+  append_range(l0.source_block_ids, 0, 20);
+  cases.push_back(l0);
+  RepairCase l4{"L4", 71, {}};
+  append_range(l4.source_block_ids, 42, 63);
+  cases.push_back(l4);
+  RepairCase g0{"G0", 64, {}};
+  append_range(g0.source_block_ids, 0, 63);
+  cases.push_back(g0);
+  return cases;
+}
+
 bool make_repair_plan(const std::string &code_type, int k,
                       const std::string &failure_type, int configured_r,
                       RepairPlan &plan, std::string &error)
@@ -918,7 +933,7 @@ bool make_repair_plan(const std::string &code_type, int k,
   if (code_type == "ALRC")
   {
     const bool supported_k64 = k == 64 &&
-        (failure_type == "double" || failure_type == "triple" || failure_type == "quadruple");
+        (failure_type == "single" || failure_type == "double" || failure_type == "triple" || failure_type == "quadruple");
     const bool supported_k96 = k == 96 &&
         (failure_type == "single" || failure_type == "double" || failure_type == "triple" ||
          failure_type == "quadruple");
@@ -935,13 +950,14 @@ bool make_repair_plan(const std::string &code_type, int k,
     plan.required_z = k == 128 ? 9 : (k == 96 ? 7 : 5);
     if (configured_r != plan.required_r)
     {
-      error = "ALRC k=64 " + failure_type + " requires r=3";
+      error = "ALRC k=" + std::to_string(k) + " " + failure_type + " requires r=3";
       return false;
     }
     if (failure_type == "single")
       plan.single_cases = k == 128
           ? ECProject::RepairBenchmark::make_alrc_k128_single_block_cases()
-          : ECProject::RepairBenchmark::make_alrc_k96_single_block_cases();
+          : (k == 96 ? ECProject::RepairBenchmark::make_alrc_k96_single_block_cases()
+                     : make_alrc_k64_single_block_cases());
     else if (failure_type == "double")
       plan.double_cases = k == 128
           ? ECProject::RepairBenchmark::make_alrc_k128_double_block_cases()

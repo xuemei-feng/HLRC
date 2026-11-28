@@ -49,7 +49,7 @@ int main()
         for (int failed = 0; failed < k + r + z; ++failed)
             if (failed != 64 && failed != 67 && failed != 71)
                 require(ECProject::get_recovery_group_and_block_ids("ALRC", k, r, z, failed).empty(), "unsupported failure produced a plan");
-        require(ECProject::get_recovery_group_and_block_ids("ALRC", 96, 3, 7, 99).empty(), "unsupported parameters produced a plan");
+        require(ECProject::get_recovery_group_and_block_ids("ALRC", 96, 2, 7, 99).empty(), "unsupported parameters produced a plan");
         std::cout << "ALRC k64 L0/L4/G0 single repair verification passed" << std::endl;
         return 0;
     } catch (const std::exception &error) {

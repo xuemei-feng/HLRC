@@ -1603,3 +1603,10 @@ target_include_directories(olrc_k128_quadruple_repair_verify PRIVATE ${CMAKE_CUR
 target_link_libraries(olrc_k128_quadruple_repair_verify -lpthread -lJerasure -lgf_complete)
 add_test(NAME olrc_k128_quadruple_repair_verify COMMAND olrc_k128_quadruple_repair_verify)
 set_tests_properties(olrc_k128_quadruple_repair_verify PROPERTIES TIMEOUT 30)
+
+add_executable(alrc_layout_verify
+    ${CMAKE_CURRENT_SOURCE_DIR}/tests/alrc_layout_verify.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/encoder_layout.cpp)
+target_include_directories(alrc_layout_verify PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+add_test(NAME alrc_layout_verify COMMAND alrc_layout_verify)
+set_tests_properties(alrc_layout_verify PROPERTIES TIMEOUT 30)

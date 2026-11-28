@@ -34,6 +34,8 @@ int get_block_id_to_local_group_id(const std::string &code_type, int k, int r, i
         return get_lotuslrc_block_id_to_local_group_id(k, r, z, block_id);
     if (code_type == "NLRC")
         return get_nlrc_block_id_to_local_group_id(k, r, z, block_id);
+    if (code_type == "ALRC")
+        return get_alrc_block_id_to_local_group_id(k, r, z, block_id);
     throw std::runtime_error("unknown code type for local group id: " + code_type);
 }
 
@@ -626,9 +628,17 @@ std::vector<std::pair<int, std::vector<int>>> get_recovery_group_and_block_ids(c
     else
       return {};
 
-    // ALRC placement is not part of the encoding-only implementation yet. Keep
-    // the exact ordered read set in one logical recovery group.
-    return {{0, std::move(sources)}};
+    const auto placement = get_alrc_block_id_to_group_id(k, r, z);
+    std::vector<std::pair<int, std::vector<int>>> plan;
+    for (int source : sources) {
+      const int physical = placement.at(source);
+      auto it = std::find_if(plan.begin(), plan.end(), [physical](const auto &entry) {
+        return entry.first == physical;
+      });
+      if (it == plan.end()) plan.push_back({physical, {source}});
+      else it->second.push_back(source);
+    }
+    return plan;
   }
   else if (code_type == "NLRC")
   {
